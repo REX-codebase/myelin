@@ -1,0 +1,22 @@
+{
+    "version": "0.2.1",
+    "description": "Rule ledgers that keep AI-written code on current library versions",
+    "homepage": "https://github.com/REX-codebase/myelin",
+    "license": "MIT",
+    "depends": "nodejs",
+    "url": "https://github.com/REX-codebase/myelin/archive/refs/tags/v0.2.1.zip",
+    "hash": "REPLACE_WITH_RELEASE_SHA256",
+    "extract_dir": "myelin-0.2.1",
+    "installer": {
+        "script": [
+            "Set-Content -Path (Join-Path $dir 'myelin.cmd') -Encoding ASCII -Value @('@echo off', 'node \"%~dp0bin\\myelin.mjs\" %*')"
+        ]
+    },
+    "bin": "myelin.cmd",
+    "notes": "Run 'myelin setup' to get started. Myelin needs Node.js 18 or newer, which this manifest installs as a dependency.",
+    "checkver": "github",
+    "autoupdate": {
+        "url": "https://github.com/REX-codebase/myelin/archive/refs/tags/v$version.zip",
+        "extract_dir": "myelin-$version"
+    }
+}

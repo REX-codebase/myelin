@@ -23,14 +23,20 @@ export function blockState(text) {
   return 'ok';
 }
 
-// The snippet tailored to the chosen ledgers. A line with <ledger> is repeated once per
-// ledger when it names one (gate, snippet); lint takes a comma list, so it gets them all.
+// The snippet tailored to the chosen ledgers. gate and snippet take one ledger, so their
+// bullet is repeated per ledger; lint takes a comma list, so its line names them all.
 export function agentBlock(ids) {
   const paths = ids.map((id) => `.myelin/${id}.myelin`);
+  const lines = readFileSync(SNIPPET, 'utf8').trimEnd().split('\n');
   const body = [];
-  for (const line of readFileSync(SNIPPET, 'utf8').trimEnd().split('\n')) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     if (line.startsWith('This project keeps hard rules')) {
       body.push(`This project keeps hard rules in \`.myelin/\` ledgers: ${ids.join(', ')}.`);
+    } else if (line.startsWith('- ') && lines[i + 1]?.includes('<ledger>') && !lines[i + 1].includes('lint')) {
+      // A bullet whose continuation names a single ledger: one whole bullet per ledger.
+      const cont = lines[++i].trim();
+      for (const p of paths) body.push(`${line} ${cont.replaceAll('<ledger>', p)}`);
     } else if (line.includes('<ledger>') && !line.includes('lint')) {
       for (const p of paths) body.push(line.replaceAll('<ledger>', p));
     } else {
@@ -70,7 +76,7 @@ function parseLibs(v) {
   if (v === undefined) return undefined;
   if (v === true) throw new CliError('--libs needs a value, e.g. --libs=react,tailwind');
   const ids = [...new Set(String(v).split(',').map((s) => s.trim()).filter(Boolean))];
-  for (const id of ids) if (!libPath(id)) throw new CliError(`no bundled lib named ${id}. Run "myelin libs".`, 1);
+  for (const id of ids) if (!libPath(id)) throw new CliError(`no bundled lib named ${id}. Run "myelin libs".`);
   return ids;
 }
 
@@ -122,12 +128,16 @@ async function pickTarget() {
   }
 }
 
-const ACTION_LABEL = {
+const LEDGER_LABEL = {
   create: ['create', 'copied from the bundled ledger'],
+  same: ['unchanged', ''],
+  kept: ['kept', 'differs from the bundled ledger; left as is'],
+};
+const AGENT_LABEL = {
+  create: ['create', 'new file holding only the myelin block'],
   append: ['add block', 'appended after your existing content'],
   replace: ['update block', 'only the text between the markers changes'],
   same: ['unchanged', ''],
-  kept: ['kept', 'differs from the bundled ledger; left as is'],
 };
 
 function planAgent(dir, name, ids) {
@@ -155,7 +165,8 @@ function firstLint(dir, ledgers) {
       ui.warn(`lint src/ with ${l.id}: ${r.violations.length} failure(s) in ${units.length} file(s)`);
     }
   }
-  if (!failed.length) ui.ok(`lint src/: clean against ${ledgers.map((l) => l.id).join(', ')} (${units.length} files)`);
+  const n = `${units.length} file${units.length === 1 ? '' : 's'}`;
+  if (!failed.length) ui.ok(`lint src/: clean against ${ledgers.map((l) => l.id).join(', ')} (${n})`);
   else ui.note(`setup did not fail on this. See the details: myelin fix ${failed.join(',')} src/`);
 }
 
@@ -216,11 +227,11 @@ export async function setup(flags) {
     const agent = TARGETS[where] ? planAgent(dir, TARGETS[where], ids) : null;
 
     const rows = ledgers.map((l) => {
-      const [label, note] = ACTION_LABEL[l.action];
+      const [label, note] = LEDGER_LABEL[l.action];
       return [label, relative(dir, l.dest), l.action === 'kept' ? `${note}; myelin use ${l.id} --force replaces it` : note];
     });
     if (agent) {
-      const [label, note] = ACTION_LABEL[agent.action];
+      const [label, note] = AGENT_LABEL[agent.action];
       rows.push([label, basename(agent.file), note]);
     }
     console.log(ui.table(rows, { head: ['action', 'file', 'note'] }));

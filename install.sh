@@ -36,14 +36,7 @@ CYAN=""
 RESET=""
 OK_G="+"
 BAD_G="x"
-WARN_G="!"
 DOT="*"
-BOX_V="|"
-BOX_H="-"
-BOX_TL="+"
-BOX_TR="+"
-BOX_BL="+"
-BOX_BR="+"
 
 NODE_BIN=""
 NODE_VERSION=""
@@ -75,12 +68,6 @@ init_ui() {
       OK_G="✓"
       BAD_G="✗"
       DOT="◆"
-      BOX_V="│"
-      BOX_H="─"
-      BOX_TL="╭"
-      BOX_TR="╮"
-      BOX_BL="╰"
-      BOX_BR="╯"
       ;;
   esac
 }

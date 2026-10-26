@@ -1,0 +1,83 @@
+name: install-test
+
+# Runs the one-line installers against the exact commit under review.
+on:
+  pull_request:
+    paths:
+      - "install.sh"
+      - "install.ps1"
+      - ".github/workflows/install-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  posix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      MYELIN_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Lint the script
+        run: sh -n install.sh
+
+      - name: Install
+        run: sh install.sh
+
+      - name: Check the installed CLI
+        run: |
+          "$HOME/.local/bin/myelin" version
+          "$HOME/.local/bin/myelin" libs > "$RUNNER_TEMP/libs.txt"
+          grep -q three "$RUNNER_TEMP/libs.txt"
+
+      - name: Upgrade in place
+        run: sh install.sh
+
+      - name: Uninstall
+        run: |
+          sh install.sh --uninstall --yes
+          test ! -e "$HOME/.local/bin/myelin"
+          test ! -e "$HOME/.myelin/app"
+
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [pwsh, powershell]
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    env:
+      MYELIN_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install
+        run: ./install.ps1 -NoModifyPath
+
+      - name: Check the installed CLI
+        run: |
+          $launcher = Join-Path $env:LOCALAPPDATA 'Myelin\bin\myelin.cmd'
+          if (-not (Test-Path -LiteralPath $launcher)) { throw "launcher missing: $launcher" }
+          $out = & $launcher libs
+          if ($LASTEXITCODE -ne 0) { throw "myelin libs exited with $LASTEXITCODE" }
+          if (-not ($out -match 'three')) { throw 'myelin libs did not list three' }
+
+      - name: Uninstall
+        run: |
+          ./install.ps1 -Uninstall -Yes
+          if (Test-Path -LiteralPath (Join-Path $env:LOCALAPPDATA 'Myelin\bin\myelin.cmd')) { throw 'launcher still present' }
+          if (Test-Path -LiteralPath (Join-Path $env:LOCALAPPDATA 'Myelin\app')) { throw 'app still present' }
