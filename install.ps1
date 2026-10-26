@@ -140,6 +140,14 @@ function Install-Myelin {
         Say-Ok 'Myelin is uninstalled.'
     }
 
+    function Invoke-Node([string[]]$nodeArgs) {
+        # Reads the whole pipeline (no Select-Object -First) so Windows PowerShell 5.1
+        # does not leave a stale non-zero $LASTEXITCODE behind.
+        $out = @(& $node @nodeArgs 2>$null)
+        if ($LASTEXITCODE -ne 0 -or $out.Count -eq 0) { return '' }
+        return [string]$out[0]
+    }
+
     $failed = $false
     $stage = $null
     $backup = $null
@@ -169,7 +177,7 @@ function Install-Myelin {
         }
         $node = $nodeCmd.Source
         $nodeVersion = ''
-        try { $nodeVersion = [string](& $node -p 'process.versions.node' 2>$null | Select-Object -First 1) } catch { $nodeVersion = '' }
+        try { $nodeVersion = Invoke-Node @('-p', 'process.versions.node') } catch { $nodeVersion = '' }
         $nodeMajor = 0
         if ($nodeVersion -match '^(\d+)\.') { $nodeMajor = [int]$Matches[1] }
         if ($nodeMajor -lt $minNodeMajor) {
@@ -223,7 +231,7 @@ function Install-Myelin {
         Move-Item -LiteralPath $top.FullName -Destination $stage
 
         $newVersion = ''
-        try { $newVersion = [string](& $node (Join-Path $stage 'bin\myelin.mjs') version 2>$null | Select-Object -First 1) } catch { $newVersion = '' }
+        try { $newVersion = Invoke-Node @((Join-Path $stage 'bin\myelin.mjs'), 'version') } catch { $newVersion = '' }
         if (-not $newVersion) {
             throw 'The new build failed its self-check. Your existing install, if any, was left as it was.'
         }
@@ -231,7 +239,7 @@ function Install-Myelin {
 
         $previous = ''
         if (Test-Path -LiteralPath $appDir) {
-            try { $previous = [string](& $node $appEntry version 2>$null | Select-Object -First 1) } catch { $previous = '' }
+            try { $previous = Invoke-Node @($appEntry, 'version') } catch { $previous = '' }
             $backup = Join-Path $root ('.previous-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
             try {
                 Move-Item -LiteralPath $appDir -Destination $backup
@@ -314,6 +322,8 @@ function Install-Myelin {
     }
 
     if ($failed -and $PSCommandPath) { exit 1 }
+    # CI wrappers end the step with $LASTEXITCODE; a successful run must not leave one behind.
+    if (-not $failed) { $global:LASTEXITCODE = 0 }
 }
 
 Install-Myelin
