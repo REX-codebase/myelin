@@ -140,7 +140,7 @@ function addAttr(geo, name, size, fill) {
 
 function sheathProfile(h) {
   const pts = [];
-  const N = 44;
+  const N = 30;
   const e = Math.min(0.8, h * 0.17);
   const r0 = CORE_R * 0.97;
   for (let i = 0; i <= N; i++) {
@@ -170,7 +170,7 @@ function buildAxon() {
     frameAt(c, P, T, R, U);
     q.setFromUnitVectors(UP, T);
     m.compose(P, q, new THREE.Vector3(1, 1, 1));
-    const g = new THREE.LatheGeometry(sheathProfile(h), 56);
+    const g = new THREE.LatheGeometry(sheathProfile(h), 44);
     g.applyMatrix4(m);
     addAttr(g, 'aD', 1, (a, i, geo) => {
       // local y of this vertex, recovered from world position along the tangent
@@ -180,7 +180,7 @@ function buildAxon() {
     sheaths.push(g);
     nodeD.push(d + h + gap / 2);
     // naked-axon swelling at the node that follows this segment
-    const b = new THREE.SphereGeometry(1, 20, 14);
+    const b = new THREE.SphereGeometry(1, 16, 10);
     const nc = d + h + gap / 2;
     frameAt(nc, P, T, R, U);
     q.setFromUnitVectors(UP, T);
@@ -224,11 +224,11 @@ function buildArbor() {
       endP.clone().addScaledVector(T, F * 0.78).addScaledVector(lat, 0.82),
       end
     ], false, 'centripetal');
-    const { geo, len } = tube(path, 72, 0.07, 6, L - 5);
+    const { geo, len } = tube(path, 48, 0.07, 6, L - 5);
     tubes.push(geo);
     ends.push({ end, d: L - 5 + len });
     const r = i === N_BRANCH - 1 ? 0.5 : 0.56;
-    const s = new THREE.SphereGeometry(r, 26, 18);
+    const s = new THREE.SphereGeometry(r, 22, 14);
     s.translate(end.x, end.y, end.z);
     addAttr(s, 'aD', 1, (a, j) => { a[j] = L - 5 + len; });
     addAttr(s, 'aId', 1, (a, j) => { a[j] = i; });
@@ -248,7 +248,7 @@ function makeMaterials() {
   const sheath = new THREE.MeshPhysicalNodeMaterial({
     color: 0xc9ceda, roughness: 0.2, metalness: 0,
     clearcoat: 1, clearcoatRoughness: 0.035,
-    iridescence: 0.55, iridescenceIOR: 1.32, sheen: 0.6, sheenRoughness: 0.4, sheenColor: new THREE.Color(0.55, 0.66, 1)
+    sheen: 0.6, sheenRoughness: 0.4, sheenColor: new THREE.Color(0.55, 0.66, 1)
   });
   const aA = attribute('aA', 'float');
   sheath.roughnessNode = float(0.17).add(mx_noise_float(vec3(aD.mul(0.9), aA.mul(1.6), 0.3)).mul(0.07));
@@ -281,6 +281,7 @@ function makeMaterials() {
 /* dust and bokeh: view-aligned quads built by hand                    */
 /* ------------------------------------------------------------------ */
 function quadField(count, place, bokeh) {
+  const rnd01 = rng(bokeh ? 311 : 173);
   const pos = new Float32Array(count * 4 * 3);
   const corner = new Float32Array(count * 4 * 2);
   const ctr = new Float32Array(count * 4 * 3);
@@ -289,7 +290,7 @@ function quadField(count, place, bokeh) {
   const cs = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
   for (let i = 0; i < count; i++) {
     const c = place(i);
-    const r = [Math.random(), Math.random(), Math.random(), Math.random()];
+    const r = [rnd01(), rnd01(), rnd01(), rnd01()];
     for (let k = 0; k < 4; k++) {
       const v = i * 4 + k;
       corner[v * 2] = cs[k][0]; corner[v * 2 + 1] = cs[k][1];
@@ -383,7 +384,14 @@ const KEYS = Object.keys(POSES.top);
 /* ------------------------------------------------------------------ */
 /* boot                                                                */
 /* ------------------------------------------------------------------ */
+/** Let input and paint run between the heavy boot steps. */
+const breathe = () => (globalThis.scheduler && globalThis.scheduler.yield ? globalThis.scheduler.yield() : new Promise((r) => setTimeout(r, 0)));
+
+/** Named marks show up in the browser's Performance panel as myelin:<stage>. */
+const mark = (name) => { try { performance.mark('myelin:' + name); } catch (e) { /* no performance API */ } };
+
 async function boot() {
+  mark('boot');
   if (!root.classList.contains('js')) return;
   if (navigator.connection && navigator.connection.saveData) return;
   const host = document.getElementById('gl');
@@ -391,15 +399,23 @@ async function boot() {
 
   const tierParam = params.get('q');
   let tier = tierParam !== null ? Number(tierParam) : (coarse || Math.min(screen.width, screen.height) < 700 ? 0 : 1);
-  let dprCap = tier === 0 ? 1.25 : 1.75;
+  // Cost scales with pixels, not CSS size, so cap the pixel count: a 4K monitor or a retina laptop
+  // renders fewer pixels than its native grid, which this soft, glowing scene never shows.
+  const PIXEL_BUDGET = [1.1e6, 2.4e6][tier === 0 ? 0 : 1];
+  const RATIO_CAP = tier === 0 ? 1.25 : 1.75;
+  let ratioScale = 1;                                    // the quality ladder lowers this
+  const pixelRatio = () => MathU.clamp(ratioScale * Math.min(window.devicePixelRatio || 1, RATIO_CAP,
+    Math.sqrt(PIXEL_BUDGET / (window.innerWidth * window.innerHeight))), 0.6, 2);
 
-  const renderer = new THREE.WebGPURenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+  const renderer = new THREE.WebGPURenderer({ antialias: !(DEBUG && params.get('aa') === '0'), alpha: false, powerPreference: 'high-performance' });
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, dprCap));
+  renderer.setPixelRatio(pixelRatio());
   renderer.setSize(window.innerWidth, window.innerHeight);
   host.appendChild(renderer.domElement);
   await renderer.init();
+  mark('renderer-init');
+  await breathe();
 
   const scene = new THREE.Scene();
   const haze = new THREE.Color().setRGB(0.0062, 0.0085, 0.021, THREE.LinearSRGBColorSpace);
@@ -418,6 +434,8 @@ async function boot() {
   const studio = pmrem.fromScene(buildStudio(), 0.025);
   scene.environment = studio.texture;
   scene.environmentIntensity = 0.9;
+  mark('environment');
+  await breathe();
   const pulseLamp = new THREE.PointLight(0x6f94ff, 0, 22, 2);
   scene.add(pulseLamp);
   const key = new THREE.DirectionalLight(0xdfe6ff, 1.6);
@@ -429,11 +447,14 @@ async function boot() {
   const { sheath, bulges } = buildAxon();
   scene.add(new THREE.Mesh(sheath, mats.sheath));
   scene.add(new THREE.Mesh(bulges, mats.node));
-  const core = tube(curve, 1100, CORE_R, 8, -D0);
+  // the naked axon only shows in the node gaps, so it needs far fewer segments than its length suggests
+  const core = tube(curve, 520, CORE_R, 6, -D0);
   scene.add(new THREE.Mesh(core.geo, mats.core));
   const arbor = buildArbor();
   scene.add(new THREE.Mesh(arbor.tubes, mats.twig));
   scene.add(new THREE.Mesh(arbor.boutons, mats.bouton));
+  mark('geometry');
+  await breathe();
 
   const nDust = tier === 0 ? 1100 : 2400;
   const rd = rng(91);
@@ -448,6 +469,7 @@ async function boot() {
   };
   scene.add(quadField(nDust, dustPlace, false));
   scene.add(quadField(tier === 0 ? 40 : 90, dustPlace, true));
+  mark('particles');
 
   // post: bloom, depth of field, lens fringe, grain, vignette, fade
   const uExposure = uniform(1);
@@ -460,18 +482,34 @@ async function boot() {
   const scenePass = pass(scene, camera);
   const sceneColor = scenePass.getTextureNode('output');
   const viewZ = scenePass.getViewZNode();
-  const base = tier > 0 ? dof(sceneColor, viewZ, uFocus, uRange, uBokeh) : sceneColor;
-  const lit = base.add(bloom(base, 1, 0.34, 1.6).mul(uBloom));
-  // r186 does not default a null centre to mid-screen despite its docs, so pass one
-  const fringed = chromaticAberration(lit, uAberr, vec2(0.5, 0.5), 1.14);
-  const v = length(screenUV.sub(0.5)).mul(1.35);
-  const vignette = float(1).sub(smoothstep(0.38, 1.05, v).mul(0.82));
-  const graded = fringed.mul(vignette);
-  const grained = film(graded, 0.16);
   const pipeline = new THREE.RenderPipeline(renderer);
-  pipeline.outputNode = vec4(grained.rgb.mul(uExposure).mul(uFade).add(vec3(0.8, 0.85, 1).mul(uFlash).mul(0.06)), 1);
+  /** The whole post chain. Rebuilt when the quality ladder drops a pass. */
+  function buildOutput(opts) {
+    const base = opts.dof ? dof(sceneColor, viewZ, uFocus, uRange, uBokeh) : sceneColor;
+    const lit = base.add(bloom(base, 1, 0.34, 1.6).mul(uBloom));
+    // r186 does not default a null centre to mid-screen despite its docs, so pass one
+    const fringed = opts.fringe ? chromaticAberration(lit, uAberr, vec2(0.5, 0.5), 1.14) : lit;
+    const v = length(screenUV.sub(0.5)).mul(1.35);
+    const vignette = float(1).sub(smoothstep(0.38, 1.05, v).mul(0.82));
+    const graded = fringed.mul(vignette);
+    const grained = opts.grain ? film(graded, 0.16) : graded;
+    pipeline.outputNode = vec4(grained.rgb.mul(uExposure).mul(uFade).add(vec3(0.8, 0.85, 1).mul(uFlash).mul(0.06)), 1);
+    pipeline.needsUpdate = true;
+  }
+  const post = { dof: tier > 0, fringe: tier > 0, grain: true };
+  buildOutput(post);
+  mark('post-graph');
+  await breathe();
 
   /* ---- scroll to chapter ---- */
+  // the white "limits" section hides the canvas completely, so skip rendering while it does
+  const limits = document.getElementById('limits');
+  let isCovered = false;
+  function updateCovered() {
+    if (!limits) return;
+    const r = limits.getBoundingClientRect();
+    isCovered = r.top <= 0 && r.bottom >= window.innerHeight;
+  }
   const secs = ORDER.map((id) => document.getElementById(id));
   const anchors = [];
   function measure() {
@@ -480,6 +518,7 @@ async function boot() {
       const r = el.getBoundingClientRect();
       anchors[i] = r.top + window.scrollY + r.height / 2;
     });
+    updateCovered();
   }
   measure();
   function chapterAtScroll() {
@@ -612,13 +651,8 @@ async function boot() {
   /* ---- loop ---- */
   const timer = new THREE.Timer();
   timer.connect(document);
-  let ready = false, hidden = false, frames = 0, acc = 0;
-  const limits = document.getElementById('limits');
-  function covered() {
-    if (!limits) return false;
-    const r = limits.getBoundingClientRect();
-    return r.top <= 0 && r.bottom >= window.innerHeight;
-  }
+  let ready = false, hidden = false;
+  window.addEventListener('scroll', updateCovered, { passive: true });
 
   function frame(dt, wall) {
     csTarget = chapterAtScroll();
@@ -632,23 +666,46 @@ async function boot() {
     pipeline.render();
   }
 
+  // Quality ladder: when frames run long, drop the costliest, least visible work first.
+  const dropPost = (key) => () => { if (!post[key]) return false; post[key] = false; buildOutput(post); return true; };
+  const dropPixels = () => {
+    const before = renderer.getPixelRatio();
+    ratioScale *= 0.8;
+    renderer.setPixelRatio(pixelRatio());
+    return renderer.getPixelRatio() < before;            // false once the 0.6 floor is reached
+  };
+  const LADDER = [dropPost('fringe'), dropPost('dof'), dropPixels, dropPost('grain'), dropPixels];
+  let rung = 0, settle = 45, sample = 0, sampled = 0;
+  function watchFrameTime(wall) {
+    if (tierParam !== null || rung >= LADDER.length) return;
+    if (settle > 0) { settle--; return; }              // shader recompiles and resizes hitch; ignore them
+    if (wall >= 0.25) return;                           // a stall, not a rate
+    sample += wall; sampled++;
+    if (sampled < 60) return;
+    const avg = sample / sampled;
+    sample = 0; sampled = 0;
+    if (avg > 0.024) {                                   // slower than ~42 fps
+      while (rung < LADDER.length && !LADDER[rung++]()) { /* skip rungs that have nothing left to give */ }
+      settle = 45;
+    }
+  }
+
+  // A 120 or 144 Hz display would otherwise render this slow scene 2 to 2.4 times as often as a 60 Hz one.
+  const FRAME_MIN = 0.0095;
+  let sinceRender = 0;
   function onTick(ts) {
     timer.update(ts);
     if (hidden) return;
     // the first delta can be slightly negative: rAF stamps predate the timer's start
-    const wall = Math.max(0, Math.min(timer.getDelta(), 0.25));
+    sinceRender += Math.max(0, timer.getDelta());
+    if (sinceRender < FRAME_MIN) return;
+    const wall = Math.min(sinceRender, 0.25);
+    sinceRender = 0;
     const dt = Math.min(wall, 0.05);
-    if (covered()) { cs = chapterAtScroll(); return; }
+    if (isCovered) { cs = chapterAtScroll(); return; }
     frame(dt, wall);
-    if (!ready) { ready = true; root.classList.add('gl'); }
-    // adaptive quality: step the pixel ratio down if frames run long
-    if (tierParam === null) {
-      acc += dt; frames++;
-      if (frames >= 90) {
-        const avg = acc / frames; frames = 0; acc = 0;
-        if (avg > 0.034 && dprCap > 0.85) { dprCap -= 0.25; renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, dprCap)); }
-      }
-    }
+    if (!ready) { ready = true; root.classList.add('gl'); mark('first-frame'); }
+    watchFrameTime(wall);
   }
 
   if (reduce) {
@@ -661,7 +718,7 @@ async function boot() {
   window.addEventListener('resize', () => {
     clearTimeout(rt);
     rt = setTimeout(() => {
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, dprCap));
+      renderer.setPixelRatio(pixelRatio());
       renderer.setSize(window.innerWidth, window.innerHeight);
       measure();
     }, 120);
@@ -678,7 +735,9 @@ async function boot() {
 
   if (DEBUG) {
     window.__myelin = {
-      renderer, scene, camera, pulses, tier, pipeline, timer,
+      renderer, scene, camera, pulses, tier, pipeline, timer, post,
+      rebuild(o) { Object.assign(post, o); buildOutput(post); },
+      ladder: () => ({ rung, ratioScale: +ratioScale.toFixed(3), ratio: +renderer.getPixelRatio().toFixed(3), post: { ...post }, covered: isCovered }),
       uniforms: { uTime, uHover, uHoverAmp, uStreak, uFlash, uExposure, uFade, uFocus, uRange, uBokeh, uBloom, uAberr },
       /** Render one deterministic frame at chapter c with pulses parked at offsets from the camera. */
       still(c, offsets) {

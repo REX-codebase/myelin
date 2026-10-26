@@ -57,3 +57,19 @@ test('pulse light cannot overflow into NaN', () => {
   // which blacks out every lit surface, so the trail exponent must be clamped.
   assert.match(scene, /exp\(min\(x, 0\)\.div\(trailL\)\)/, 'trail exponent is not clamped to <= 0');
 });
+
+test('every addon the scene imports is preloaded, so the module graph is not a waterfall', () => {
+  const addons = [...scene.matchAll(/from 'three\/addons\/([^']+)'/g)].map((m) => m[1]);
+  assert.ok(addons.length >= 4, 'expected the scene to import several addons');
+  for (const a of addons) assert.ok(page.includes(`examples/jsm/${a}"`), `no modulepreload for ${a}`);
+  // the addons' own dependency, which would otherwise be a second serial round trip
+  assert.ok(page.includes('display/GaussianBlurNode.js"'), 'GaussianBlurNode (imported by DepthOfFieldNode) is not preloaded');
+  for (const core of ['three.core.js', 'three.webgpu.js', 'three.tsl.js']) assert.ok(page.includes(`build/${core}"`), `no modulepreload for ${core}`);
+});
+
+test('the quality ladder only drops work, never adds it, and ends above a legible floor', () => {
+  assert.match(scene, /const LADDER = \[/);
+  assert.match(scene, /ratioScale \*= 0\.8/, 'pixel rung does not scale the ratio down');
+  assert.match(scene, /MathU\.clamp\(ratioScale \* Math\.min\(window\.devicePixelRatio \|\| 1, RATIO_CAP,[\s\S]*?, 0\.6, 2\)/, 'pixel ratio is not floored at 0.6');
+  assert.match(scene, /\.\.\.LADDER\[rung\+\+\]\(\)|!LADDER\[rung\+\+\]\(\)/, 'ladder does not skip rungs that are already spent');
+});
