@@ -1,72 +1,72 @@
 <p align="center">
-  <img src="assets/hero.svg" alt="Myelin: your AI learned last year's docs. Myelin teaches it this year's." width="100%">
+  <img src="assets/hero.svg" alt="Myelin. Your AI learned last year's docs. Myelin teaches it this year's." width="100%">
 </p>
 
 <p align="center">
-  <a href="#-30-second-start"><img alt="zero dependencies" src="https://img.shields.io/badge/dependencies-0-5ff4ff?style=for-the-badge&labelColor=05070d"></a>
-  <a href="#-the-library-shelf"><img alt="13 libraries" src="https://img.shields.io/badge/libraries-13-7dff9a?style=for-the-badge&labelColor=05070d"></a>
-  <a href="BENCHMARKS.md"><img alt="benchmarks" src="https://img.shields.io/badge/benchmarks-reproducible-ff6b8b?style=for-the-badge&labelColor=05070d"></a>
-  <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-e9eef7?style=for-the-badge&labelColor=05070d"></a>
+  <b>Rule ledgers that keep AI-written code on the current version of your libraries.</b><br>
+  One plain-text file. A model reads it. A script enforces it.
 </p>
 
-<h3 align="center">AI writes three.js like it's 2023. React like it's 2022. Tailwind like it's v3.<br>Myelin catches it, and hands back the fix.</h3>
+<p align="center">
+  <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
+  <a href="#libraries">Libraries</a> &nbsp;·&nbsp;
+  <a href="#evidence">Evidence</a> &nbsp;·&nbsp;
+  <a href="#constraints">Constraints</a> &nbsp;·&nbsp;
+  <a href="docs/SPEC.md">Spec</a>
+</p>
+
+<p align="center">
+  <img alt="zero dependencies" src="https://img.shields.io/badge/dependencies-0-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
+  <img alt="13 libraries" src="https://img.shields.io/badge/libraries-13-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
+  <img alt="node 18+" src="https://img.shields.io/badge/node-%E2%89%A518-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
+  <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
+</p>
 
 <br>
 
-<p align="center"><img src="assets/compare.svg" alt="What your AI writes vs what the library wants now" width="100%"></p>
+## The problem
 
-## ⚡ See it
+Models are trained on yesterday's documentation. They write `new THREE.Clock()`, `ReactDOM.render`, `@tailwind base`, and synchronous `cookies()` with total confidence. The code looks right and then breaks, or warns, or quietly ships a deprecated API.
+
+Myelin is a checklist the model can read and a linter the machine can run, from the same file.
+
+<p align="center"><img src="assets/compare.svg" alt="What your AI writes versus what the library expects now" width="100%"></p>
+
+<br>
+
+## Quick start
+
+No install. No config. Node 18 or newer.
+
+```bash
+npx github:REX-codebase/myelin detect                 # which ledgers fit this project
+npx github:REX-codebase/myelin lint three,react src/  # check code, exit 1 on any violation
+```
+
+No tools in your chat window? Hand the rules to the model as text.
+
+```bash
+npx github:REX-codebase/myelin gate three --all | pbcopy
+```
 
 <p align="center"><img src="assets/demo.svg" alt="myelin lint catching five stale three.js APIs, then passing clean" width="100%"></p>
 
-## 🚀 30-second start
+<br>
 
-```bash
-npx github:REX-codebase/myelin detect          # which libraries does this project use?
-npx github:REX-codebase/myelin lint three,react src/
-```
+## How it works
 
-Pipe the rules straight into any model, no tools needed:
+<p align="center"><img src="assets/how.svg" alt="A ledger is read by the model before it writes and run as a check after" width="100%"></p>
 
-```bash
-npx github:REX-codebase/myelin gate three --all | pbcopy   # paste into ChatGPT, Claude, Gemini…
-```
-
-## 🧠 How it works
-
-<p align="center"><img src="assets/how.svg" alt="ledger → model reads the rules → script checks → current code" width="100%"></p>
-
-**One file, two readers.** A model reads the ledger as text and follows it. A script runs every rule as a regex and fails CI when it doesn't.
-
-## 📚 The library shelf
-
-<p align="center"><img src="assets/libs.svg" alt="Bundled ledgers: three.js r186, React 19, Next.js 16, Tailwind 4, Svelte 5, Zod 4, Express 5, ESLint 10, AI SDK 7, React Router 8, Vue 3.5, TanStack Query 5, Prisma" width="100%"></p>
-
-Every rule links to the official migration guide or changelog it came from → `libs/<id>/SOURCES.md`.
-Researched against live docs on **2026-10-26**.
-
-## 📊 Benchmarks
-
-<p align="center"><img src="assets/bench.svg" alt="Benchmark results" width="100%"></p>
-
-- **Labelled corpus:** stale files a model would write, and current files, for every library. All stale files caught, no false alarms on current ones.
-- **Cross-check:** every ledger runs over every *other* library's correct code. Zero false alarms means it won't fight your stack.
-- **In the wild:** official example code from upstream repos, old release vs current. Three.js r186's own 230 WebGPU examples trip exactly one rule, on an old API left in a comment.
-
-Full method, per-library tables and how to reproduce: **[BENCHMARKS.md](BENCHMARKS.md)**.
-
-<details>
-<summary><b>🧾 What a ledger looks like</b></summary>
+A ledger is a short text file of hard rules. Each rule is a regular expression plus the message that explains the fix.
 
 ```
 myelin 1
 id      three
-about   three.js r186 on the WebGPU + TSL path: bans APIs models learned from older releases
-fires   three.js | threejs | three/webgpu | three/tsl | WebGPURenderer | TSL | EffectComposer
+about   three.js r186 on the WebGPU + TSL path
+fires   three.js | threejs | three/webgpu | WebGPURenderer | TSL
 
-= version     three.js r186 (npm three@0.186.1, released 2026-09-08)
-! B5 /\bnew\s+(THREE\.)?Clock\s*\(/   THREE.Clock is deprecated since r183. Use THREE.Timer. -> $boot
-! B7 /\b(outputEncoding|sRGBEncoding|LinearEncoding|GammaEncoding|legacyMode)\b|\.encoding\s*=/   Encoding API removed in r162. Use outputColorSpace.
+= version     three.js r186 (npm three@0.186.1)
+! B5 /\bnew\s+(THREE\.)?Clock\s*\(/   Deprecated since r183. Use THREE.Timer. -> $boot
 ~ P8 Do not assume r187 changes until r187 is released.
 
 $ boot
@@ -75,45 +75,112 @@ import * as THREE from 'three/webgpu';
 $$
 ```
 
-`!` must never appear · `+` must appear · `~` preference · `=` fact · `$` copy-exact snippet. Spec → [docs/SPEC.md](docs/SPEC.md)
-</details>
+| sigil | meaning |
+|:--:|---|
+| `!` | **Ban.** Must never appear in the output. |
+| `+` | **Require.** Must appear in the output. |
+| `~` | **Preference.** Read by the model, not machine-checked. |
+| `=` | **Fact.** Versions and budgets. Read, not checked. |
+| `$` | **Snippet.** Copy-exact code a rule can point to. |
 
-<details>
-<summary><b>🛠 All commands</b></summary>
+Full grammar in [docs/SPEC.md](docs/SPEC.md).
 
-| command | what it does |
+<br>
+
+## Libraries
+
+Thirteen ledgers ship in the box, each pinned to a released version and researched against live docs on **2026-10-26**. Every rule links to the migration guide or changelog it came from in `libs/<id>/SOURCES.md`.
+
+| Library | Targets | Bans | Snippets |
+|---|---|--:|--:|
+| three.js (WebGPU + TSL) | r186 | 21 | 9 |
+| React | 19.3 | 20 | 6 |
+| React Router | 8.5 | 17 | 6 |
+| Next.js | 16.4 | 20 | 7 |
+| Tailwind CSS | 4.3 | 10 | 5 |
+| Svelte + SvelteKit | 5.57 · 3.1 | 22 | 9 |
+| Vue + Nuxt | 3.5 · 4.6 | 20 | 6 |
+| Zod | 4.6 | 17 | 5 |
+| Express | 5.3 | 14 | 3 |
+| ESLint | 10.13 | 19 | 3 |
+| Vercel AI SDK | 7.0 | 20 | 5 |
+| TanStack Query | 5.104 | 16 | 7 |
+| Prisma ORM | 7.10 | 15 | 7 |
+
+Missing yours? [Add a ledger](docs/AUTHORING.md). Every rule needs a source link and a bench file.
+
+<br>
+
+## Evidence
+
+Four tests, all reproducible from this repo. The first three measure one thing: does a ledger flag stale code and leave current code alone?
+
+<p align="center"><img src="assets/bench.svg" alt="Benchmark results" width="100%"></p>
+
+| Test | Result |
 |---|---|
-| `libs` | list the bundled library ledgers |
-| `detect [dir]` | read `package.json`, suggest ledgers |
-| `lint <lib or ledger>[,more] <files>` | check code; exit 1 on any violation |
-| `gate <lib or ledger> [--all]` | print the rules as plain text for a model |
-| `use <lib>` | copy a bundled ledger into `.myelin/` to customise |
-| `bench [lib...] [--cross] [--md]` | score ledgers on their labelled corpus |
-| `validate` · `self` · `snippet` · `header` · `init` | author your own ledgers |
+| **Labelled corpus**<br><sub>120 stale files, 88 current files</sub> | 100% of stale files caught. 0 false alarms on current files. |
+| **Cross-library sweep**<br><sub>every ledger over every other library's correct code</sub> | 1,056 checks, 0 false positives. |
+| **Official examples, untouched**<br><sub>upstream repos, old release vs current</sub> | three.js r150: 97.8% flagged. three.js r186: 0.4% flagged (1 of 230, an old API in a comment). Next.js 16.4.3's own examples: 19 genuine pre-16 patterns. |
+| **Agent A/B**<br><sub>bonfire scene, 2 agents per arm</sub> | Unguided: both used two removed APIs. Guided: neither did. |
 
-Full reference → [docs/REFERENCE.md](docs/REFERENCE.md) · hosts and CI → [docs/HOSTS.md](docs/HOSTS.md) · writing ledgers → [docs/AUTHORING.md](docs/AUTHORING.md)
-</details>
+Method, per-library tables and reproduction steps: **[BENCHMARKS.md](BENCHMARKS.md)**
+
+<br>
+
+## Constraints
+
+Myelin is deliberately small. These are its edges, stated plainly.
+
+| Boundary | What it means | What to do |
+|---|---|---|
+| **It reads text, not meaning** | Rules are regular expressions. They catch stale names and patterns. They cannot judge logic, types, or intent. | Keep your tests and type checker. Treat Myelin as the cheap first gate. |
+| **Clean is not correct** | A pass means no known-stale pattern was found. It does not mean the code runs. | Run the code. Snippet verification varies by library, see each ledger's `status` line. |
+| **Comments can trip it** | A banned token in a comment can fire a rule. | Ledgers set `comments skip` to blank out comments before matching. Only the three.js ledger does so far. |
+| **Version-pinned** | Every ledger targets one release and a research date. Libraries move on. | Check the `= version` line. Re-verify before trusting a ledger on a newer major. |
+| **Detection is proven, lift is not** | Benchmarks show rules catch stale code. Whether models *write less of it* is measured only by one small A/B, which is too small to separate a ledger from well-written prose. | Run [`eval/`](eval/README.md) against your own model and task. |
+| **Narrow by design** | The three.js ledger targets WebGPU + TSL, not WebGL-only projects. `unless` lifts a ban for a whole file, not a single match. No globs or severities yet. | See the [roadmap](docs/ROADMAP.md). |
+| **Output only** | A ledger can constrain what a model writes. It cannot grant permissions, run commands, or change instructions. Readers ignore any line that tries. | Load ledgers only from your own project or a source you trust. |
+
+<br>
+
+## Use it with your agent
+
+| Where | How |
+|---|---|
+| **Claude Code, Cursor, Codex, any shell agent** | Add [`integrations/AGENTS.md.snippet`](integrations/AGENTS.md.snippet). The agent runs `gate` before coding and `lint` after. |
+| **Chat with no tools** | Paste the output of `myelin gate <lib> --all` into the prompt. |
+| **Claude skills** | Drop in [`integrations/skill-bridge/SKILL.md`](integrations/skill-bridge/SKILL.md). |
+| **CI** | `npx github:REX-codebase/myelin lint nextjs,react app/` fails the build on stale code. |
+
+More in [docs/HOSTS.md](docs/HOSTS.md).
 
 <details>
-<summary><b>🤖 Plug it into your agent</b></summary>
+<summary><b>All commands</b></summary>
+<br>
 
-- **Claude Code, Cursor, Codex, any agent with a shell:** drop [`integrations/AGENTS.md.snippet`](integrations/AGENTS.md.snippet) into your repo. The agent runs `gate` before coding and `lint` after.
-- **Chat with no tools:** paste `myelin gate <lib> --all` into the prompt.
-- **CI:** `npx github:REX-codebase/myelin lint nextjs,react app/` fails the build on stale code.
-</details>
+| Command | What it does |
+|---|---|
+| `libs` | List the bundled ledgers. |
+| `detect [dir]` | Read `package.json`, suggest ledgers. |
+| `lint <lib or ledger>[,more] <files>` | Check code. Exit 1 on any violation. |
+| `gate <lib or ledger> [--all]` | Print the rules as plain text for a model. |
+| `use <lib>` | Copy a bundled ledger into `.myelin/` to customise. |
+| `bench [lib...] [--cross] [--md]` | Score ledgers on their labelled corpus. |
+| `validate` · `self` · `snippet` · `header` · `init` | Author your own ledgers. |
 
-<details>
-<summary><b>⚖️ Honest limits</b></summary>
-
-- Rules are regexes. They catch stale API names and patterns, not wrong logic, and they can fire on a comment.
-- Passing lint doesn't mean code runs. Snippets are checked against sources; most were not executed.
-- The ledgers prove they *catch* stale code. Whether models *write less of it* when given a ledger is measured with [`eval/`](eval/README.md), and those results aren't published yet.
-- The three.js ledger targets the WebGPU + TSL path. It is not for WebGL-only projects.
+Reference: [docs/REFERENCE.md](docs/REFERENCE.md)
 </details>
 
 <br>
 
+---
+
 <p align="center">
-  <b>Your library changed? Add a rule. Every PR needs a source link and a bench file.</b><br>
-  <a href="CONTRIBUTING.md">Contribute</a> · <a href="docs/ROADMAP.md">Roadmap</a> · MIT
+  <a href="CONTRIBUTING.md">Contribute</a> &nbsp;·&nbsp;
+  <a href="docs/WHY.md">Why</a> &nbsp;·&nbsp;
+  <a href="docs/ROADMAP.md">Roadmap</a> &nbsp;·&nbsp;
+  <a href="CHANGELOG.md">Changelog</a> &nbsp;·&nbsp;
+  <a href="SECURITY.md">Security</a> &nbsp;·&nbsp;
+  <a href="LICENSE">MIT</a>
 </p>
