@@ -12,5 +12,6 @@
   "vue": {"name": "Vue + Nuxt", "packages": ["vue", "nuxt"]},
   "tanstack-query": {"name": "TanStack Query", "packages": ["@tanstack/react-query", "@tanstack/vue-query", "@tanstack/svelte-query", "@tanstack/solid-query", "react-query"]},
   "prisma": {"name": "Prisma ORM", "packages": ["prisma", "@prisma/client"]},
-  "mongoose": {"name": "Mongoose", "packages": ["mongoose"]}
+  "mongoose": {"name": "Mongoose", "packages": ["mongoose"]},
+  "openai": {"name": "OpenAI Node SDK", "packages": ["openai"]}
 }

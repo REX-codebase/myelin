@@ -1,0 +1,18 @@
+{
+  "bad/v3-chat.js": ["O1", "O2", "O3"],
+  "bad/assistants-bot.ts": ["O4"],
+  "bad/functions-weather.ts": ["O7", "O8", "O9"],
+  "bad/token-budget.ts": ["O10"],
+  "bad/tool-runner.ts": ["O8", "O11", "O16"],
+  "bad/parse-beta.ts": ["O5"],
+  "bad/realtime-session.ts": ["O6"],
+  "bad/files-cleanup.ts": ["O12", "O13"],
+  "bad/proxy-client.ts": ["O15"],
+  "bad/video-job.ts": ["O14"],
+  "good/responses.ts": [],
+  "good/tools.ts": [],
+  "good/parse.ts": [],
+  "good/runner.ts": [],
+  "good/mixed-anthropic.ts": [],
+  "good/client-config.ts": []
+}

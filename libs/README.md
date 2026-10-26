@@ -29,6 +29,7 @@ libs/<id>/
 | `tanstack-query` | TanStack Query | 5.104 | 2026-10-26 |
 | `prisma` | Prisma ORM | 7.10 (v8 is RC, not targeted) | 2026-10-26 |
 | `mongoose` | Mongoose | 9.11 | 2026-10-26 |
+| `openai` | OpenAI Node SDK | 7.43 | 2026-10-26 |
 
 ## Scope notes
 

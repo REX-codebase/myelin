@@ -1,0 +1,158 @@
+myelin 1
+id      openai
+about   OpenAI Node SDK 7 (openai@7.43): bans v3-era Configuration/OpenAIApi, removed helpers and namespaces, and the deprecated Assistants, Chat Completions functions/max_tokens, and Realtime beta and Sora surfaces
+fires   openai | openai-node | openai sdk | chat.completions | responses.create | new OpenAI
+comments skip
+status  Researched 2026-10-26 against openai 7.43.0 (npm latest). Rules come from the package's own @deprecated tags and CHANGELOG, plus openai-node README/MIGRATION and discussion #217. Snippets and good bench files type-checked (tsc --strict) against openai@7.43.0 and zod 4.6.7; not executed against the API. platform.openai.com deprecations page unreachable from the build sandbox, so model-retirement rules are omitted.
+
+= version     openai 7.43.0 (npm latest, published 2026-10-22)
+= verified    2026-10-26
+= node.min    22 (package engines >=22; Node 20 is end of life per the README)
+= client      import OpenAI from "openai"; new OpenAI() reads OPENAI_API_KEY from the environment
+= primary     client.responses.create / .stream / .parse; read response.output_text. Chat Completions (client.chat.completions) is still supported.
+= tools       Chat: tools: [{ type: "function", function: {...} }] + tool_choice. Responses: flat { type: "function", name, parameters }.
+= tokens      Chat: max_completion_tokens. Responses: max_output_tokens.
+= structured  zodResponseFormat from "openai/helpers/zod" with client.chat.completions.parse, or client.responses.parse
+= runner      client.chat.completions.runTools({ model, messages, tools }) with functionToolCall / finalFunctionToolCall events
+
+! O1 /\bOpenAIApi\b|\bnew\s+Configuration\s*\(\s*\{\s*apiKey\b/   The v3 client (Configuration + OpenAIApi) is gone. Use import OpenAI from "openai" and new OpenAI({ apiKey }). -> $init
+! O2 /\.(?:createChatCompletion|createCompletion)\s*\(/          openai.createChatCompletion / createCompletion are v3 methods. Use client.chat.completions.create or client.responses.create. -> $responses
+! O3 /\.data\.choices\b/                                          v4+ responses are not wrapped in .data. Read completion.choices[0].message directly. -> $responses
+! O4 /\bbeta\.(?:assistants|threads)\b/                          The Assistants API (client.beta.assistants, beta.threads) is deprecated in favour of the Responses API. Use client.responses.create and carry state with previous_response_id. -> $responses
+! O5 /\bbeta\.chat\b/                                            beta.chat was removed. Call client.chat.completions.parse(), .stream() or .runTools() on the main namespace. -> $parse
+! O6 /\bbeta\.realtime\b/                                        The old beta Realtime API is deprecated; Realtime is generally available. Use client.realtime.
+! O7 /\bfunction_call\s*:/                                       function_call is deprecated in favour of tool_choice (Chat Completions). Send tools and tool_choice. -> $tools
+! O8 /\bfunctions\s*:\s*\[/                                      functions[] is deprecated in favour of tools[]. Each entry becomes { type: "function", function: { name, parameters } }. -> $tools
+! O9 /\brole\s*:\s*['"]function['"]/                             The function message role is deprecated. Answer a tool call with { role: "tool", tool_call_id, content }. -> $tools
+! O10 /\bmax_tokens\s*:/ unless /@anthropic-ai|\bAnthropic\b|\bclaude-/i   max_tokens is deprecated on Chat Completions and rejected by reasoning models. Use max_completion_tokens (Responses: max_output_tokens). -> $tokens
+! O11 /\brunFunctions\s*\(/                                      runFunctions was removed in openai v5. Use client.chat.completions.runTools({ model, messages, tools }). -> $runner
+! O12 /\bOpenAI\.fileFromPath\b/                                 OpenAI.fileFromPath was removed. Pass fs.createReadStream(path) to files.create.
+! O13 /\.(?:completions|files|models|responses|vectorStores|assistants|threads|messages|evals|containers)\.del\s*\(/   The HTTP del methods were renamed to delete, e.g. client.files.delete(id).
+! O14 /\b(?:openai|client)\.videos\.(?:create|retrieve|list|delete|remix|downloadContent|edit|extend)\s*\(/   The Sora video API (client.videos) was scheduled to shut down on 2026-09-24 (SDK @deprecated tags). Do not write new video code against it.
+! O15 /\bnew\s+OpenAI\s*\(\s*\{[^}]*\bhttpAgent\s*:/             httpAgent was removed from the client. Pass fetchOptions instead, e.g. fetchOptions: { dispatcher } with undici's ProxyAgent.
+! O16 /\.on\(\s*['"](?:functionCall|functionCallResult|finalFunctionCall|finalFunctionCallResult)['"]|\.(?:finalFunctionCall|finalFunctionCallResult)\s*\(/   runTools events and methods were renamed: functionToolCall, functionToolCallResult, finalFunctionToolCall, finalFunctionToolCallResult. -> $runner
+
+~ P1 Use client.responses.create for new code; read response.output_text. Chat Completions keeps working.
+~ P2 Structured output: client.chat.completions.parse with zodResponseFormat from "openai/helpers/zod", and read choices[0].message.parsed.
+~ P3 Let the SDK run the tool loop with runTools instead of hand-writing the call-and-reply cycle.
+~ P4 Pass the key through the environment (OPENAI_API_KEY) and omit apiKey; the constructor reads it.
+~ P5 Chat Completions stays supported indefinitely; do not rewrite working Chat code only to change APIs.
+
+$ init
+import OpenAI from "openai";
+
+const client = new OpenAI(); // reads OPENAI_API_KEY from the environment
+$$
+
+$ responses
+import OpenAI from "openai";
+
+const client = new OpenAI();
+
+const response = await client.responses.create({
+  model: "gpt-5.5",
+  instructions: "You are a concise assistant.",
+  input: "Summarise the plot of Hamlet in two sentences.",
+});
+
+console.log(response.output_text);
+$$
+
+$ tools
+import OpenAI from "openai";
+
+const client = new OpenAI();
+
+const completion = await client.chat.completions.create({
+  model: "gpt-5.5",
+  messages: [{ role: "user", content: "What is the weather in Oslo?" }],
+  tools: [
+    {
+      type: "function",
+      function: {
+        name: "get_weather",
+        description: "Get the current weather for a city",
+        parameters: {
+          type: "object",
+          properties: { city: { type: "string" } },
+          required: ["city"],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    },
+  ],
+  tool_choice: "auto",
+});
+
+const message = completion.choices[0].message;
+for (const call of message.tool_calls ?? []) {
+  console.log(call.type === "function" ? call.function.name : call.type);
+}
+$$
+
+$ tokens
+import OpenAI from "openai";
+
+const client = new OpenAI();
+const messages = [{ role: "user" as const, content: "Give me three fun facts about octopuses." }];
+
+const completion = await client.chat.completions.create({
+  model: "gpt-5.5",
+  messages,
+  max_completion_tokens: 512,
+});
+
+console.log(completion.choices[0].message.content);
+$$
+
+$ parse
+import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
+import { z } from "zod";
+
+const client = new OpenAI();
+
+const CalendarEvent = z.object({
+  name: z.string(),
+  date: z.string(),
+  participants: z.array(z.string()),
+});
+
+const completion = await client.chat.completions.parse({
+  model: "gpt-5.5",
+  messages: [{ role: "user", content: "Alice and Bob meet on Friday for a demo." }],
+  response_format: zodResponseFormat(CalendarEvent, "event"),
+});
+
+console.log(completion.choices[0].message.parsed);
+$$
+
+$ runner
+import OpenAI from "openai";
+
+const client = new OpenAI();
+
+const runner = client.chat.completions.runTools({
+  model: "gpt-5.5",
+  messages: [{ role: "user", content: "What is the weather in Oslo?" }],
+  tools: [
+    {
+      type: "function",
+      function: {
+        name: "get_weather",
+        description: "Get the current weather for a city",
+        parameters: {
+          type: "object",
+          properties: { city: { type: "string" } },
+          required: ["city"],
+        },
+        function: (args: string) => `Sunny in ${JSON.parse(args).city}`,
+      },
+    },
+  ],
+});
+
+runner.on("functionToolCallResult", (content) => console.log("tool result:", content));
+console.log(await runner.finalContent());
+$$
