@@ -2,14 +2,15 @@
 #
 #   irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1 | iex
 #
-# Installs the app to %LOCALAPPDATA%\Myelin\app and a myelin.cmd launcher to
-# %LOCALAPPDATA%\Myelin\bin, then adds that folder to your user PATH. Needs
-# Node.js 18 or newer; it never installs Node.js itself. Running it again
-# upgrades in place.
+# Installs the latest published release to %LOCALAPPDATA%\Myelin\app and a
+# myelin.cmd launcher to %LOCALAPPDATA%\Myelin\bin, then adds that folder to
+# your user PATH. The download is checked against the SHA-256 the release
+# publishes before anything is installed. Needs Node.js 18 or newer; it never
+# installs Node.js itself. Running it again upgrades in place.
 #
 # From a file:  .\install.ps1 [-Ref <ref>] [-NoModifyPath] [-Uninstall] [-Yes]
 # Piped to iex you cannot pass parameters, so set these environment variables first:
-#   $env:MYELIN_REF = 'v0.2.1'          same as -Ref
+#   $env:MYELIN_REF = 'v0.3.0'          same as -Ref. A release tag is verified; a branch or commit is not.
 #   $env:MYELIN_NO_MODIFY_PATH = '1'    same as -NoModifyPath
 #   $env:MYELIN_UNINSTALL = '1'         same as -Uninstall
 #   $env:MYELIN_YES = '1'               same as -Yes
@@ -32,7 +33,9 @@ function Install-Myelin {
 
     $gitRef = $Ref
     if (-not $gitRef) { $gitRef = $env:MYELIN_REF }
-    if (-not $gitRef) { $gitRef = 'main' }
+    # Where releases and git archives come from. Only tests change these.
+    $githubUrl = if ($env:MYELIN_GITHUB_URL) { $env:MYELIN_GITHUB_URL.TrimEnd('/') } else { 'https://github.com' }
+    $codeloadUrl = if ($env:MYELIN_CODELOAD_URL) { $env:MYELIN_CODELOAD_URL.TrimEnd('/') } else { 'https://codeload.github.com' }
     $doUninstall = [bool]$Uninstall -or ($env:MYELIN_UNINSTALL -eq '1')
     $skipPath = [bool]$NoModifyPath -or ($env:MYELIN_NO_MODIFY_PATH -eq '1')
     $assumeYes = [bool]$Yes -or ($env:MYELIN_YES -eq '1')
@@ -148,13 +151,56 @@ function Install-Myelin {
         return [string]$out[0]
     }
 
+    function Get-LatestTag {
+        # GitHub redirects /releases/latest to /releases/tag/<tag>; with no release it lands on /releases.
+        # Read the redirect instead of following it: that behaves the same in Windows PowerShell 5.1 and PowerShell 7.
+        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+        $req = [Net.HttpWebRequest]::Create("$githubUrl/$repo/releases/latest")
+        $req.AllowAutoRedirect = $false
+        $req.UserAgent = 'myelin-installer'
+        $resp = $req.GetResponse()
+        $location = ''
+        try { $location = [string]$resp.Headers['Location'] } finally { $resp.Close() }
+        if ($location -match '/releases/tag/([^/?#]+)$') { return $Matches[1] }
+        return ''
+    }
+
+    function Get-ReleaseZip([string]$tag, [string]$dest) {
+        # Download the release zip and refuse it unless it matches the published SHA-256.
+        if ($tag -notmatch '^[A-Za-z0-9._-]+$' -or $tag -match '\.\.') { throw "Invalid release tag '$tag'." }
+        $asset = 'myelin-ledger-' + $tag.TrimStart('v') + '.zip'
+        $base = "$githubUrl/$repo/releases/download/$tag"
+        $sums = Join-Path $tmp 'SHA256SUMS'
+        try {
+            Invoke-WebRequest -UseBasicParsing -Uri "$base/$asset" -OutFile $dest
+        } catch {
+            throw "Could not download $asset from release $tag.`n    Check your internet connection, or that $tag is a published release.`n    Releases: $githubUrl/$repo/releases"
+        }
+        try {
+            Invoke-WebRequest -UseBasicParsing -Uri "$base/SHA256SUMS" -OutFile $sums
+        } catch {
+            throw "Could not download SHA256SUMS for release $tag, so the download cannot be verified. Nothing was installed."
+        }
+        $expected = ''
+        foreach ($line in @(Get-Content -LiteralPath $sums)) {
+            if ($line -match '^([0-9a-fA-F]{64})\s+\*?(.+?)\s*$' -and $Matches[2] -eq $asset) { $expected = $Matches[1].ToLower(); break }
+        }
+        if (-not $expected) { throw "SHA256SUMS for $tag has no entry for $asset. Nothing was installed." }
+        $actual = (Get-FileHash -LiteralPath $dest -Algorithm SHA256).Hash.ToLower()
+        if ($actual -ne $expected) {
+            throw ("The download does not match the SHA-256 published for $tag.`n    expected $expected`n    got      $actual`n" +
+                "    Nothing was installed. Try again; if it keeps failing, report it at $githubUrl/$repo/issues.")
+        }
+        Say-Ok "Downloaded release $tag and verified its SHA-256"
+    }
+
     $failed = $false
     $stage = $null
     $backup = $null
     $tmp = $null
     try {
         if (-not $env:LOCALAPPDATA) { throw 'LOCALAPPDATA is not set. This installer is for Windows.' }
-        if ($gitRef -notmatch '^[A-Za-z0-9._/-]+$' -or $gitRef -match '\.\.') {
+        if ($gitRef -and ($gitRef -notmatch '^[A-Za-z0-9._/-]+$' -or $gitRef -match '\.\.')) {
             throw "Invalid ref '$gitRef'. Use letters, digits, and . _ - / only."
         }
         if ($root -match '[%"]' -or $binDir -match '[%"]') {
@@ -197,19 +243,44 @@ function Install-Myelin {
         $tmp = Join-Path ([IO.Path]::GetTempPath()) ('myelin-install-' + [guid]::NewGuid().ToString('N'))
         New-Item -ItemType Directory -Path $tmp | Out-Null
         $zip = Join-Path $tmp 'myelin.zip'
+        $installSource = ''
         if ($env:MYELIN_ZIP) {
             if (-not (Test-Path -LiteralPath $env:MYELIN_ZIP -PathType Leaf)) { throw "MYELIN_ZIP does not exist: $env:MYELIN_ZIP" }
             Copy-Item -LiteralPath $env:MYELIN_ZIP -Destination $zip
+            $installSource = 'local archive, not verified'
             Say-Ok 'Using local archive'
         } else {
-            $url = "https://codeload.github.com/$repo/zip/$gitRef"
-            try {
-                [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-                Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $zip
-            } catch {
-                throw "Could not download Myelin ($gitRef) from GitHub.`n    Check your internet connection and try again.`n    To install another version, set `$env:MYELIN_REF to a tag, then run this again."
+            [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+            $releaseTag = ''
+            if ($gitRef -match '^v\d') {
+                $releaseTag = $gitRef
+            } elseif (-not $gitRef) {
+                try {
+                    $releaseTag = Get-LatestTag
+                } catch {
+                    throw "Could not look up the latest Myelin release on GitHub.`n    Check your internet connection and try again."
+                }
             }
-            Say-Ok "Downloaded Myelin ($gitRef)"
+            if ($releaseTag) {
+                Get-ReleaseZip $releaseTag $zip
+                $installSource = "release $releaseTag, SHA-256 verified"
+            } else {
+                if (-not $gitRef) {
+                    Say-Warn 'No Myelin release has been published yet, so this installs the main branch.'
+                    Say-Warn 'It is not checksum-verified. Once a release exists, running this again installs that instead.'
+                    $gitRef = 'main'
+                } else {
+                    Say-Warn "Installing git ref $gitRef. It is not a release, so it is not checksum-verified."
+                }
+                $url = "$codeloadUrl/$repo/zip/$gitRef"
+                try {
+                    Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $zip
+                } catch {
+                    throw "Could not download Myelin ($gitRef) from GitHub.`n    Check your internet connection and try again.`n    To install a release instead, set `$env:MYELIN_REF to a tag such as v0.3.0, then run this again."
+                }
+                Say-Ok "Downloaded Myelin ($gitRef)"
+                $installSource = "ref $gitRef, not verified"
+            }
         }
 
         # Unpack and check
@@ -217,7 +288,7 @@ function Install-Myelin {
         try {
             Expand-Archive -LiteralPath $zip -DestinationPath $unpacked -Force
         } catch {
-            throw 'The download is not a valid zip archive. Try again, or use a tag with -Ref.'
+            throw 'The download is not a valid zip archive. Try again, or use a release tag with -Ref.'
         }
         $top = Get-ChildItem -LiteralPath $unpacked -Directory | Select-Object -First 1
         if (-not $top -or -not (Test-Path -LiteralPath (Join-Path $top.FullName 'bin\myelin.mjs'))) {
@@ -294,7 +365,7 @@ function Install-Myelin {
         }
 
         Write-Host ''
-        Say-Ok "Myelin $newVersion is ready (ref: $gitRef)"
+        Say-Ok "Myelin $newVersion is ready ($installSource)"
         Write-Host ''
         if ($useColor) {
             Write-Host '  Next: run `myelin setup`' -ForegroundColor White

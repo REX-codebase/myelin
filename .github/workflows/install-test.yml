@@ -6,7 +6,10 @@ on:
     paths:
       - "install.sh"
       - "install.ps1"
+      - "test/install.test.mjs"
+      - "test/support/**"
       - ".github/workflows/install-test.yml"
+      - ".github/workflows/release.yml"
   workflow_dispatch:
 
 permissions:
@@ -29,6 +32,11 @@ jobs:
 
       - name: Lint the script
         run: sh -n install.sh
+
+      # Runs install.sh against a local stand-in for GitHub: the verified release path,
+      # a tampered download, no release yet, an explicit tag, and a branch.
+      - name: Verified-install tests
+        run: node --test test/install.test.mjs
 
       - name: Install
         run: sh install.sh
@@ -64,6 +72,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      # The same scenarios as on Linux and macOS, through install.ps1, in this PowerShell.
+      - name: Verified-install tests
+        env:
+          MYELIN_TEST_PS: ${{ matrix.shell }}
+        run: node --test test/install.test.mjs
 
       - name: Install
         run: ./install.ps1 -NoModifyPath

@@ -3,10 +3,12 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh
 #
-# Installs the app into $MYELIN_HOME/app (default ~/.myelin/app) and a small
-# launcher at $MYELIN_BIN/myelin (default ~/.local/bin/myelin). Running it
-# again upgrades in place. Needs Node.js 18 or newer. It never uses sudo and
-# never installs Node.js for you.
+# Installs the latest published release into $MYELIN_HOME/app (default
+# ~/.myelin/app) and a small launcher at $MYELIN_BIN/myelin (default
+# ~/.local/bin/myelin). The download is checked against the SHA-256 the release
+# publishes before anything is installed. Running it again upgrades in place.
+# Needs Node.js 18 or newer. It never uses sudo and never installs Node.js for
+# you.
 #
 # Run `sh install.sh --help` for options.
 
@@ -19,7 +21,11 @@ RC_BEGIN="# >>> myelin installer >>>"
 RC_END="# <<< myelin installer <<<"
 
 ACTION="install"
-REF="${MYELIN_REF:-main}"
+REF="${MYELIN_REF:-}"
+# Where releases and git archives come from. Only tests change these.
+GITHUB_URL="${MYELIN_GITHUB_URL:-https://github.com}"
+CODELOAD_URL="${MYELIN_CODELOAD_URL:-https://codeload.github.com}"
+SOURCE_LABEL=""
 MYELIN_HOME="${MYELIN_HOME:-$HOME/.myelin}"
 MYELIN_BIN="${MYELIN_BIN:-$HOME/.local/bin}"
 MODIFY_PATH=0
@@ -123,7 +129,10 @@ Usage:
   sh install.sh [options]
 
 Options:
-  --ref <ref>     install this git ref: a branch, tag or commit (default: main)
+  --ref <ref>     install a specific version. A release tag such as v0.3.0 is
+                  verified against its published SHA-256. Any other ref (a
+                  branch or commit) is installed as is and is NOT verified.
+                  Default: the latest release, verified.
   --modify-path   also add the launcher folder to your shell's rc file
   --uninstall     remove Myelin: the app, the launcher and any PATH line added here
   --yes, -y       skip the confirmation prompt (for --uninstall)
@@ -151,7 +160,7 @@ parse_args() {
   while [ $# -gt 0 ]; do
     case "$1" in
       --ref)
-        [ $# -ge 2 ] || usage_error "--ref needs a value, for example --ref v0.2.1"
+        [ $# -ge 2 ] || usage_error "--ref needs a value, for example --ref v0.3.0"
         REF="$2"
         shift 2
         ;;
@@ -219,7 +228,8 @@ validate_settings() {
     esac
   done
   case "$REF" in
-    "" | *[!A-Za-z0-9._/-]* | *..*)
+    "") ;; # no ref: install the latest release
+    *[!A-Za-z0-9._/-]* | *..*)
       die "Invalid ref '$REF'. Use letters, digits, and . _ - / only."
       ;;
   esac
@@ -272,27 +282,112 @@ fetch() {
   fi
 }
 
+final_url() {
+  # Print the URL a request ends up at after redirects.
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL --retry 2 -o /dev/null -w '%{url_effective}' "$1"
+  else
+    wget -q --server-response --spider "$1" 2>&1 | awk 'tolower($1) == "location:" { u = $2 } END { print u }'
+  fi
+}
+
+latest_tag() {
+  # GitHub redirects /releases/latest to /releases/tag/<tag>. With no release it
+  # lands on the plain releases page instead, and this prints nothing.
+  url=$(final_url "$GITHUB_URL/$REPO/releases/latest") || return 1
+  case "$url" in
+    */releases/tag/*)
+      tag=${url##*/releases/tag/}
+      printf '%s' "${tag%%[?#]*}"
+      ;;
+  esac
+  return 0
+}
+
+sha256_of() {
+  "$NODE_BIN" -e 'process.stdout.write(require("crypto").createHash("sha256").update(require("fs").readFileSync(process.argv[1])).digest("hex"))' "$1"
+}
+
+get_release() {
+  # get_release TAG: download the release tarball and refuse it unless it matches the published SHA-256.
+  TAG="$1"
+  case "$TAG" in
+    "" | *[!A-Za-z0-9._-]* | *..*) die "Invalid release tag '$TAG'." ;;
+  esac
+  ASSET="myelin-ledger-${TAG#v}.tgz"
+  BASE="$GITHUB_URL/$REPO/releases/download/$TAG"
+  if ! fetch "$BASE/$ASSET" "$TMP_DIR/myelin.tar.gz"; then
+    fail "Could not download $ASSET from release $TAG."
+    info "Check your internet connection, or that $TAG is a published release."
+    info "Releases: $GITHUB_URL/$REPO/releases"
+    exit 1
+  fi
+  if ! fetch "$BASE/SHA256SUMS" "$TMP_DIR/SHA256SUMS"; then
+    die "Could not download SHA256SUMS for release $TAG, so the download cannot be verified. Nothing was installed."
+  fi
+  EXPECTED=$(awk -v f="$ASSET" '{ n = $2; sub(/^\*/, "", n) } n == f { print tolower($1); exit }' "$TMP_DIR/SHA256SUMS")
+  [ -n "$EXPECTED" ] || die "SHA256SUMS for $TAG has no entry for $ASSET. Nothing was installed."
+  ACTUAL=$(sha256_of "$TMP_DIR/myelin.tar.gz") || die "Could not compute the SHA-256 of the download."
+  if [ "$ACTUAL" != "$EXPECTED" ]; then
+    fail "The download does not match the SHA-256 published for $TAG."
+    info "expected $EXPECTED"
+    info "got      $ACTUAL"
+    die "Nothing was installed. Try again; if it keeps failing, report it at $GITHUB_URL/$REPO/issues."
+  fi
+  SOURCE_LABEL="release $TAG, SHA-256 verified"
+  ok "Downloaded release $TAG and verified its SHA-256"
+}
+
+get_ref() {
+  # get_ref REF: a branch or commit straight from git. Nothing to verify it against.
+  URL="$CODELOAD_URL/$REPO/tar.gz/$1"
+  if ! fetch "$URL" "$TMP_DIR/myelin.tar.gz"; then
+    fail "Could not download Myelin ($1) from GitHub."
+    info "Check your internet connection and try again."
+    info "To install a release instead, run with --ref <tag>, for example --ref v0.3.0."
+    exit 1
+  fi
+  SOURCE_LABEL="ref $1, not verified"
+  ok "Downloaded Myelin ($1)"
+}
+
 get_archive() {
   if [ -n "${MYELIN_TARBALL:-}" ]; then
     [ -f "$MYELIN_TARBALL" ] || die "MYELIN_TARBALL does not exist: $MYELIN_TARBALL"
     cp "$MYELIN_TARBALL" "$TMP_DIR/myelin.tar.gz"
+    SOURCE_LABEL="local archive, not verified"
     ok "Using local archive $MYELIN_TARBALL"
     return 0
   fi
-  URL="https://codeload.github.com/$REPO/tar.gz/$REF"
-  if ! fetch "$URL" "$TMP_DIR/myelin.tar.gz"; then
-    fail "Could not download Myelin ($REF) from GitHub."
+  case "$REF" in
+    v[0-9]*)
+      get_release "$REF"
+      return 0
+      ;;
+    ?*)
+      warn "Installing git ref $REF. It is not a release, so it is not checksum-verified."
+      get_ref "$REF"
+      return 0
+      ;;
+  esac
+  if ! LATEST=$(latest_tag); then
+    fail "Could not look up the latest Myelin release on GitHub."
     info "Check your internet connection and try again."
-    info "To install another version, run with --ref <tag>."
     exit 1
   fi
-  ok "Downloaded Myelin ($REF)"
+  if [ -n "$LATEST" ]; then
+    get_release "$LATEST"
+  else
+    warn "No Myelin release has been published yet, so this installs the main branch."
+    warn "It is not checksum-verified. Once a release exists, running this again installs that instead."
+    get_ref main
+  fi
 }
 
 unpack() {
   mkdir "$TMP_DIR/unpacked"
   if ! tar -xzf "$TMP_DIR/myelin.tar.gz" -C "$TMP_DIR/unpacked" --strip-components=1 2>/dev/null; then
-    die "The download is not a valid archive. Try again, or use --ref with a tag."
+    die "The download is not a valid archive. Try again, or use --ref with a release tag."
   fi
   if [ ! -f "$TMP_DIR/unpacked/bin/myelin.mjs" ]; then
     die "The archive does not look like Myelin (bin/myelin.mjs is missing)."
@@ -558,7 +653,7 @@ main() {
   handle_path
 
   printf '\n'
-  ok "Myelin $NEW_VERSION is ready (ref: $REF)"
+  ok "Myelin $NEW_VERSION is ready ($SOURCE_LABEL)"
   printf '\n'
   printf '  %sNext: run `myelin setup`%s\n' "$BOLD" "$RESET"
 }
