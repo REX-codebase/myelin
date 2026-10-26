@@ -8,6 +8,7 @@
 </p>
 
 <p align="center">
+  <a href="https://rex-codebase.github.io/myelin/">Website</a> &nbsp;·&nbsp;
   <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
   <a href="#demo">Demo</a> &nbsp;·&nbsp;
   <a href="#libraries">Libraries</a> &nbsp;·&nbsp;
@@ -37,18 +38,46 @@ Myelin is a checklist the model can read and a linter the machine can run, from 
 
 ## Quick start
 
-No install. No config. Node 18 or newer.
+Pick the line for your system. Each one installs the `myelin` command. Myelin is a zero-dependency Node 18+ CLI.
+
+| Platform | Command |
+|---|---|
+| macOS, Linux, WSL | `curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh \| sh` |
+| Windows (PowerShell) | `irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1 \| iex` |
+| npm (any OS, Node 18+) | `npm install -g myelin-ledger` |
+| Homebrew (macOS, Linux) | `brew install rex-codebase/tap/myelin` |
+| Scoop (Windows) | `scoop bucket add rex https://github.com/REX-codebase/scoop-bucket && scoop install myelin` |
+| No install (any OS, Node 18+) | `npx github:REX-codebase/myelin setup` |
+
+**Then run `myelin setup`.** It is the first-run wizard, and it:
+
+1. Detects the libraries in your project from `package.json`.
+2. Pulls in the matching ledgers.
+3. Adds a short section to `AGENTS.md` or `CLAUDE.md`, so your agent runs `gate` before it writes and `lint` after.
+
+Something not working? Run **`myelin doctor`**. It checks the install and the project setup, and prints what to fix.
+
+### Everyday commands
 
 ```bash
-npx github:REX-codebase/myelin detect                 # which ledgers fit this project
-npx github:REX-codebase/myelin lint three,react src/  # check code, exit 1 on any violation
+myelin detect                      # which ledgers fit this project
+myelin lint three,react src/       # check code, exit 1 on any violation
+myelin gate three --all | pbcopy   # print the rules for a chat with no tools
 ```
 
-No tools in your chat window? Hand the rules to the model as text.
+No install? Use `npx github:REX-codebase/myelin <command>` in place of `myelin`.
+
+### Uninstall
 
 ```bash
-npx github:REX-codebase/myelin gate three --all | pbcopy
+curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh -s -- --uninstall   # macOS, Linux, WSL
 ```
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1))) -Uninstall   # Windows
+```
+
+If you installed with npm, Homebrew or Scoop, use `npm uninstall -g myelin-ledger`, `brew uninstall myelin` or `scoop uninstall myelin`.
 
 <p align="center"><img src="assets/demo.svg" alt="myelin lint catching five stale three.js APIs, then passing clean" width="100%"></p>
 

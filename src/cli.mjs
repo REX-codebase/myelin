@@ -1,46 +1,36 @@
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { join, extname } from 'node:path';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { parse } from './parse.mjs';
 import { check, snippetUnits } from './check.mjs';
 import { renderGate, renderHeader } from './gate.mjs';
 import { fixPlan } from './fix.mjs';
 import { watchLoop } from './watch.mjs';
 import { libPath, listLibs, detectLibs, benchAll, benchTable, benchCross } from './libs.mjs';
-import { mkdirSync, copyFileSync } from 'node:fs';
+import { CliError, DEFAULT_EXT, collect, pkgVersion } from './util.mjs';
+import { helpText, suggest } from './help.mjs';
+import { setup, needsSetup } from './setup.mjs';
+import { doctor } from './doctor.mjs';
 
-const DEFAULT_EXT = 'js,mjs,cjs,jsx,ts,tsx,py,html,wgsl,glsl';
+const SHORT_FLAGS = { y: 'yes', v: 'version', h: 'help' };
 
-const HELP = `myelin - check LLM output against a .myelin rule ledger
+const TEMPLATE = `myelin 1
+id      my-rules
+about   One line: what these rules are for
+fires   keyword one | keyword two
+status  DRAFT. Not yet tested against any model.
 
-<ledger> is a path to a .myelin file, or the id of a bundled lib (e.g. three, react).
-lint also takes several, comma-separated: myelin lint three,react src/
+= note   Put budgets and versions here. Facts are read, not checked.
 
-usage:
-  myelin libs                              list bundled library ledgers
-  myelin detect [dir]                      suggest libs from a project's package.json
-  myelin use <lib> [dir]                   copy a bundled ledger into <dir>/.myelin/
-  myelin bench [lib...]                    score libs on their labelled corpus (--md table, --cross false-positive sweep)
-  myelin validate <ledger>                 parse the ledger and report problems
-  myelin self <ledger|dir>...              validate, then run the ledger's own snippets through its rules
-  myelin lint <ledger> <file|dir>...       check files against the ledger (--ext=js,ts to filter dirs, --watch to re-run on change)
-  myelin fix <ledger> <file|dir>...        like lint, but prints each failing rule's fix message and snippet once (read-only)
-  myelin gate <ledger> [--snippets=a,b|--all]   print the rules as text for a model
-  myelin header <ledger>                   print only the short L0 header
-  myelin snippet <ledger> <id>             print one copy-exact snippet
-  myelin init <path>                       write a starter ledger
-  myelin version                           print the version (also --version)
+! B1 /console\\.log\\(/   No stray logging in library code. -> $example
++ R1 /export\\s/          Public API uses named exports. -> $example
+~ P1 Keep functions small.
 
-flags:  --json  machine-readable output (validate, self, lint, fix)
-        --watch  lint: re-run when files change; Ctrl-C to stop
-exit codes: 0 clean, 1 rule failures or invalid ledger, 2 usage or file error
-`;
-
-class CliError extends Error {
-  constructor(message, code = 2) {
-    super(message);
-    this.code = code;
-  }
+$ example
+export function add(a, b) {
+  return a + b;
 }
+$$
+`;
 
 function parseArgs(argv) {
   const pos = [];
@@ -50,7 +40,8 @@ function parseArgs(argv) {
       const eq = a.indexOf('=');
       if (eq === -1) flags[a.slice(2)] = true;
       else flags[a.slice(2, eq)] = a.slice(eq + 1);
-    } else pos.push(a);
+    } else if (/^-[yvh]$/.test(a)) flags[SHORT_FLAGS[a[1]]] = true;
+    else pos.push(a);
   }
   return { pos, flags };
 }
@@ -66,24 +57,6 @@ function load(path) {
   if (!path) throw new CliError('missing ledger path');
   path = resolveLedger(path);
   return parse(readFileSync(path, 'utf8'));
-}
-
-function collect(paths, exts) {
-  const out = [];
-  const visit = (p, top) => {
-    if (!existsSync(p)) throw new CliError(`cannot read ${p}`);
-    const st = statSync(p);
-    if (st.isDirectory()) {
-      for (const n of readdirSync(p).sort()) {
-        if (n === 'node_modules' || n === '.git') continue;
-        visit(join(p, n), false);
-      }
-    } else if (top || exts.includes(extname(p).slice(1))) {
-      out.push(p);
-    }
-  };
-  for (const p of paths) visit(p, true);
-  return out;
 }
 
 function printProblems(file, ledger, log) {
@@ -189,24 +162,10 @@ async function watchLint(args, flags, log) {
   return await watchLoop([...targets, ...ledgerFiles], job);
 }
 
-const TEMPLATE = `myelin 1
-id      my-rules
-about   One line: what these rules are for
-fires   keyword one | keyword two
-status  DRAFT. Not yet tested against any model.
-
-= note   Put budgets and versions here. Facts are read, not checked.
-
-! B1 /console\\.log\\(/   No stray logging in library code. -> $example
-+ R1 /export\\s/          Public API uses named exports. -> $example
-~ P1 Keep functions small.
-
-$ example
-export function add(a, b) {
-  return a + b;
+// The wizard runs by itself only when a person is at a terminal in a project with no .myelin/.
+function wantsWizard(flags) {
+  return !flags.help && process.stdin.isTTY && process.stdout.isTTY && needsSetup(process.cwd());
 }
-$$
-`;
 
 export async function main(argv) {
   const { pos, flags } = parseArgs(argv);
@@ -214,11 +173,19 @@ export async function main(argv) {
   const log = (s) => console.log(s);
 
   try {
+    if (cmd === undefined && wantsWizard(flags)) return await setup(flags);
+
     switch (cmd) {
       case undefined:
       case 'help':
-        log(HELP);
+        log(helpText());
         return cmd === undefined && !flags.help ? 2 : 0;
+
+      case 'setup':
+        return await setup(flags);
+
+      case 'doctor':
+        return doctor(flags);
 
       case 'validate': {
         const ledger = load(args[0]);
@@ -397,11 +364,14 @@ export async function main(argv) {
       }
 
       case 'version':
-        log(JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version);
+        log(pkgVersion());
         return 0;
 
-      default:
-        throw new CliError(`unknown command "${cmd}". Run "myelin help".`);
+      default: {
+        const near = suggest(cmd);
+        const hint = near.length ? ` Did you mean ${near.map((c) => `"${c}"`).join(' or ')}?` : '';
+        throw new CliError(`unknown command "${cmd}".${hint} Run "myelin help".`);
+      }
     }
   } catch (e) {
     if (e instanceof CliError) {

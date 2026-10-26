@@ -3,8 +3,21 @@
   "version": "0.2.1",
   "description": "Myelin: a model-agnostic, machine-checkable rule ledger format for LLM-generated code.",
   "type": "module",
+  "author": "REX-codebase",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/REX-codebase/myelin.git"
+  },
+  "homepage": "https://github.com/REX-codebase/myelin#readme",
+  "bugs": {
+    "url": "https://github.com/REX-codebase/myelin/issues"
+  },
   "bin": {
-    "myelin": "bin/myelin.mjs"
+    "myelin": "bin/myelin.mjs",
+    "myelin-ledger": "bin/myelin.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "exports": {
     ".": "./src/index.mjs"
@@ -18,6 +31,8 @@
     "integrations",
     "eval",
     "README.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
     "LICENSE"
   ],
   "scripts": {

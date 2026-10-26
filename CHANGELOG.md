@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **One-line installers.** `install.sh` for macOS, Linux and WSL, and `install.ps1` for Windows (PowerShell 5.1 and 7). Each checks for Node.js 18+, installs under your user folder with no sudo, puts `myelin` on your PATH (`--modify-path` writes the shell rc file), upgrades in place when re-run, and removes everything with `--uninstall`.
+- **Homebrew and Scoop.** Formula and manifest templates in `packaging/`, with a maintainer guide for publishing each channel.
+- **Release workflow.** Pushing a `v*` tag runs the tests and creates a GitHub Release with the npm tarball, both installers and `SHA256SUMS`. npm publish with provenance runs when `NPM_TOKEN` is set. An install test runs on pull requests that touch the installers, on Ubuntu, macOS and Windows.
+- **npm metadata.** Repository, homepage, bugs, author and public publish config are set, `myelin-ledger` is a second bin alias, and `CHANGELOG.md` and `SECURITY.md` ship in the package.
+- New `myelin setup` first-run wizard and `myelin doctor` environment check.
 - **Agent A/B with Claude Haiku 5.5** (`eval/agent-ab/`): 18 agents, two three.js r186 scenes, three arms. Stale-API first drafts: no guidance 5/6, prose skill 0/6, Myelin 0/6; lint matched three.js runtime warnings on all 18 pages; blind visual scores within noise. Offline WebGPU render harness and scorer included.
 - README **Demo** section: two polished Myelin scenes (lighthouse, neon street), lint clean with zero console warnings.
 - The bonfire A/B is now credited to GLM 5.3.
