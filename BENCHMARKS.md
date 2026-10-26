@@ -65,6 +65,12 @@ npm run bench:wild     # sparse-clones ~60 MB of upstream examples into .wild/
 
 In other words: even official examples lag behind the library. That is the code models train on.
 
+## 4. Agent A/B: bonfire scene (three.js r186)
+
+![run 1 of each arm](eval/bonfire-ab/screenshots/trio.jpg)
+
+Six agents, same task, three arms of two: no guidance, the r186 rules as prose (`SKILL.md`), and the Myelin gate plus mandatory lint. Both unguided agents used `THREE.Clock` and `PCFSoftShadowMap` (lint B5, B6), and three.js printed exactly those two warnings at runtime. All four guided agents were clean and warning-free; all six rendered. Prose and gate tied at this sample size; Myelin's edge is that the check is enforced by a tool, not by the model's reading. Details, outputs and screenshots: [`eval/bonfire-ab/`](eval/bonfire-ab/README.md).
+
 ## What would make these numbers stronger
 
 - Model runs: same task, each model, with and without `myelin gate`, scored by `eval/run-eval.mjs`. Needs API keys; contributions welcome.

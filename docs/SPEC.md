@@ -20,6 +20,7 @@ Each following header line is `key value`, separated by whitespace.
 | `id` | yes | short slug, unique within a project |
 | `about` | yes | one line saying what the ledger is for |
 | `fires` | yes | fire-words separated by `\|`; if the task mentions any, load the rules |
+| `comments` | optional | `skip` blanks out `//`, `/* */` and HTML `<!-- -->` comments in JS/TS/HTML/CSS-like files before checking, so a comment that names a banned API is not a violation; default `check` (needed by ledgers whose rules target comments, such as eslint directives) |
 | `status` | recommended | honest note on how far the ledger has been tested |
 
 Unknown header keys MUST be ignored. Header lines starting with `#` are comments.

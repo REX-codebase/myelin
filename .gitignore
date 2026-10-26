@@ -6,3 +6,4 @@ results.csv
 outputs/
 *.zip
 .wild
+!eval/bonfire-ab/outputs/

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+- New optional header key `comments skip`: blanks `//`, `/* */` and HTML comments in JS/TS/HTML/CSS-like files before checking, so a comment naming a banned API is not a violation. Off by default (the eslint ledger's rules target comments). The three ledger turns it on.
+- Found by the new agent A/B in `eval/bonfire-ab/`: 6 agents, three arms (none, prose skill, Myelin gate). Unguided agents hit B5/B6 and three.js warned at runtime; guided agents were clean. See BENCHMARKS.md section 4.
+- 46 tests.
+
 ## 0.2.0
 
 The library shelf.

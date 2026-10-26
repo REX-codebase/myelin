@@ -49,7 +49,7 @@ myelin self my-rules.myelin        # do your own snippets pass your own rules?
 
 Then feed it real output, good and bad, and see whether the rules fire when they should and stay quiet when they should. Watch for:
 
-- a ban that fires on comments or strings,
+- a ban that fires on comments or strings (add `comments skip` to the header unless your rules target comments),
 - a requirement so loose it always passes,
 - an `unless` that exempts too much.
 

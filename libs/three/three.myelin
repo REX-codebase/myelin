@@ -2,6 +2,7 @@ myelin 1
 id      three
 about   three.js r186 on the WebGPU + TSL path (WebGPURenderer, RenderPipeline, node materials): bans APIs models learned from older releases and WebGL-only patterns that do not run under WebGPURenderer
 fires   three.js | threejs | three/webgpu | three/tsl | three/addons | WebGPURenderer | TSL | RenderPipeline | EffectComposer | WebGLRenderer | GLTFLoader | OrbitControls
+comments skip
 status  Researched 2026-10-26 against r186 (npm three@0.186.1): migration guide, r170-r186 release notes, threejs.org/docs + manual + docs/llms.txt, r186 source. Targets the WebGPU path: WebGLRenderer, EffectComposer, ShaderMaterial and onBeforeCompile still exist for WebGL apps but are banned here; do not load this ledger for an intentionally WebGLRenderer-only project. Regex-level checks. Snippets not executed on a GPU.
 
 = version     three.js r186 (npm three@0.186.1, released 2026-09-08; r187 is in development and NOT released, so do not use its changes yet)

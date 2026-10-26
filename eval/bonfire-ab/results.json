@@ -1,0 +1,126 @@
+{
+ "control-1": {
+  "consoleWarnings": [
+   "[warning] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.",
+   "[warning] THREE.WebGPURenderer: PCFSoftShadowMap has been removed. Using PCFShadowMap instead."
+  ],
+  "rafPerSecSwiftShader": 0.33,
+  "lint": {
+   "ledger": "three",
+   "ok": false,
+   "violations": [
+    {
+     "id": "B5",
+     "kind": "ban",
+     "unit": "control-1/index.html",
+     "line": 437,
+     "message": "THREE.Clock is deprecated since r183. Use THREE.Timer: timer.connect(document); call timer.update() once per frame, then timer.getDelta() / timer.getElapsed().",
+     "ref": "boot"
+    },
+    {
+     "id": "B6",
+     "kind": "ban",
+     "unit": "control-1/index.html",
+     "line": 78,
+     "message": "PCFSoftShadowMap was removed in r186 (both renderers warn and fall back). Use THREE.PCFShadowMap, which is soft now (tune light.shadow.radius).",
+     "ref": "shadows"
+    }
+   ],
+   "counts": {
+    "bans": 21,
+    "requires": 0,
+    "units": 1
+   }
+  }
+ },
+ "control-2": {
+  "consoleWarnings": [
+   "[warning] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.",
+   "[warning] THREE.WebGPURenderer: PCFSoftShadowMap has been removed. Using PCFShadowMap instead."
+  ],
+  "rafPerSecSwiftShader": 0.33,
+  "lint": {
+   "ledger": "three",
+   "ok": false,
+   "violations": [
+    {
+     "id": "B5",
+     "kind": "ban",
+     "unit": "control-2/index.html",
+     "line": 500,
+     "message": "THREE.Clock is deprecated since r183. Use THREE.Timer: timer.connect(document); call timer.update() once per frame, then timer.getDelta() / timer.getElapsed().",
+     "ref": "boot"
+    },
+    {
+     "id": "B6",
+     "kind": "ban",
+     "unit": "control-2/index.html",
+     "line": 47,
+     "message": "PCFSoftShadowMap was removed in r186 (both renderers warn and fall back). Use THREE.PCFShadowMap, which is soft now (tune light.shadow.radius).",
+     "ref": "shadows"
+    }
+   ],
+   "counts": {
+    "bans": 21,
+    "requires": 0,
+    "units": 1
+   }
+  }
+ },
+ "skill-1": {
+  "consoleWarnings": [],
+  "rafPerSecSwiftShader": 0.33,
+  "lint": {
+   "ledger": "three",
+   "ok": true,
+   "violations": [],
+   "counts": {
+    "bans": 21,
+    "requires": 0,
+    "units": 1
+   }
+  }
+ },
+ "skill-2": {
+  "consoleWarnings": [],
+  "rafPerSecSwiftShader": 0.67,
+  "lint": {
+   "ledger": "three",
+   "ok": true,
+   "violations": [],
+   "counts": {
+    "bans": 21,
+    "requires": 0,
+    "units": 1
+   }
+  }
+ },
+ "myelin-1": {
+  "consoleWarnings": [],
+  "rafPerSecSwiftShader": 0.33,
+  "lint": {
+   "ledger": "three",
+   "ok": true,
+   "violations": [],
+   "counts": {
+    "bans": 21,
+    "requires": 0,
+    "units": 1
+   }
+  }
+ },
+ "myelin-2": {
+  "consoleWarnings": [],
+  "rafPerSecSwiftShader": 0.33,
+  "lint": {
+   "ledger": "three",
+   "ok": true,
+   "violations": [],
+   "counts": {
+    "bans": 21,
+    "requires": 0,
+    "units": 1
+   }
+  }
+ }
+}

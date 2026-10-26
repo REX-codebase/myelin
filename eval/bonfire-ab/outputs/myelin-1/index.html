@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bonfire at Night — three.js r186 WebGPU</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { display: block; }
+  #hud { position: fixed; left: 12px; bottom: 10px; color: #c9b8a0; font: 12px/1.4 system-ui, sans-serif; opacity: .55; pointer-events: none; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.webgpu.js",
+    "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.webgpu.js",
+    "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.tsl.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="hud">drag to orbit · scroll to zoom</div>
+<script type="module">
+import * as THREE from 'three/webgpu';
+import {
+  float, vec3, uniform, color as tcolor, uv, time, sin, cos, mix, smoothstep, abs, fract, floor,
+  length, oneMinus, hash, instanceIndex, positionLocal, positionWorld, positionWorldDirection, normalWorld,
+  mx_noise_float, mx_fractal_noise_float, mx_worley_noise_vec2, mx_cell_noise_float, pass, screenUV, PI2
+} from 'three/tsl';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { bloom } from 'three/addons/tsl/display/BloomNode.js';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+
+// ---------------------------------------------------------------- CPU noise (geometry only)
+function h3( x, y, z ) { const s = Math.sin( x * 127.1 + y * 311.7 + z * 74.7 ) * 43758.5453; return s - Math.floor( s ); }
+function vnoise( x, y, z ) {
+  const xi = Math.floor( x ), yi = Math.floor( y ), zi = Math.floor( z );
+  const xf = x - xi, yf = y - yi, zf = z - zi;
+  const u = xf * xf * ( 3 - 2 * xf ), v = yf * yf * ( 3 - 2 * yf ), w = zf * zf * ( 3 - 2 * zf );
+  const L = ( a, b, t ) => a + ( b - a ) * t;
+  const c = ( i, j, k ) => h3( xi + i, yi + j, zi + k );
+  return L( L( L( c( 0, 0, 0 ), c( 1, 0, 0 ), u ), L( c( 0, 1, 0 ), c( 1, 1, 0 ), u ), v ),
+            L( L( c( 0, 0, 1 ), c( 1, 0, 1 ), u ), L( c( 0, 1, 1 ), c( 1, 1, 1 ), u ), v ), w );
+}
+function fbm( x, y, z, o = 4 ) { let a = 0.5, s = 0, f = 1; for ( let i = 0; i < o; i ++ ) { s += a * vnoise( x * f, y * f, z * f ); f *= 2; a *= 0.5; } return s; }
+const sstep = ( a, b, x ) => { const t = Math.min( 1, Math.max( 0, ( x - a ) / ( b - a ) ) ); return t * t * ( 3 - 2 * t ); };
+let seedState = 1337;
+const rand = () => { seedState = ( seedState * 16807 ) % 2147483647; return ( seedState - 1 ) / 2147483646; };
+
+function groundH( x, z ) {
+  const r = Math.hypot( x, z );
+  const hills = ( fbm( x * 0.12 + 10, 0, z * 0.12 ) - 0.5 ) * 1.4 * sstep( 2.0, 9.0, r );
+  const bumps = ( fbm( x * 0.9, 3, z * 0.9 ) - 0.5 ) * 0.07 * sstep( 0.9, 2.0, r );
+  const bowl = - 0.06 * Math.exp( - r * r / 0.7 );
+  const rim = Math.max( 0, r - 16 ) * 0.06;
+  return hills + bumps + bowl + rim;
+}
+
+// ---------------------------------------------------------------- renderer / scene
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.05, 200 );
+camera.position.set( 3.6, 1.9, 4.6 );
+
+const renderer = new THREE.WebGPURenderer( { antialias: true, outputBufferType: THREE.HalfFloatType } );
+renderer.setPixelRatio( Math.min( window.devicePixelRatio, 1.5 ) );
+renderer.setSize( window.innerWidth, window.innerHeight );
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+document.body.appendChild( renderer.domElement );
+
+const controls = new OrbitControls( camera, renderer.domElement );
+controls.target.set( 0, 0.6, 0 );
+controls.enableDamping = true;
+controls.minDistance = 1.6;
+controls.maxDistance = 16;
+controls.maxPolarAngle = 1.48;
+
+const timer = new THREE.Timer();
+timer.connect( document );
+
+const flickerU = uniform( 1.0 );
+
+// ---------------------------------------------------------------- night sky (background node)
+{
+  const dir = positionWorldDirection;
+  const up = dir.y.max( 0 );
+  let sky = mix( tcolor( 0x0b1222 ), tcolor( 0x010208 ), up.pow( 0.45 ) );
+  // faint milky band
+  const band = mx_fractal_noise_float( dir.mul( 3.0 ), 4, 2.0, 0.5 ).mul( 0.5 ).add( 0.5 );
+  const bandMask = oneMinus( smoothstep( 0.0, 0.35, abs( dir.x.mul( 0.6 ).add( dir.z.mul( 0.8 ) ) ) ) );
+  sky = sky.add( tcolor( 0x1a2238 ).mul( band.pow( 3 ) ).mul( bandMask ).mul( 0.35 ) );
+  // stars: one random point per 3D cell
+  const sp = dir.mul( 380.0 );
+  const cellV = mx_cell_noise_float( floor( sp ) );
+  const d = length( fract( sp ).sub( 0.5 ) );
+  const star = smoothstep( 0.982, 1.0, cellV ).mul( oneMinus( smoothstep( 0.0, 0.28, d ) ) );
+  const twinkle = sin( time.mul( 2.5 ).add( cellV.mul( 400.0 ) ) ).mul( 0.35 ).add( 0.65 );
+  sky = sky.add( mix( tcolor( 0xb8c8ff ), tcolor( 0xfff1d8 ), cellV.mul( 50.0 ).fract() ).mul( star ).mul( twinkle ).mul( 3.0 ).mul( smoothstep( 0.02, 0.2, dir.y ) ) );
+  scene.backgroundNode = sky;
+}
+scene.fog = new THREE.FogExp2( 0x070b14, 0.045 );
+
+// ---------------------------------------------------------------- lights
+scene.add( new THREE.HemisphereLight( 0x1b2742, 0x050403, 0.35 ) );
+const moon = new THREE.DirectionalLight( 0x8ea6ff, 0.22 );
+moon.position.set( - 12, 18, - 10 );
+scene.add( moon );
+
+const fireLight = new THREE.PointLight( 0xff8a3c, 34, 0, 2 );
+fireLight.position.set( 0, 0.75, 0 );
+fireLight.castShadow = true;
+fireLight.shadow.mapSize.set( 1024, 1024 );
+fireLight.shadow.radius = 4;
+fireLight.shadow.camera.near = 0.05;
+fireLight.shadow.camera.far = 30;
+scene.add( fireLight );
+
+const fillLight = new THREE.PointLight( 0xff6a20, 8, 0, 2 );
+fillLight.position.set( 0, 1.5, 0 );
+scene.add( fillLight );
+
+// ---------------------------------------------------------------- ground
+{
+  const geo = new THREE.PlaneGeometry( 90, 90, 240, 240 );
+  geo.rotateX( - Math.PI / 2 );
+  const p = geo.attributes.position;
+  for ( let i = 0; i < p.count; i ++ ) p.setY( i, groundH( p.getX( i ), p.getZ( i ) ) );
+  geo.computeVertexNormals();
+
+  const mat = new THREE.MeshStandardNodeMaterial( { roughness: 0.96, metalness: 0 } );
+  const pw = positionWorld.xz;
+  const rr = length( pw );
+  const n = mx_fractal_noise_float( vec3( pw.mul( 0.55 ), 0.0 ), 5, 2.0, 0.5 ).mul( 0.5 ).add( 0.5 );
+  const fine = mx_noise_float( vec3( pw.mul( 9.0 ), 1.0 ) ).mul( 0.5 ).add( 0.5 );
+  const grit = mx_noise_float( vec3( pw.mul( 45.0 ), 2.0 ) ).mul( 0.5 ).add( 0.5 );
+  const grass = mix( tcolor( 0x16200c ), tcolor( 0x323d18 ), n ).mul( fine.mul( 0.5 ).add( 0.75 ) );
+  const dirt = mix( tcolor( 0x241a12 ), tcolor( 0x45372a ), fine ).mul( grit.mul( 0.4 ).add( 0.8 ) );
+  const ash = mix( tcolor( 0x121010 ), tcolor( 0x5a544e ), n.mul( grit ) );
+  const dirtMask = smoothstep( 1.7, 3.3, rr.add( n.sub( 0.5 ).mul( 1.4 ) ) );
+  const ashMask = oneMinus( smoothstep( 0.55, 1.15, rr.add( fine.mul( 0.25 ) ) ) );
+  mat.colorNode = mix( mix( dirt, grass, dirtMask ), ash, ashMask );
+  mat.roughnessNode = mix( float( 0.85 ), float( 1.0 ), grit );
+  const coal = smoothstep( 0.62, 0.92, mx_noise_float( vec3( pw.mul( 11.0 ), time.mul( 0.25 ) ) ).mul( 0.5 ).add( 0.5 ) );
+  mat.emissiveNode = tcolor( 0xff3c0c ).mul( coal ).mul( oneMinus( smoothstep( 0.15, 0.7, rr ) ) ).mul( flickerU ).mul( 2.5 );
+
+  const ground = new THREE.Mesh( geo, mat );
+  ground.receiveShadow = true;
+  scene.add( ground );
+}
+
+// ---------------------------------------------------------------- grass blades (instanced)
+{
+  const segs = 4, pos = [], uvs = [], nrm = [], idx = [];
+  for ( let i = 0; i < segs; i ++ ) {
+    const y = i / segs, w = 0.022 * ( 1 - y * 0.85 );
+    pos.push( - w, y, 0, w, y, 0 ); uvs.push( 0, y, 1, y ); nrm.push( 0, 0.75, 0.66, 0, 0.75, 0.66 );
+  }
+  pos.push( 0, 1, 0 ); uvs.push( 0.5, 1 ); nrm.push( 0, 0.75, 0.66 );
+  for ( let i = 0; i < segs - 1; i ++ ) { const a = i * 2; idx.push( a, a + 1, a + 2, a + 1, a + 3, a + 2 ); }
+  idx.push( ( segs - 1 ) * 2, ( segs - 1 ) * 2 + 1, segs * 2 );
+  const g = new THREE.BufferGeometry();
+  g.setAttribute( 'position', new THREE.Float32BufferAttribute( pos, 3 ) );
+  g.setAttribute( 'uv', new THREE.Float32BufferAttribute( uvs, 2 ) );
+  g.setAttribute( 'normal', new THREE.Float32BufferAttribute( nrm, 3 ) );
+  g.setIndex( idx );
+
+  const mat = new THREE.MeshStandardNodeMaterial( { roughness: 0.8, side: THREE.FrontSide } );
+  const r = hash( instanceIndex );
+  const tip = uv().y;
+  mat.colorNode = mix( tcolor( 0x0c1306 ), mix( tcolor( 0x3d4a1c ), tcolor( 0x5a5426 ), r ), tip.pow( 0.8 ) );
+  const sway = sin( time.mul( 1.6 ).add( r.mul( 6.28 ) ) ).mul( 0.06 ).add( sin( time.mul( 3.7 ).add( r.mul( 20.0 ) ) ).mul( 0.015 ) );
+  mat.positionNode = positionLocal.add( vec3( sway, 0, sway.mul( 0.5 ) ).mul( tip.mul( tip ) ) );
+
+  const COUNT = 40000;
+  const blades = new THREE.InstancedMesh( g, mat, COUNT );
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), t = new THREE.Vector3(), e = new THREE.Euler();
+  let placed = 0;
+  while ( placed < COUNT ) {
+    const a = rand() * Math.PI * 2, rad = 2.3 + 17 * Math.pow( rand(), 1.7 );
+    const x = Math.cos( a ) * rad, z = Math.sin( a ) * rad;
+    if ( fbm( x * 0.5, 7, z * 0.5 ) < 0.38 + 0.15 * ( 1 - sstep( 2.3, 4.0, rad ) ) ) continue; // patchy
+    const hgt = 0.12 + rand() * 0.28;
+    e.set( ( rand() - 0.5 ) * 0.5, rand() * Math.PI * 2, ( rand() - 0.5 ) * 0.5 );
+    q.setFromEuler( e ); s.set( 1 + rand(), hgt, 1 ); t.set( x, groundH( x, z ) - 0.01, z );
+    blades.setMatrixAt( placed ++, m.compose( t, q, s ) );
+  }
+  blades.instanceMatrix.needsUpdate = true;
+  blades.receiveShadow = true;
+  blades.frustumCulled = false;
+  scene.add( blades );
+}
+
+// ---------------------------------------------------------------- distant treeline silhouettes
+{
+  const g = new THREE.ConeGeometry( 1, 1, 7 ); g.translate( 0, 0.5, 0 );
+  const mat = new THREE.MeshStandardNodeMaterial( { color: 0x050806, roughness: 1 } );
+  const N = 170, trees = new THREE.InstancedMesh( g, mat, N );
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), t = new THREE.Vector3();
+  for ( let i = 0; i < N; i ++ ) {
+    const a = rand() * Math.PI * 2, rad = 22 + rand() * 16, h = 5 + rand() * 7;
+    const x = Math.cos( a ) * rad, z = Math.sin( a ) * rad;
+    s.set( h * 0.28, h, h * 0.28 ); t.set( x, groundH( x, z ) - 0.3, z );
+    trees.setMatrixAt( i, m.compose( t, q, s ) );
+  }
+  scene.add( trees );
+}
+
+// ---------------------------------------------------------------- stones ring
+{
+  const mat = new THREE.MeshStandardNodeMaterial( { roughness: 0.88, metalness: 0 } );
+  const sn = mx_fractal_noise_float( positionWorld.mul( 5.0 ), 4, 2.0, 0.5 ).mul( 0.5 ).add( 0.5 );
+  const grain = mx_noise_float( positionWorld.mul( 38.0 ) ).mul( 0.5 ).add( 0.5 );
+  let sc = mix( tcolor( 0x37352f ), tcolor( 0x7a756b ), sn ).mul( grain.mul( 0.35 ).add( 0.8 ) );
+  const moss = smoothstep( 0.55, 0.9, normalWorld.y ).mul( smoothstep( 1.25, 1.45, length( positionWorld.xz ) ) ).mul( smoothstep( 0.45, 0.7, sn ) );
+  sc = mix( sc, tcolor( 0x2b3318 ), moss.mul( 0.7 ) );
+  const soot = oneMinus( smoothstep( 1.0, 1.35, length( positionWorld.xz ) ) );
+  mat.colorNode = mix( sc, tcolor( 0x0c0a09 ), soot.mul( 0.8 ) );
+  mat.roughnessNode = mix( float( 0.7 ), float( 0.95 ), grain );
+
+  const N = 17;
+  for ( let i = 0; i < N; i ++ ) {
+    let g = new THREE.IcosahedronGeometry( 1, 3 );
+    g.deleteAttribute( 'normal' ); g.deleteAttribute( 'uv' );
+    g = mergeVertices( g );
+    const p = g.attributes.position, sd = i * 13.7;
+    for ( let k = 0; k < p.count; k ++ ) {
+      const x = p.getX( k ), y = p.getY( k ), z = p.getZ( k );
+      const d = 1 + ( fbm( x * 1.3 + sd, y * 1.3, z * 1.3, 4 ) - 0.5 ) * 0.7;
+      p.setXYZ( k, x * d, Math.max( y * d, - 0.35 ), z * d );
+    }
+    g.computeVertexNormals();
+    const a = ( i / N ) * Math.PI * 2 + ( rand() - 0.5 ) * 0.15;
+    const rad = 1.2 + ( rand() - 0.5 ) * 0.12;
+    const sz = 0.16 + rand() * 0.09;
+    const st = new THREE.Mesh( g, mat );
+    const x = Math.cos( a ) * rad, z = Math.sin( a ) * rad;
+    st.scale.set( sz * ( 1.1 + rand() * 0.4 ), sz * ( 0.7 + rand() * 0.3 ), sz * ( 0.9 + rand() * 0.3 ) );
+    st.position.set( x, groundH( x, z ) + st.scale.y * 0.35, z );
+    st.rotation.set( ( rand() - 0.5 ) * 0.4, - a + rand() * 0.6, ( rand() - 0.5 ) * 0.4 );
+    st.castShadow = true; st.receiveShadow = true;
+    scene.add( st );
+  }
+}
+
+// ---------------------------------------------------------------- charred logs with ember cracks
+function makeLogMaterial( seed ) {
+  const mat = new THREE.MeshStandardNodeMaterial( { roughness: 0.92, metalness: 0 } );
+  const pL = positionLocal;
+  const bark = mx_fractal_noise_float( vec3( pL.x.mul( 9.0 ), pL.y.mul( 2.5 ), pL.z.mul( 9.0 ) ).add( seed ), 4, 2.0, 0.55 ).mul( 0.5 ).add( 0.5 );
+  const w = mx_worley_noise_vec2( pL.mul( vec3( 16.0, 5.0, 16.0 ) ).add( seed ) );
+  const crack = oneMinus( smoothstep( 0.0, 0.1, w.y.sub( w.x ) ) );
+  const pW = positionWorld;
+  const heat = oneMinus( smoothstep( 0.05, 0.8, length( pW.xz ) ) ).mul( oneMinus( smoothstep( 0.1, 1.15, pW.y ) ) )
+    .add( oneMinus( smoothstep( 0.0, 0.22, pW.y ) ).mul( 0.6 ) ).clamp( 0.0, 1.0 );
+  const charcoal = mix( tcolor( 0x0a0807 ), tcolor( 0x2b241d ), bark );
+  const ashy = smoothstep( 0.62, 0.8, bark ).mul( oneMinus( heat ) );
+  mat.colorNode = mix( mix( charcoal, tcolor( 0x5d5852 ), ashy ), tcolor( 0x040303 ), crack );
+  mat.roughnessNode = mix( float( 0.72 ), float( 1.0 ), crack.max( ashy ) );
+  const pulse = mx_noise_float( pL.mul( 4.0 ).add( seed ).add( vec3( 0.0, time.mul( 0.5 ), 0.0 ) ) ).mul( 0.5 ).add( 0.5 );
+  const glowCol = mix( tcolor( 0xff2a06 ), tcolor( 0xffa040 ), pulse.mul( heat ) );
+  mat.emissiveNode = glowCol.mul( crack.mul( 6.0 ).add( bark.mul( 0.3 ) ) ).mul( heat.pow( 1.3 ) ).mul( pulse.pow( 2.0 ).mul( 1.6 ).add( 0.15 ) ).mul( flickerU );
+  return mat;
+}
+
+function makeLogGeo( len, r, seed ) {
+  const g = new THREE.CylinderGeometry( r * 0.9, r, len, 18, 12, false );
+  const p = g.attributes.position;
+  for ( let i = 0; i < p.count; i ++ ) {
+    const x = p.getX( i ), y = p.getY( i ), z = p.getZ( i );
+    const rad = Math.hypot( x, z );
+    if ( rad < 1e-5 ) continue;
+    const a = Math.atan2( z, x );
+    const k = 1 + ( vnoise( Math.cos( a ) * 2 + seed, y * 2.5, Math.sin( a ) * 2 ) - 0.5 ) * 0.28 + Math.sin( a * 9 + y * 3 ) * 0.025;
+    p.setXYZ( i, x * k, y + Math.sin( y * 1.7 + seed ) * 0.0, z * k );
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+const up = new THREE.Vector3( 0, 1, 0 );
+function addLog( base, dir, len, r, seed ) {
+  const log = new THREE.Mesh( makeLogGeo( len, r, seed ), makeLogMaterial( seed ) );
+  const d = dir.clone().normalize();
+  log.quaternion.setFromUnitVectors( up, d );
+  log.position.copy( base ).addScaledVector( d, len * 0.5 );
+  log.rotateY( rand() * Math.PI * 2 );
+  log.castShadow = true; log.receiveShadow = true;
+  scene.add( log );
+}
+{
+  const N = 8;
+  for ( let i = 0; i < N; i ++ ) {
+    const a = ( i / N ) * Math.PI * 2 + ( rand() - 0.5 ) * 0.3;
+    const br = 0.62 + ( rand() - 0.5 ) * 0.1;
+    const base = new THREE.Vector3( Math.cos( a ) * br, - 0.04, Math.sin( a ) * br );
+    const top = new THREE.Vector3( Math.cos( a + 0.5 ) * 0.07, 1.05 + rand() * 0.15, Math.sin( a + 0.5 ) * 0.07 );
+    const dir = top.clone().sub( base );
+    addLog( base, dir, dir.length() * ( 1.08 + rand() * 0.1 ), 0.075 + rand() * 0.03, i * 3.17 + 1.0 );
+  }
+  // logs lying across the coal bed
+  for ( let i = 0; i < 3; i ++ ) {
+    const a = i * 1.1 + 0.4;
+    const len = 1.0 + rand() * 0.25;
+    const base = new THREE.Vector3( - Math.cos( a ) * len * 0.5, 0.07, - Math.sin( a ) * len * 0.5 );
+    addLog( base, new THREE.Vector3( Math.cos( a ), 0.04, Math.sin( a ) ), len, 0.07 + rand() * 0.02, 40 + i * 5.3 );
+  }
+}
+
+// ---------------------------------------------------------------- ember bed: coals + glowing ash disc
+{
+  const disc = new THREE.Mesh( new THREE.CircleGeometry( 0.75, 64 ).rotateX( - Math.PI / 2 ), new THREE.MeshStandardNodeMaterial( { roughness: 1 } ) );
+  const rr = length( positionWorld.xz );
+  const n = mx_fractal_noise_float( vec3( positionWorld.xz.mul( 7.0 ), time.mul( 0.15 ) ), 4, 2.0, 0.5 ).mul( 0.5 ).add( 0.5 );
+  const fall = oneMinus( smoothstep( 0.1, 0.75, rr ) );
+  disc.material.colorNode = mix( tcolor( 0x0d0b0a ), tcolor( 0x3d3832 ), n );
+  disc.material.emissiveNode = mix( tcolor( 0xb31a02 ), tcolor( 0xff7a20 ), n ).mul( smoothstep( 0.45, 0.85, n ) ).mul( fall.pow( 1.5 ) ).mul( flickerU ).mul( 4.0 );
+  disc.position.y = groundH( 0, 0 ) + 0.012;
+  disc.receiveShadow = true;
+  scene.add( disc );
+
+  const mat = new THREE.MeshStandardNodeMaterial( { roughness: 0.9 } );
+  const r = hash( instanceIndex );
+  const cp = mx_noise_float( positionWorld.mul( 9.0 ).add( vec3( 0.0, time.mul( 0.4 ), 0.0 ) ) ).mul( 0.5 ).add( 0.5 );
+  mat.colorNode = mix( tcolor( 0x070605 ), tcolor( 0x221c17 ), r );
+  mat.emissiveNode = mix( tcolor( 0xc41e02 ), tcolor( 0xffa24a ), cp.pow( 2.0 ) ).mul( smoothstep( 0.3, 0.9, cp ) ).mul( r.mul( 3.0 ).add( 1.0 ) ).mul( flickerU ).mul( 2.5 );
+  const N = 320, coals = new THREE.InstancedMesh( new THREE.DodecahedronGeometry( 0.045, 0 ), mat, N );
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), t = new THREE.Vector3(), e = new THREE.Euler();
+  for ( let i = 0; i < N; i ++ ) {
+    const a = rand() * Math.PI * 2, rad = Math.sqrt( rand() ) * 0.68;
+    const sc = 0.5 + rand() * 1.1;
+    e.set( rand() * 6, rand() * 6, rand() * 6 ); q.setFromEuler( e );
+    s.set( sc * ( 1 + rand() ), sc * 0.6, sc * ( 1 + rand() * 0.5 ) );
+    t.set( Math.cos( a ) * rad, groundH( 0, 0 ) + 0.015 + rand() * 0.03 * ( 1 - rad ), Math.sin( a ) * rad );
+    coals.setMatrixAt( i, m.compose( t, q, s ) );
+  }
+  coals.castShadow = true; coals.receiveShadow = true;
+  scene.add( coals );
+}
+
+// ---------------------------------------------------------------- flames: layered camera-facing noise sheets
+const flameGroup = new THREE.Group();
+flameGroup.position.set( 0, 0.06, 0 );
+scene.add( flameGroup );
+function makeFlameMaterial( seed, strength, widthMul, speed ) {
+  const mat = new THREE.MeshBasicNodeMaterial( { transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending } );
+  mat.fog = false;
+  const u = uv();
+  const x = u.x.mul( 2.0 ).sub( 1.0 );
+  const y = u.y;
+  const tt = time.mul( speed );
+  const n1 = mx_fractal_noise_float( vec3( x.mul( 1.7 ).add( seed ), y.mul( 2.3 ).sub( tt.mul( 1.9 ) ), tt.mul( 0.35 ).add( seed ) ), 4, 2.0, 0.5 );
+  const n2 = mx_noise_float( vec3( x.mul( 4.5 ).add( seed * 3.0 ), y.mul( 5.5 ).sub( tt.mul( 3.4 ) ), tt.mul( 0.9 ) ) );
+  const xd = x.add( n1.mul( 0.5 ).mul( y.add( 0.15 ) ) ).add( sin( y.mul( 3.2 ).sub( tt.mul( 2.6 ) ).add( seed ) ).mul( 0.09 ).mul( y ) );
+  const width = oneMinus( y ).max( 0.0 ).pow( 0.75 ).mul( widthMul ).add( 0.015 );
+  const body = oneMinus( smoothstep( width.mul( 0.2 ), width, abs( xd ) ) );
+  const top = oneMinus( smoothstep( 0.3, 0.95, y.add( n2.mul( 0.22 ) ).add( n1.mul( 0.25 ) ) ) );
+  const base = smoothstep( 0.0, 0.1, y );
+  const i = body.mul( top ).mul( base ).clamp( 0.0, 1.0 );
+  let col = mix( tcolor( 0x7a1000 ), tcolor( 0xff4e08 ), smoothstep( 0.0, 0.35, i ) );
+  col = mix( col, tcolor( 0xffb54a ), smoothstep( 0.35, 0.7, i ) );
+  col = mix( col, tcolor( 0xfff1d6 ), smoothstep( 0.78, 1.0, i ) );
+  const blueBase = tcolor( 0x2040ff ).mul( oneMinus( smoothstep( 0.0, 0.12, y ) ) ).mul( body ).mul( 0.25 );
+  mat.colorNode = col.mul( i.pow( 1.6 ) ).mul( strength ).mul( flickerU ).add( blueBase );
+  return mat;
+}
+{
+  const g = new THREE.PlaneGeometry( 1.0, 2.0, 1, 1 ); g.translate( 0, 1.0, 0 );
+  const layers = [
+    { x: 0.00, z: 0.00, s: 1.00, h: 1.00, seed: 1.3, str: 2.4, w: 0.55, sp: 1.00 },
+    { x: - 0.24, z: 0.10, s: 0.72, h: 0.80, seed: 7.9, str: 2.0, w: 0.55, sp: 1.15 },
+    { x: 0.26, z: - 0.08, s: 0.78, h: 0.85, seed: 3.4, str: 2.0, w: 0.55, sp: 1.10 },
+    { x: 0.10, z: 0.18, s: 0.60, h: 0.70, seed: 12.1, str: 2.2, w: 0.50, sp: 1.25 },
+    { x: - 0.12, z: - 0.16, s: 0.90, h: 1.10, seed: 5.6, str: 1.6, w: 0.50, sp: 0.95 },
+    { x: 0.00, z: 0.06, s: 0.55, h: 0.55, seed: 9.2, str: 4.0, w: 0.45, sp: 1.30 }
+  ];
+  layers.forEach( ( L, k ) => {
+    const f = new THREE.Mesh( g, makeFlameMaterial( L.seed, L.str, L.w, L.sp ) );
+    f.position.set( L.x, 0, L.z );
+    f.scale.set( L.s, L.s * L.h, L.s );
+    f.rotation.y = ( rand() - 0.5 ) * 0.6;
+    f.renderOrder = 10 + k;
+    f.frustumCulled = false;
+    flameGroup.add( f );
+  } );
+}
+
+// ---------------------------------------------------------------- sparks (GPU-animated instanced sprites)
+{
+  const N = 420;
+  const mat = new THREE.SpriteNodeMaterial( { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending } );
+  mat.fog = false;
+  const r1 = hash( instanceIndex ), r2 = hash( instanceIndex.add( 101 ) ), r3 = hash( instanceIndex.add( 271 ) ), r4 = hash( instanceIndex.add( 997 ) );
+  const life = fract( time.mul( r4.mul( 0.25 ).add( 0.16 ) ).add( r1 ) );
+  const ang = r2.mul( PI2 ), rad = r3.sqrt().mul( 0.45 );
+  const swX = sin( life.mul( 9.0 ).add( r1.mul( 20.0 ) ) ).mul( 0.28 ).mul( life );
+  const swZ = cos( life.mul( 7.0 ).add( r2.mul( 15.0 ) ) ).mul( 0.28 ).mul( life );
+  mat.positionNode = vec3(
+    cos( ang ).mul( rad ).add( swX ).add( life.mul( life ).mul( 0.9 ) ),
+    life.pow( 0.85 ).mul( r4.mul( 3.0 ).add( 2.2 ) ).add( 0.25 ),
+    sin( ang ).mul( rad ).add( swZ )
+  );
+  mat.scaleNode = r3.mul( 0.022 ).add( 0.01 ).mul( oneMinus( life ).mul( 0.7 ).add( 0.3 ) );
+  const d = length( uv().sub( 0.5 ) );
+  const glow = oneMinus( smoothstep( 0.0, 0.5, d ) ).pow( 2.0 );
+  const fade = oneMinus( life ).pow( 1.6 ).mul( smoothstep( 0.0, 0.04, life ) );
+  const flick = sin( time.mul( 28.0 ).add( r1.mul( 100.0 ) ) ).mul( 0.3 ).add( 0.7 );
+  mat.colorNode = mix( tcolor( 0xffd88a ), tcolor( 0xff3204 ), life.pow( 0.6 ) ).mul( glow ).mul( fade ).mul( flick ).mul( 14.0 );
+  const sparks = new THREE.InstancedMesh( new THREE.PlaneGeometry( 1, 1 ), mat, N );
+  const id = new THREE.Matrix4();
+  for ( let i = 0; i < N; i ++ ) sparks.setMatrixAt( i, id );
+  sparks.frustumCulled = false;
+  sparks.renderOrder = 20;
+  scene.add( sparks );
+}
+
+// ---------------------------------------------------------------- smoke (soft noisy sprites)
+{
+  const N = 70;
+  const mat = new THREE.SpriteNodeMaterial( { transparent: true, depthWrite: false } );
+  const r1 = hash( instanceIndex.add( 5 ) ), r2 = hash( instanceIndex.add( 55 ) ), r3 = hash( instanceIndex.add( 555 ) ), r4 = hash( instanceIndex.add( 5555 ) );
+  const life = fract( time.mul( r4.mul( 0.03 ).add( 0.055 ) ).add( r1 ) );
+  mat.positionNode = vec3(
+    r2.sub( 0.5 ).mul( 0.4 ).add( life.mul( life ).mul( 2.6 ) ).add( sin( life.mul( 5.0 ).add( r3.mul( 6.0 ) ) ).mul( 0.25 ).mul( life ) ),
+    life.mul( 6.5 ).add( 1.1 ),
+    r3.sub( 0.5 ).mul( 0.4 ).add( cos( life.mul( 4.0 ).add( r2.mul( 6.0 ) ) ).mul( 0.3 ).mul( life ) )
+  );
+  mat.scaleNode = life.mul( 3.0 ).add( 0.5 ).mul( r3.mul( 0.4 ).add( 0.8 ) );
+  mat.rotationNode = r2.mul( PI2 ).add( time.mul( r3.sub( 0.5 ).mul( 0.3 ) ) );
+  const c = uv().sub( 0.5 );
+  const nz = mx_fractal_noise_float( vec3( c.mul( 3.0 ).add( r1.mul( 10.0 ) ), time.mul( 0.08 ).add( r4 ) ), 4, 2.0, 0.5 );
+  const puff = oneMinus( smoothstep( 0.1, 0.5, length( c ).add( nz.mul( 0.15 ) ) ) );
+  mat.colorNode = mix( tcolor( 0x6a3e22 ), tcolor( 0x23262b ), smoothstep( 0.0, 0.3, life ) );
+  mat.opacityNode = puff.mul( nz.mul( 0.5 ).add( 0.6 ) ).mul( smoothstep( 0.0, 0.12, life ) ).mul( oneMinus( life ) ).mul( 0.16 ).clamp( 0.0, 1.0 );
+  const smoke = new THREE.InstancedMesh( new THREE.PlaneGeometry( 1, 1 ), mat, N );
+  const id = new THREE.Matrix4();
+  for ( let i = 0; i < N; i ++ ) smoke.setMatrixAt( i, id );
+  smoke.frustumCulled = false;
+  smoke.renderOrder = 5;
+  scene.add( smoke );
+}
+
+// ---------------------------------------------------------------- post: bloom + vignette
+const renderPipeline = new THREE.RenderPipeline( renderer );
+const scenePass = pass( scene, camera );
+const scenePassColor = scenePass.getTextureNode( 'output' );
+const bloomPass = bloom( scenePassColor, 0.85, 0.5, 0.8 );
+const vignette = oneMinus( smoothstep( 0.35, 0.95, length( screenUV.sub( 0.5 ) ).mul( 1.2 ) ) ).mul( 0.6 ).add( 0.4 );
+renderPipeline.outputNode = scenePassColor.add( bloomPass ).mul( vignette );
+
+window.addEventListener( 'resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize( window.innerWidth, window.innerHeight );
+} );
+
+// ---------------------------------------------------------------- loop
+renderer.setAnimationLoop( () => {
+  timer.update();
+  const t = timer.getElapsed();
+  const f = 0.8 + 0.1 * Math.sin( t * 7.3 ) + 0.06 * Math.sin( t * 13.1 + 1.3 ) + 0.04 * Math.sin( t * 23.7 + 0.4 ) + 0.12 * ( vnoise( t * 3.5, 0.5, 0.5 ) - 0.5 );
+  flickerU.value = f;
+  fireLight.intensity = 34 * f;
+  fireLight.position.set( Math.sin( t * 3.1 ) * 0.05, 0.75 + Math.sin( t * 5.7 ) * 0.04, Math.cos( t * 2.7 ) * 0.05 );
+  fillLight.intensity = 8 * ( 0.7 + 0.3 * Math.sin( t * 4.3 + 2.0 ) ) * f;
+  flameGroup.rotation.y = Math.atan2( camera.position.x - flameGroup.position.x, camera.position.z - flameGroup.position.z );
+  controls.update();
+  renderPipeline.render();
+} );
+</script>
+</body>
+</html>

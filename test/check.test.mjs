@@ -94,3 +94,21 @@ test('every example ledger validates and passes its own rules', () => {
     assert.ok(r.ok, `${f}: ${JSON.stringify(r.violations)}`);
   }
 });
+
+test('comments are checked by default, skipped with "comments skip"', () => {
+  const plain = check(ledger, [{ name: 'a.js', text: 'export {};\n// Math.random(' }]);
+  assert.deepEqual(plain.violations.map((v) => v.id), ['B1']);
+});
+
+test('a ban does not fire on a comment that mentions it (C-style units)', () => {
+  const ledger = parse(HEAD.replace('status  test', 'comments skip\nstatus  test') + '\n' + String.raw`! B1 /Math\.random\(/   no random
+`);
+  assert.ok(ledger.ok, JSON.stringify(ledger.problems));
+  const r = check(ledger, [{ name: 'a.js', text: 'export {};\n// Math.random( is banned\n/* Math.random( */ const u = "https://x.dev/a";' }]);
+  assert.ok(r.ok, JSON.stringify(r.violations));
+  const h = check(ledger, [{ name: 'a.html', text: '<!-- Math.random( --><script>export {}</script>' }]);
+  assert.ok(h.ok);
+  const live = check(ledger, [{ name: 'a.js', text: 'export {};\nconst s = "//"; Math.random();' }]);
+  assert.deepEqual(live.violations.map((v) => v.id), ['B1']);
+  assert.equal(live.violations[0].line, 2);
+});
