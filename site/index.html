@@ -4,760 +4,439 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Myelin: rule ledgers for AI-written code</title>
-<meta name="description" content="Myelin keeps AI-written code on the current version of your libraries. One plain-text rule file the model reads before it writes, and a script that checks the output after. Zero dependencies.">
-<meta name="color-scheme" content="dark light">
-<meta name="theme-color" content="#0b0f19" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#f5f8fc" media="(prefers-color-scheme: light)">
+<meta name="description" content="Models write last year's APIs with total confidence. Myelin is a plain-text rule file the model reads before it writes and a linter runs after.">
+<meta name="color-scheme" content="light dark">
 <meta property="og:title" content="Myelin: rule ledgers for AI-written code">
-<meta property="og:description" content="Keep AI-written code on the current version of your libraries.">
+<meta property="og:description" content="A checklist the model can read and a linter the machine can run, from the same plain-text file.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://rex-codebase.github.io/myelin/">
 <meta property="og:image" content="https://rex-codebase.github.io/myelin/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Myelin: rule ledgers for AI-written code">
-<meta name="twitter:image" content="https://rex-codebase.github.io/myelin/og.png">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
 :root{
-  --bg:#0b0f19;
-  --nav:rgba(11,15,25,.82);
-  --surface:#111828;
-  --surface-2:#161f32;
-  --code:#070a12;
-  --line:#1d2638;
-  --text:#e9eef7;
-  --muted:#9ba7bb;
-  --accent:#5ff4ff;
-  --accent-ink:#5ff4ff;
-  --on-accent:#0b0f19;
-  --ok:#7ef0a0;
-  --bad:#ff8a9a;
-  --glow:rgba(95,244,255,.16);
-  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
-  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono","DejaVu Sans Mono",monospace;
-  color-scheme:dark;
+  --paper:#ffffff;
+  --ink:#15171c;
+  --mute:#566070;
+  --rule:#d6dae1;
+  --tint:#f4f5f7;
+  --blue:#1c3d9e;
+  --bad:#a3261d;
+  --good:#17643a;
+  --serif:Charter,"Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Liberation Serif",serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  color-scheme:light;
 }
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]){
-    --bg:#f5f8fc;
-    --nav:rgba(245,248,252,.9);
-    --surface:#ffffff;
-    --surface-2:#e9eff7;
-    --line:#d3dce9;
-    --text:#0b0f19;
-    --muted:#4b5870;
-    --accent:#00a8b8;
-    --accent-ink:#00616d;
-    --on-accent:#0b0f19;
-    --glow:rgba(0,168,184,.12);
-    color-scheme:light;
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#111318;
+    --ink:#e7e9ee;
+    --mute:#9ba3b3;
+    --rule:#2a2f3a;
+    --tint:#1a1d25;
+    --blue:#93aaff;
+    --bad:#ff948b;
+    --good:#74d49c;
+    color-scheme:dark;
   }
 }
-:root[data-theme="dark"]{
-  --bg:#0b0f19;--nav:rgba(11,15,25,.82);--surface:#111828;--surface-2:#161f32;--line:#1d2638;
-  --text:#e9eef7;--muted:#9ba7bb;--accent:#5ff4ff;--accent-ink:#5ff4ff;--glow:rgba(95,244,255,.16);
-  color-scheme:dark;
-}
-
 *,*::before,*::after{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%;scroll-padding-top:84px}
-@media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
-body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
-img,svg{display:block;max-width:100%}
-a{color:var(--accent-ink)}
-code,pre{font-family:var(--mono)}
-code{font-size:.92em;overflow-wrap:anywhere}
-h1,h2,h3{font-weight:800;letter-spacing:-.02em;line-height:1.12;margin:0}
-p{margin:0}
-:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
-.wrap{width:100%;max-width:1120px;margin:0 auto;padding:0 16px}
-@media (min-width:720px){.wrap{padding:0 32px}}
-section{padding:72px 0}
-@media (max-width:600px){section{padding:56px 0}}
-.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-.skip{position:absolute;left:16px;top:-80px;z-index:50;background:var(--accent);color:var(--on-accent);padding:10px 14px;border-radius:8px;font-weight:700;text-decoration:none}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:19px/1.62 var(--serif);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:var(--blue);text-underline-offset:3px;text-decoration-thickness:1px}
+a:hover{text-decoration-thickness:2px}
+code,pre,kbd{font-family:var(--mono)}
+code{font-size:.82em;background:var(--tint);padding:.12em .38em;border-radius:2px;overflow-wrap:anywhere}
+:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+p{margin:0 0 1.05em}
+.page{max-width:1080px;margin:0 auto;padding:0 32px}
+.skip{position:absolute;left:12px;top:-60px;background:var(--ink);color:var(--paper);padding:8px 12px;font:14px var(--mono);z-index:5}
 .skip:focus{top:12px}
-.kicker{font:700 12px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:14px}
-.lede{color:var(--muted);font-size:1.0625rem;max-width:62ch}
-.h2{font-size:clamp(1.7rem,3.4vw,2.4rem)}
-.head{margin-bottom:32px}
-.head .lede{margin-top:12px}
 
-/* nav */
-.site-nav{position:sticky;top:0;z-index:20;background:var(--nav);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
-.site-nav .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;height:60px}
-.brand{display:inline-flex;align-items:center;gap:10px;color:var(--text);text-decoration:none;font-weight:800;font-size:15px;letter-spacing:.18em;white-space:nowrap}
-.mark{display:inline-flex;gap:3px}
-.mark span{display:block;width:9px;height:5px;border-radius:3px;background:var(--accent)}
-.nav-links{display:flex;align-items:center;gap:2px}
-.nav-links a{color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;padding:8px 10px;border-radius:8px;white-space:nowrap}
-.nav-links a:hover{color:var(--text);background:var(--surface)}
-.nav-links .gh{display:inline-flex;align-items:center;gap:6px}
-.nav-links .gh svg{width:18px;height:18px;fill:currentColor}
-@media (max-width:520px){
-  .brand{letter-spacing:.12em;font-size:14px}
-  .brand .mark{display:none}
-  .nav-links{gap:0}
-  .nav-links a{padding:8px 6px;font-size:13.5px}
-  .nav-links a.gh-text{display:none}
-  .nav-links a.nl{display:none}
-  .nav-links a.cta{padding:8px 12px}
+/* masthead */
+.mast{border-bottom:1px solid var(--ink)}
+.mast .page{display:flex;justify-content:space-between;align-items:baseline;gap:12px 24px;flex-wrap:wrap;padding-top:18px;padding-bottom:14px}
+.mast .name{font:500 17px/1 var(--mono);color:var(--ink);text-decoration:none;letter-spacing:-.01em}
+.mast .name small{font-size:13px;color:var(--mute);margin-left:10px;font-weight:400}
+.mast nav{display:flex;gap:4px 22px;flex-wrap:wrap;font:14.5px/1.4 var(--mono)}
+.mast nav a{color:var(--ink);text-decoration:none}
+.mast nav a:hover{color:var(--blue);text-decoration:underline}
+
+/* title */
+.title{padding:84px 0 20px}
+.title h1{margin:0;font-weight:600;font-size:clamp(34px,5.2vw,56px);line-height:1.08;letter-spacing:-.015em;max-width:17em}
+.title h1 em{font-style:normal;color:var(--blue)}
+
+/* rows: a label gutter and the text */
+.row{display:grid;grid-template-columns:168px minmax(0,1fr);gap:0 40px;padding:52px 0;border-top:1px solid var(--rule)}
+.row.first{border-top:0;padding-top:32px}
+.row > h2{margin:6px 0 0;font:400 13.5px/1.4 var(--mono);color:var(--mute);letter-spacing:0}
+.row > h2::before{content:"\2192\00a0";color:var(--blue)}
+.body{min-width:0;max-width:44rem}
+.body.wide{max-width:none}
+.lead{font-size:21px;line-height:1.55}
+.lead code{white-space:nowrap}
+@media (max-width:820px){
+  .row{grid-template-columns:1fr;gap:10px}
+  .row > h2{margin:0}
+  .title{padding-top:52px}
+  body{font-size:18px}
 }
+@media (max-width:560px){.page{padding:0 20px}.cmd pre{word-break:break-all}}
 
-/* hero */
-.hero{position:relative;overflow:hidden;padding:60px 0 0;text-align:center}
-.hero::before{content:"";position:absolute;left:50%;top:-220px;width:min(1100px,160vw);height:560px;transform:translateX(-50%);background:radial-gradient(closest-side,var(--glow),transparent);pointer-events:none;z-index:-1}
-@media (max-width:600px){.hero{padding:44px 0 0}}
-.band{border-top:1px solid var(--line)}
-.fig{margin:0}
-.eyebrow{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:999px;padding:7px 14px;font:600 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface)}
-.eyebrow i{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--glow)}
-.hero h1{font-size:clamp(2.2rem,6.2vw,4rem);line-height:1.05;letter-spacing:-.035em;margin:22px auto 18px;max-width:18ch}
-.hero h1 .accent{color:var(--accent-ink)}
-.hero .lede{margin:0 auto;font-size:clamp(1.02rem,2vw,1.2rem)}
+/* install blocks */
+.cmd{margin:0 0 26px}
+.cmd .for{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font:13.5px/1.4 var(--mono);color:var(--mute);margin-bottom:6px}
+.cmd .for b{color:var(--ink);font-weight:500}
+.cmd .hit{color:var(--blue)}
+.cmd pre{margin:0;padding:14px 16px;background:var(--tint);border-left:3px solid var(--blue);font-size:14px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.cmd pre i{font-style:normal;color:var(--mute);user-select:none}
+.copy{appearance:none;border:0;background:none;padding:2px 0;color:var(--blue);font:13.5px/1.4 var(--mono);text-decoration:underline;text-underline-offset:3px;cursor:pointer;flex:0 0 auto}
+.copy:hover{text-decoration-thickness:2px}
+details{margin:6px 0 0}
+details summary{cursor:pointer;font:13.5px/1.4 var(--mono);color:var(--blue);padding:4px 0}
+details pre{margin:10px 0 0;padding:14px 16px;background:var(--tint);font-size:13.5px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
 
-/* install card */
-.install{margin:40px auto 0;max-width:820px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 40px 90px -40px var(--glow)}
-.install-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:10px 10px 12px}
-.install-top h2{font-size:15px;font-weight:700;letter-spacing:0}
-.install-top p{font-size:13px;color:var(--muted)}
-.tablist{display:flex;flex-wrap:wrap;gap:4px;padding:4px;background:var(--surface-2);border-radius:12px}
-.tab{flex:1 1 auto;appearance:none;border:0;background:transparent;color:var(--muted);font:600 14px/1 var(--sans);padding:11px 14px;border-radius:9px;cursor:pointer;white-space:nowrap}
-.tab:hover{color:var(--text)}
-.tab[aria-selected="true"]{background:var(--bg);color:var(--accent-ink);box-shadow:0 1px 2px rgba(0,0,0,.25),0 0 0 1px var(--line)}
-.tab:focus-visible{outline-offset:-2px}
-.panel{padding:14px 6px 8px}
-.panel[hidden]{display:none}
-.label{font:600 11.5px/1.2 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:14px 4px 8px}
-.label:first-child{margin-top:4px}
-.cmd{display:flex;align-items:stretch;gap:10px;background:var(--code);border:1px solid var(--line);border-radius:12px;padding:6px 6px 6px 16px}
-.cmd code{flex:1 1 auto;min-width:0;align-self:center;color:#dbe7f6;font-size:14.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
-.cmd code::before{content:"$ ";color:#5b6a86}
-.copy{flex:0 0 auto;appearance:none;min-width:88px;border:1px solid rgba(95,244,255,.4);background:transparent;color:var(--accent);font:600 13.5px/1 var(--sans);padding:10px 14px;border-radius:9px;cursor:pointer}
-.copy:hover{background:rgba(95,244,255,.08)}
-.copy.done{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
-.then{margin:16px 6px 4px;color:var(--muted);font-size:14.5px}
-.then code{color:var(--text);background:var(--surface-2);padding:2px 7px;border-radius:6px;font-size:.9em}
-@media (max-width:600px){
-  .cmd{flex-direction:column;align-items:stretch;padding:14px}
-  .cmd code{align-self:auto;word-break:break-all;overflow-wrap:normal}
-  .copy{width:100%;padding:11px 14px}
+/* the ledger, with margin notes */
+.ledger{margin:30px 0 8px;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink)}
+.ledger .g{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);border-top:1px solid var(--rule)}
+.ledger .g:first-child{border-top:0}
+.ledger .c{margin:0;background:var(--tint);padding:13px 18px;font:13.5px/1.7 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.ledger .n{position:relative;align-self:start;padding:13px 0 13px 24px;color:var(--mute);font:15px/1.5 var(--serif)}
+.ledger .n::before{content:"";position:absolute;left:0;top:calc(13px + .78em);width:14px;border-top:1px solid var(--blue)}
+.ledger .n b{color:var(--ink);font-weight:600}
+.sig{color:var(--blue);font-weight:700}
+.ban{color:var(--bad)}
+.dim{color:var(--mute)}
+@media (max-width:820px){
+  .ledger .g{grid-template-columns:1fr}
+  .ledger .n{padding:10px 0 16px 0}
+  .ledger .n::before{display:none}
 }
+.sigils{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;margin:18px 0 0;font-size:15px;line-height:1.45;border-top:1px solid var(--rule)}
+.sigils div{padding:12px 14px 4px 0}
+.sigils b{display:block;font:700 18px/1.2 var(--mono);color:var(--blue)}
+@media (max-width:820px){.sigils{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
-/* steps */
-.steps{display:grid;gap:16px;grid-template-columns:repeat(3,1fr);list-style:none;margin:0;padding:0}
-@media (max-width:760px){.steps{grid-template-columns:1fr}}
-.step{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px}
-.step .n{font:700 13px/1 var(--mono);color:var(--accent-ink);letter-spacing:.08em}
-.step h3{font-size:1.35rem;margin:12px 0 8px}
-.step p{color:var(--muted);font-size:15px}
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:16px;line-height:1.5}
+table.catch{table-layout:fixed}
+@media (min-width:761px){table.ev td:first-child,table.ev th:first-child{width:34%}}
+table.catch th:nth-child(1){width:150px}table.catch th:nth-child(4){width:44px}
+th{font:400 13px/1.3 var(--mono);color:var(--mute);text-align:left;padding:0 18px 10px 0;border-bottom:1px solid var(--ink)}
+td{padding:13px 18px 13px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+td:last-child,th:last-child{padding-right:0}
+td.lib{font-weight:600;white-space:nowrap}
+td.id{font:13px/1.5 var(--mono);color:var(--mute);white-space:nowrap}
+td code{background:none;padding:0;font-size:13.5px}
+.old{color:var(--bad);text-decoration:line-through;text-decoration-thickness:1px}
+.new{color:var(--good)}
+.mk{user-select:none;margin-right:.5em;text-decoration:none;display:inline-block}
+@media (max-width:760px){
+  table.stack thead{display:none}
+  table.stack,table.stack tbody,table.stack tr,table.stack td{display:block;width:100%}
+  table.stack tr{padding:14px 0;border-bottom:1px solid var(--rule)}
+  table.stack td{border:0;padding:2px 0;white-space:normal}
+  table.stack td.lib,table.stack td.id{white-space:normal}
+}
+.lint{margin:20px 0 0;padding:16px 18px;background:var(--tint);font:13.5px/1.75 var(--mono);white-space:pre;overflow-x:auto}
+@media (max-width:760px){.lint{white-space:pre-wrap;overflow-wrap:anywhere}}
+.lint .f{color:var(--bad)}
+.lint .p{color:var(--good)}
+.note-s{font-size:15.5px;color:var(--mute)}
 
-/* demo */
-.split{display:grid;gap:36px;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);align-items:center}
-@media (max-width:880px){.split{grid-template-columns:1fr;gap:28px}}
-.split .lede + .lede{margin-top:14px}
-.split h2 + .lede{margin-top:14px}
-.term{background:var(--code);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 40px 80px -48px var(--glow)}
-.term-bar{display:flex;align-items:center;gap:7px;padding:12px 16px;border-bottom:1px solid #1a2233}
-.term-bar span{width:11px;height:11px;border-radius:50%;background:#2a3348}
-.term-bar b{margin-left:10px;font:500 12px/1 var(--mono);color:#6d7b96}
-.term pre{margin:0;padding:18px 20px 20px;min-height:15.5em;color:#d7e2f2;font-size:13.5px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
-.term .l{display:block}
-.term .cmd-line{color:#5ff4ff}
-.term .ok{color:var(--ok)}
-.term .bad{color:var(--bad)}
-.term .dim{color:#7d8aa3}
-.caption{margin-top:12px;font-size:13px;color:var(--muted)}
-
-/* chips */
-.works{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:44px}
-.works p{color:var(--muted);font-size:14px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-right:4px}
-.chips{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
-.chips li{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:500}
+/* limits */
+.limits p{margin:0 0 1em}
+.limits b{font-weight:600}
 
 /* libraries */
-.libs{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));list-style:none;margin:0;padding:0}
-.libs a{display:flex;flex-direction:column;gap:4px;height:100%;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--text);text-decoration:none;transition:border-color .15s,transform .15s}
-.libs a:hover{border-color:rgba(95,244,255,.5);transform:translateY(-1px)}
-.libs strong{font-size:15px;font-weight:700;letter-spacing:-.01em}
-.libs span{font:500 12.5px/1.4 var(--mono);color:var(--muted)}
-.libs .hint{margin-top:18px;font-size:14px;color:var(--muted)}
+.libs{list-style:none;margin:22px 0 0;padding:0;columns:2;column-gap:56px}
+.libs a{color:var(--ink);text-decoration:none}
+.libs a:hover{color:var(--blue);text-decoration:underline}
+.libs li{break-inside:avoid;display:flex;align-items:baseline;gap:8px;padding:5px 0;font-size:17px}
+.libs li i{flex:1 1 auto;border-bottom:1px dotted var(--mute);transform:translateY(-4px);min-width:16px}
+.libs li span{font:13.5px/1.4 var(--mono);color:var(--mute);white-space:nowrap}
+@media (max-width:760px){.libs{columns:1}}
 
-/* evidence */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin:0;padding:0;list-style:none}
-.stats li{padding:26px 22px;border-right:1px solid var(--line)}
-.stats li:last-child{border-right:0}
-.stats .num{display:block;font:800 clamp(2rem,4.4vw,2.8rem)/1 var(--sans);letter-spacing:-.03em;color:var(--accent-ink)}
-.stats .label2{display:block;margin-top:10px;font-weight:700;font-size:15px}
-.stats .sub{display:block;font-size:13.5px;color:var(--muted);margin-top:2px}
-@media (max-width:720px){
-  .stats{grid-template-columns:1fr 1fr}
-  .stats li:nth-child(2){border-right:0}
-  .stats li:nth-child(-n+2){border-bottom:1px solid var(--line)}
-  .stats li{padding:22px 18px}
-}
-.tests{list-style:none;margin:28px 0 0;padding:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--surface)}
-.tests li{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:8px 24px;padding:18px 22px;border-top:1px solid var(--line)}
-.tests li:first-child{border-top:0}
-.tests strong{font-size:15px}
-.tests small{display:block;color:var(--muted);font-size:13px;font-weight:400;margin-top:2px}
-.tests span{font-size:15px;color:var(--text)}
-@media (max-width:640px){.tests li{grid-template-columns:1fr;padding:16px 18px}}
-.caveat{margin-top:24px;padding:18px 22px;border-left:3px solid var(--accent);background:var(--surface);border-radius:0 14px 14px 0;color:var(--muted);font-size:15px}
-.caveat strong{color:var(--text)}
-.links-row{margin-top:18px;font-size:15px}
-
-/* faq */
-.faq{max-width:820px}
-.faq details{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:0 20px;margin-top:10px}
-.faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 0;font-weight:700;font-size:16px}
-.faq summary::-webkit-details-marker{display:none}
-.faq summary::after{content:"+";font:400 22px/1 var(--mono);color:var(--accent-ink);flex:0 0 auto}
-.faq details[open] summary::after{content:"\2212"}
-.faq details[open] summary{padding-bottom:6px}
-.faq details p{color:var(--muted);padding:0 0 18px;font-size:15.5px}
-.faq details p code{color:var(--text);background:var(--surface-2);padding:2px 6px;border-radius:6px}
-.faq details p + p{margin-top:-6px}
-
-/* footer */
-.site-foot{border-top:1px solid var(--line);padding:44px 0 52px;font-size:14.5px;color:var(--muted)}
-.foot{display:flex;flex-wrap:wrap;gap:24px 40px;justify-content:space-between;align-items:flex-start}
-.foot .brand{font-size:14px}
-.foot nav{display:flex;flex-wrap:wrap;gap:6px 18px}
-.foot a{color:var(--muted);text-decoration:none}
-.foot a:hover{color:var(--text);text-decoration:underline}
-.foot .fine{margin-top:14px;font-size:13px;max-width:52ch}
-
-/* ---- v2 additions ---- */
-.nav-links a.cta{background:var(--accent);color:var(--on-accent);font-weight:700;padding:8px 14px;margin-left:6px}
-.nav-links a.cta:hover{background:var(--accent);color:var(--on-accent);filter:brightness(1.08)}
-.hero .install{max-width:920px}
-@media (min-width:900px){.cmd code{white-space:nowrap;overflow-x:auto;font-size:13.5px;scrollbar-width:none}.cmd code::-webkit-scrollbar{display:none}}
-.facts{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 28px;list-style:none;margin:28px 0 0;padding:0;color:var(--muted);font-size:14px}
-.facts li{display:inline-flex;align-items:center;gap:8px}
-.facts li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
-.facts b{color:var(--text);font-weight:700}
-.hero{padding-bottom:24px}
-
-/* compare */
-.compare{border:1px solid var(--line);border-radius:18px;background:var(--surface);overflow:hidden}
-.cmp-head,.cmp-row{display:grid;grid-template-columns:150px minmax(0,1fr) 28px minmax(0,1fr) 44px;gap:0 16px;align-items:center;padding:14px 22px}
-.cmp-head{font:700 11.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--line)}
-.cmp-head .bad-h{color:var(--bad)}.cmp-head .ok-h{color:var(--ok)}
-.cmp-row{border-top:1px solid var(--line)}
-.cmp-head + .cmp-row{border-top:0}
-.cmp-row .lib{font-weight:700;font-size:14.5px}
-.cmp-row code{display:block;font-size:13px;padding:8px 12px;border-radius:9px;background:var(--code);border:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cmp-row code.old{color:var(--bad);text-decoration:line-through;text-decoration-color:rgba(255,138,154,.45)}
-.cmp-row code.new{color:var(--ok)}
-.cmp-row .arrow{color:var(--muted);text-align:center;font-family:var(--mono)}
-.cmp-row .rid{font:600 12px/1 var(--mono);color:var(--muted);text-align:right}
-@media (max-width:820px){
-  .cmp-head{display:none}
-  .cmp-row{grid-template-columns:1fr;gap:8px;padding:16px 18px}
-  .cmp-row .arrow{display:none}
-  .cmp-row .rid{text-align:left}
-  .cmp-row code{white-space:pre-wrap;overflow-wrap:anywhere}
-}
-@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .cmp-row code.old{color:#b4233b}:root:not([data-theme="dark"]) .cmp-row code.new{color:#0b7a3b}.cmp-head .bad-h{color:#b4233b}.cmp-head .ok-h{color:#0b7a3b}:root:not([data-theme="dark"]) .cmp-row code{background:#f1f5fb}}
-
-/* step pills */
-.step .pill{display:block;padding:9px 12px;border-radius:9px;background:var(--code);border:1px solid var(--line);color:#dbe7f6;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.step .pill::before{content:"$ ";color:#5b6a86}
-.step{display:flex;flex-direction:column}
-.step .pill{margin-top:auto}
-.step p{margin-bottom:16px}
-
-/* libs */
-.libs a.add{border-style:dashed;justify-content:center;background:transparent}
-.libs a.add strong{color:var(--accent-ink)}
-.hint{margin-top:18px}
-
-/* faq two column */
-.faq-grid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.6fr);gap:40px;align-items:start}
-.faq-grid .head{position:sticky;top:96px;margin:0}
-.faq-grid .faq{max-width:none}
-.faq-grid .faq details:first-child{margin-top:0}
-@media (max-width:880px){.faq-grid{grid-template-columns:1fr;gap:20px}.faq-grid .head{position:static;margin-bottom:8px}}
-
-/* final CTA */
-.final{border-top:1px solid var(--line);position:relative;overflow:hidden;text-align:center}
-.final::before{content:"";position:absolute;left:50%;bottom:-260px;width:min(1000px,150vw);height:520px;transform:translateX(-50%);background:radial-gradient(closest-side,var(--glow),transparent);pointer-events:none;z-index:-1}
-.final h2{font-size:clamp(1.9rem,4.4vw,3rem);letter-spacing:-.03em;max-width:20ch;margin:0 auto 14px}
-.final .lede{margin:0 auto 30px}
-.final .cmds{display:grid;gap:12px;max-width:880px;margin:0 auto;text-align:left}
-.final .label{margin:6px 4px 0}
-.final-links{margin-top:26px;display:flex;flex-wrap:wrap;gap:10px 22px;justify-content:center;font-size:15px}
+/* colophon */
+.colophon{font-size:16px;color:var(--mute)}
+.colophon a{color:var(--ink)}
+.foot-links{display:flex;flex-wrap:wrap;gap:4px 22px;margin:18px 0 0;padding:0;list-style:none;font:14px/1.5 var(--mono)}
+.foot-links a{color:var(--ink)}
+footer{padding-bottom:72px}
+.sw{display:inline-block;width:.8em;height:.8em;background:var(--blue);vertical-align:-.08em;margin-right:.2em}
 </style>
 </head>
 <body>
-<a class="skip" href="#main">Skip to content</a>
+<a class="skip" href="#install">Skip to install</a>
 
-<header class="site-nav">
-  <div class="wrap">
-    <a class="brand" href="#top" aria-label="Myelin home">
-      <span class="mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
-      MYELIN
-    </a>
+<header class="mast">
+  <div class="page">
+    <a class="name" href="#top">myelin<small>0.2.1</small></a>
     <nav aria-label="Primary">
-      <div class="nav-links">
-        <a class="nl" href="#libraries">Libraries</a>
-        <a class="nl" href="#evidence">Evidence</a>
-        <a class="nl" href="#faq">FAQ</a>
-        <a class="gh" href="https://github.com/REX-codebase/myelin" aria-label="GitHub repository">
-          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.96 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
-          <span class="gh-text">GitHub</span>
-        </a>
-        <a class="cta" href="#install">Get Myelin</a>
-      </div>
+      <a href="#install">install</a>
+      <a href="#ledger">the ledger</a>
+      <a href="#evidence">evidence</a>
+      <a href="#limits">limits</a>
+      <a href="#libraries">libraries</a>
+      <a href="https://github.com/REX-codebase/myelin">github</a>
     </nav>
   </div>
 </header>
 
-<main id="main">
+<main id="top">
+<div class="page">
 
-<!-- HERO + INSTALL -->
-<section class="hero" id="top" aria-labelledby="hero-title">
-  <div class="wrap">
-    <span class="eyebrow"><i aria-hidden="true"></i>Rule ledgers for AI-written code</span>
-    <h1 id="hero-title">Your AI learned last year's docs. <span class="accent">Myelin teaches it this year's.</span></h1>
-    <p class="lede">Myelin keeps AI-written code on the current version of your libraries. The model reads a plain-text rule file before it writes, and a script checks the output after. Zero dependencies.</p>
+<div class="title">
+  <h1>Your AI learned last year's docs. <em>Myelin teaches it this year's.</em></h1>
+</div>
 
-    <div class="install" id="install" aria-labelledby="install-title">
-      <div class="install-top">
-        <h2 id="install-title">Install Myelin</h2>
-        <p id="detect-hint">Pick your platform.</p>
-      </div>
-
-      <div class="tablist" role="tablist" aria-label="Install method">
-        <button class="tab" type="button" role="tab" id="tab-unix" data-os="unix" aria-controls="panel-unix" aria-selected="false" tabindex="-1">macOS / Linux</button>
-        <button class="tab" type="button" role="tab" id="tab-windows" data-os="windows" aria-controls="panel-windows" aria-selected="false" tabindex="-1">Windows</button>
-        <button class="tab" type="button" role="tab" id="tab-npm" data-os="npm" aria-controls="panel-npm" aria-selected="false" tabindex="-1">npm / npx</button>
-        <button class="tab" type="button" role="tab" id="tab-pkg" data-os="pkg" aria-controls="panel-pkg" aria-selected="false" tabindex="-1">Homebrew / Scoop</button>
-      </div>
-
-      <div class="panel" role="tabpanel" id="panel-unix" aria-labelledby="tab-unix" hidden>
-        <p class="label">macOS, Linux and WSL</p>
-        <div class="cmd"><code>curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh</code><button class="copy" type="button">Copy</button></div>
-        <p class="then">Then run <code>myelin setup</code></p>
-      </div>
-
-      <div class="panel" role="tabpanel" id="panel-windows" aria-labelledby="tab-windows" hidden>
-        <p class="label">Windows PowerShell</p>
-        <div class="cmd"><code>irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1 | iex</code><button class="copy" type="button">Copy</button></div>
-        <p class="then">Then run <code>myelin setup</code></p>
-      </div>
-
-      <div class="panel" role="tabpanel" id="panel-npm" aria-labelledby="tab-npm" hidden>
-        <p class="label">Global install, any OS with Node 18+</p>
-        <div class="cmd"><code>npm install -g myelin-ledger</code><button class="copy" type="button">Copy</button></div>
-        <p class="label">Or run it with no install</p>
-        <div class="cmd"><code>npx github:REX-codebase/myelin setup</code><button class="copy" type="button">Copy</button></div>
-        <p class="then">Then run <code>myelin setup</code></p>
-      </div>
-
-      <div class="panel" role="tabpanel" id="panel-pkg" aria-labelledby="tab-pkg" hidden>
-        <p class="label">Homebrew, macOS and Linux</p>
-        <div class="cmd"><code>brew install rex-codebase/tap/myelin</code><button class="copy" type="button">Copy</button></div>
-        <p class="label">Scoop, Windows</p>
-        <div class="cmd"><code>scoop bucket add rex https://github.com/REX-codebase/scoop-bucket &amp;&amp; scoop install myelin</code><button class="copy" type="button">Copy</button></div>
-        <p class="then">Then run <code>myelin setup</code></p>
-      </div>
-    </div>
-
-    <ul class="facts" aria-label="At a glance">
-      <li><b>19</b> libraries</li>
-      <li><b>324</b> machine-checked bans</li>
-      <li><b>0</b> dependencies</li>
-      <li>No network calls at runtime</li>
-      <li>MIT licensed</li>
-    </ul>
+<section class="row first" aria-labelledby="what">
+  <h2 id="what">what it is</h2>
+  <div class="body">
+    <p class="lead">Models are trained on yesterday's documentation. They write <code>new THREE.Clock()</code>, <code>ReactDOM.render</code>, <code>@tailwind base</code> and a synchronous <code>cookies()</code> with total confidence. The code looks right, and then it breaks, or warns, or quietly ships a deprecated API.</p>
+    <p>Myelin is a checklist the model can read and a linter the machine can run, from the same plain-text file. Nineteen libraries ship in the box.</p>
   </div>
 </section>
 
-<!-- COMPARE -->
-<section id="problem" aria-labelledby="problem-title">
-  <div class="wrap">
-    <div class="head">
-      <p class="kicker">The problem</p>
-      <h2 class="h2" id="problem-title">The code looks right. The library moved on.</h2>
-      <p class="lede">Models write what they saw most in training. Each row is a real rule from a shipped ledger: the call a model reaches for, and what the library expects now.</p>
-    </div>
-    <div class="compare" role="table" aria-label="Stale API versus current API">
-      <div class="cmp-head" role="row"><span role="columnheader">Library</span><span class="bad-h" role="columnheader">What your AI writes</span><span aria-hidden="true"></span><span class="ok-h" role="columnheader">What the library wants now</span><span role="columnheader" style="text-align:right">Rule</span></div>
-      <div class="cmp-row" role="row"><span class="lib" role="cell">three.js r186</span><code class="old" role="cell">const clock = new THREE.Clock();</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">const timer = new THREE.Timer();</code><span class="rid" role="cell">B5</span></div>
-      <div class="cmp-row" role="row"><span class="lib" role="cell">React 19</span><code class="old" role="cell">ReactDOM.render(&lt;App /&gt;, root);</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">createRoot(root).render(&lt;App /&gt;);</code><span class="rid" role="cell">B1</span></div>
-      <div class="cmp-row" role="row"><span class="lib" role="cell">Next.js 16</span><code class="old" role="cell">const t = cookies().get('token');</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">const t = (await cookies()).get('token');</code><span class="rid" role="cell">B1</span></div>
-      <div class="cmp-row" role="row"><span class="lib" role="cell">Tailwind 4</span><code class="old" role="cell">@tailwind base;</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">@import "tailwindcss";</code><span class="rid" role="cell">T1</span></div>
-      <div class="cmp-row" role="row"><span class="lib" role="cell">Zod 4</span><code class="old" role="cell">z.string().email()</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">z.email()</code><span class="rid" role="cell">B1</span></div>
-      <div class="cmp-row" role="row"><span class="lib" role="cell">Svelte 5</span><code class="old" role="cell">export let name;</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">let { name } = $props();</code><span class="rid" role="cell">B1</span></div>
-      <div class="cmp-row" role="row"><span class="lib" role="cell">Express 5</span><code class="old" role="cell">app.get('*', handler);</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">app.get('/*splat', handler);</code><span class="rid" role="cell">E9</span></div>
-      <div class="cmp-row" role="row"><span class="lib" role="cell">React Router 8</span><code class="old" role="cell">import { Link } from 'react-router-dom';</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">import { Link } from 'react-router';</code><span class="rid" role="cell">R1</span></div>
-    </div>
-  </div>
-</section>
+<section class="row" id="install" aria-labelledby="install-h">
+  <h2 id="install-h">install</h2>
+  <div class="body">
+    <p>You need Node 18 or newer. That is the only requirement.</p>
 
-<!-- STEPS -->
-<section aria-labelledby="steps-title">
-  <div class="wrap">
-    <div class="head">
-      <p class="kicker">How it works</p>
-      <h2 class="h2" id="steps-title">Install, set up, ship.</h2>
-    </div>
-    <ol class="steps">
-      <li class="step">
-        <span class="n">01</span>
-        <h3>Install</h3>
-        <p>One command. Put the <code>myelin</code> command on your machine.</p>
-        <code class="pill">curl -fsSL &hellip;/install.sh | sh</code>
-      </li>
-      <li class="step">
-        <span class="n">02</span>
-        <h3>Setup</h3>
-        <p><code>myelin setup</code> detects the libraries in your project and wires their ledgers into <code>AGENTS.md</code> or <code>CLAUDE.md</code>.</p>
-        <code class="pill">myelin setup</code>
-      </li>
-      <li class="step">
-        <span class="n">03</span>
-        <h3>Ship</h3>
-        <p>Your agent reads the rules before it writes. <code>myelin lint</code> checks the result and fails on stale code.</p>
-        <code class="pill">myelin lint react,tailwind src/</code>
-      </li>
-    </ol>
-  </div>
-</section>
-
-<!-- DEMO -->
-<section aria-labelledby="demo-title">
-  <div class="wrap split">
-    <div>
-      <p class="kicker">In the terminal</p>
-      <h2 class="h2" id="demo-title">It catches the stale API before it ships.</h2>
-      <p class="lede">The usual failure is a call deprecated two releases ago that the model writes with full confidence. Each ledger rule is a pattern plus the fix that explains it. Lint runs the same rules the model was given.</p>
-      <p class="lede">Clean is not the same as correct. A pass means no known-stale pattern was found. Keep your tests.</p>
-    </div>
-    <figure class="fig">
-      <div class="term" role="img" aria-label="Terminal session: myelin setup, then myelin lint reports five stale three.js calls, then lint passes after the fix.">
-        <div class="term-bar" aria-hidden="true"><span></span><span></span><span></span><b>myelin</b></div>
-        <pre id="term" aria-hidden="true"><span class="l cmd-line">$ myelin setup</span>
-<span class="l ok">  ✓ Detected three.js in package.json</span>
-<span class="l ok">  ✓ Wired ledgers into AGENTS.md</span>
-<span class="l dim">$ myelin lint three scene.js</span>
-<span class="l bad">FAIL B2   scene.js:2  EffectComposer and its passes only work with WebGLRenderer.</span>
-<span class="l bad">FAIL B5   scene.js:7  THREE.Clock is deprecated since r183.</span>
-<span class="l dim">5 failure(s). Each message carries the r186 fix.</span>
-<span class="l dim">$ myelin lint three scene.js   # after one retry</span>
-<span class="l ok">21 bans, 0 requires, 1 unit(s) checked: clean</span></pre>
+    <div id="cmds">
+      <div class="cmd" data-os="unix">
+        <div class="for"><span><b>macOS, Linux, WSL</b> <span class="hit" hidden>· looks like yours</span></span><button class="copy" type="button">copy</button></div>
+        <pre><i>$ </i><span class="t">curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh</span></pre>
       </div>
-      <figcaption class="caption">Lint output is from the three.js ledger demo. Setup output is illustrative.</figcaption>
+      <div class="cmd" data-os="windows">
+        <div class="for"><span><b>Windows PowerShell</b> <span class="hit" hidden>· looks like yours</span></span><button class="copy" type="button">copy</button></div>
+        <pre><i>PS&gt; </i><span class="t">irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1 | iex</span></pre>
+      </div>
+      <div class="cmd" data-os="npx">
+        <div class="for"><span><b>Already have Node and want to install nothing</b></span><button class="copy" type="button">copy</button></div>
+        <pre><i>$ </i><span class="t">npx github:REX-codebase/myelin setup</span></pre>
+      </div>
+    </div>
+
+    <p>The installer unpacks Myelin into <code>~/.myelin</code> and leaves one launcher in <code>~/.local/bin</code>. It never uses sudo and it does not install Node for you. Run it again later to upgrade. On Windows the same layout lives under <code>%LOCALAPPDATA%\Myelin</code>, and the installer adds it to your user PATH.</p>
+    <p>Then, inside a project, run <code>myelin setup</code>. It reads your <code>package.json</code>, copies the matching ledgers into <code>.myelin/</code>, and adds a short block to <code>AGENTS.md</code> or <code>CLAUDE.md</code> so your agent runs the rules before it writes and lint after. Run it again whenever your dependencies change; it replaces its own block and touches nothing else. If something looks wrong, <code>myelin doctor</code> will say what.</p>
+
+    <details>
+      <summary>uninstall</summary>
+      <pre>curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh -s -- --uninstall
+
+&amp; ([scriptblock]::Create((irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1))) -Uninstall</pre>
+    </details>
+  </div>
+</section>
+
+<section class="row" id="ledger" aria-labelledby="ledger-h">
+  <h2 id="ledger-h">the ledger</h2>
+  <div class="body wide">
+    <div class="body" style="padding:0">
+      <p>A ledger is one short text file of hard rules for one library at one version. Each rule is a regular expression plus the sentence that explains the fix. This is the three.js ledger with its long lines trimmed.</p>
+    </div>
+
+    <figure style="margin:0" aria-label="An excerpt of three.myelin with notes in the margin">
+    <div class="ledger">
+      <div class="g"><pre class="c"><span class="sig">myelin</span> 1
+id      three
+about   three.js r186 on the WebGPU + TSL path (WebGPURenderer, …
+fires   three.js | threejs | three/webgpu | three/tsl …</pre><div class="n"><b>The header.</b> <b>myelin 1</b> is the format version, and a reader rejects versions it does not know. <b>fires</b> lists the words that make a tool load this ledger.</div></div>
+      <div class="g"><pre class="c"><span class="sig">=</span> version   three.js r186 (npm three@0.186.1)</pre><div class="n"><b>A fact.</b> The model reads it. Nothing checks it.</div></div>
+      <div class="g"><pre class="c"><span class="sig">!</span> B5 <span class="ban">/\bnew\s+(THREE\.)?Clock\s*\(/</span>   THREE.Clock is deprecated since r183. Use THREE.Timer … -&gt; <span class="sig">$boot</span></pre><div class="n"><b>A ban.</b> The regex is what lint runs. The sentence is what the model reads. <b>-&gt; $boot</b> points at a snippet to copy.</div></div>
+      <div class="g"><pre class="c"><span class="sig">~</span> P1 Use *NodeMaterial classes whenever you assign node slots …</pre><div class="n"><b>A preference.</b> Read by the model, not checked by the machine.</div></div>
+      <div class="g"><pre class="c"><span class="sig">$</span> boot
+import * as THREE from 'three/webgpu';
+<span class="dim">…</span>
+<span class="sig">$$</span></pre><div class="n"><b>A snippet.</b> Code the model should copy exactly, between <b>$</b> and <b>$$</b>.</div></div>
+    </div>
     </figure>
-  </div>
-  <div class="wrap">
-    <div class="works">
-      <p>Works with</p>
-      <ul class="chips">
-        <li>Claude Code</li>
-        <li>Cursor</li>
-        <li>Codex</li>
-        <li>Any shell agent</li>
-        <li>CI</li>
-      </ul>
+
+    <div class="sigils" aria-label="The five sigils">
+      <div><b>!</b>Ban. Must never appear in the output.</div>
+      <div><b>+</b>Require. Must appear in the output.</div>
+      <div><b>~</b>Preference. Read by the model, not checked.</div>
+      <div><b>=</b>Fact. Versions and budgets. Read, not checked.</div>
+      <div><b>$</b>Snippet. Copy-exact code a rule can point to.</div>
+    </div>
+
+    <div class="body" style="padding:28px 0 0">
+      <p>Before the model writes, <code>myelin gate three</code> prints the rules as plain text, or your agent reads the file directly. After, <code>myelin lint three src/</code> runs every ban and require against your files and exits 1 on any violation. In a chat window with no tools, paste the output of <code>myelin gate three --all</code> into the prompt. The full grammar is in <a href="https://github.com/REX-codebase/myelin/blob/main/docs/SPEC.md">docs/SPEC.md</a>.</p>
     </div>
   </div>
 </section>
 
-<!-- LIBRARIES -->
-<section id="libraries" aria-labelledby="libs-title">
-  <div class="wrap">
-    <div class="head">
-      <p class="kicker">Libraries</p>
-      <h2 class="h2" id="libs-title">Nineteen ledgers, pinned to released versions.</h2>
-      <p class="lede">Each one is researched against live docs on 2026-10-26 and targets a named release. Every rule links to the migration guide or changelog it came from.</p>
-    </div>
+<section class="row" id="catches" aria-labelledby="catches-h">
+  <h2 id="catches-h">what it catches</h2>
+  <div class="body wide">
+    <div class="body" style="padding:0"><p>Each of these is a real rule from a shipped ledger: the call a model reaches for, and what the library expects now.</p></div>
+    <table class="stack catch">
+      <thead><tr><th>library</th><th>stale</th><th>current</th><th>rule</th></tr></thead>
+      <tbody>
+        <tr><td class="lib">three.js r186</td><td><code class="old"><span class="mk">&minus;</span>const clock = new THREE.Clock();</code></td><td><code class="new"><span class="mk">+</span>const timer = new THREE.Timer();</code></td><td class="id">B5</td></tr>
+        <tr><td class="lib">React 19</td><td><code class="old"><span class="mk">&minus;</span>ReactDOM.render(&lt;App /&gt;, root);</code></td><td><code class="new"><span class="mk">+</span>createRoot(root).render(&lt;App /&gt;);</code></td><td class="id">B1</td></tr>
+        <tr><td class="lib">Next.js 16</td><td><code class="old"><span class="mk">&minus;</span>cookies().get('token')</code></td><td><code class="new"><span class="mk">+</span>(await cookies()).get('token')</code></td><td class="id">B1</td></tr>
+        <tr><td class="lib">Tailwind 4</td><td><code class="old"><span class="mk">&minus;</span>@tailwind base;</code></td><td><code class="new"><span class="mk">+</span>@import "tailwindcss";</code></td><td class="id">T1</td></tr>
+        <tr><td class="lib">Zod 4</td><td><code class="old"><span class="mk">&minus;</span>z.string().email()</code></td><td><code class="new"><span class="mk">+</span>z.email()</code></td><td class="id">B1</td></tr>
+        <tr><td class="lib">Svelte 5</td><td><code class="old"><span class="mk">&minus;</span>export let name;</code></td><td><code class="new"><span class="mk">+</span>let { name } = $props();</code></td><td class="id">B1</td></tr>
+        <tr><td class="lib">Express 5</td><td><code class="old"><span class="mk">&minus;</span>app.get('*', handler);</code></td><td><code class="new"><span class="mk">+</span>app.get('/*splat', handler);</code></td><td class="id">E9</td></tr>
+        <tr><td class="lib">React Router 8</td><td><code class="old"><span class="mk">&minus;</span>from 'react-router-dom'</code></td><td><code class="new"><span class="mk">+</span>from 'react-router'</code></td><td class="id">R1</td></tr>
+      </tbody>
+    </table>
+
+    <div class="body" style="padding:34px 0 0"><p>And this is what lint prints for a three.js scene the model just wrote. Every failure carries its fix, so the model can repair the file and run lint again.</p></div>
+<pre class="lint"><span class="dim">$ myelin lint three scene.js</span>
+<span class="f">FAIL B2   scene.js:2  EffectComposer and its passes only work with WebGLRenderer.</span>
+<span class="f">FAIL B14  scene.js:4  This ledger targets the WebGPU path: use new THREE.WebGPURenderer() from …</span>
+<span class="f">FAIL B7   scene.js:5  The encoding API was replaced in r152 and removed in r162: renderer.outpu…</span>
+<span class="f">FAIL B6   scene.js:6  PCFSoftShadowMap was removed in r186 (both renderers warn and fall back).</span>
+<span class="f">FAIL B5   scene.js:7  THREE.Clock is deprecated since r183.</span>
+<span class="dim">5 failure(s). Each message carries the r186 fix.</span>
+
+<span class="dim">$ myelin lint three scene.js        # after one retry with the fixes</span>
+<span class="p">21 bans, 0 requires, 1 unit(s) checked: clean</span></pre>
+  </div>
+</section>
+
+<section class="row" id="evidence" aria-labelledby="evidence-h">
+  <h2 id="evidence-h">evidence</h2>
+  <div class="body wide">
+    <div class="body" style="padding:0"><p>Five tests, all reproducible from the repository. The first three ask whether a ledger flags stale code and leaves current code alone. The last two ask whether a model given a ledger writes less of it.</p></div>
+    <table class="stack ev">
+      <thead><tr><th>test</th><th>result</th></tr></thead>
+      <tbody>
+        <tr><td class="lib" style="white-space:normal">Labelled corpus<br><span class="note-s" style="font-weight:400">177 stale files, 129 current files</span></td><td>100% of stale files caught. 0 false alarms on current files.</td></tr>
+        <tr><td class="lib" style="white-space:normal">Cross-library sweep<br><span class="note-s" style="font-weight:400">every ledger over every other library's correct code</span></td><td>2,322 checks, 0 false positives.</td></tr>
+        <tr><td class="lib" style="white-space:normal">Official examples, untouched<br><span class="note-s" style="font-weight:400">upstream repos, old release against current</span></td><td>three.js r150: 97.8% flagged. three.js r186: 0.4% flagged (1 of 230, an old API in a comment). Next.js 16.4.3's own examples: 19 genuine pre-16 patterns.</td></tr>
+        <tr><td class="lib" style="white-space:normal">Agent A/B, bonfire scene<br><span class="note-s" style="font-weight:400">GLM 5.3, 2 agents per arm</span></td><td>Unguided: both used two removed APIs. Guided: neither did.</td></tr>
+        <tr><td class="lib" style="white-space:normal">Agent A/B, lighthouse and neon street<br><span class="note-s" style="font-weight:400">Claude Haiku 5.5, 6 agents per arm</span></td><td>Unguided: 5 of 6 used a stale API. A prose skill and Myelin: 0 of 6 each. Lint matched three.js's runtime warnings on all 18 pages.</td></tr>
+      </tbody>
+    </table>
+    <div class="body" style="padding:24px 0 0"><p class="note-s">Method, per-library tables and how to rerun them: <a href="https://github.com/REX-codebase/myelin/blob/main/BENCHMARKS.md">BENCHMARKS.md</a>.</p></div>
+  </div>
+</section>
+
+<section class="row" id="limits" aria-labelledby="limits-h">
+  <h2 id="limits-h">limits</h2>
+  <div class="body limits">
+    <p class="lead">Myelin is deliberately small. These are its edges.</p>
+    <p><b>It reads text, not meaning.</b> Rules are regular expressions. They catch stale names and patterns. They cannot judge logic, types or intent, so keep your tests and your type checker.</p>
+    <p><b>Clean is not correct.</b> A pass means no known-stale pattern was found. It does not mean the code runs.</p>
+    <p><b>The lift is measured on three.js only.</b> Across 24 agents and two model families, 7 of 8 unguided runs wrote a stale three.js API and 0 of 16 guided runs did. The other eighteen ledgers have detection benchmarks but no agent runs yet. A well-written prose skill matched the gate on stale-API rate; the gate's edge is that the same file verifies the output.</p>
+    <p><b>Comments can trip it.</b> A banned token inside a comment can fire a rule. Ledgers can set <code>comments skip</code> to blank comments out first, and so far only the three.js ledger does.</p>
+    <p><b>Every ledger is pinned to one release.</b> Each targets a single version and a research date. Check the <code>= version</code> line before you trust one on a newer major.</p>
+    <p><b>It is narrow on purpose.</b> The three.js ledger covers the WebGPU and TSL path, not WebGL-only projects. <code>unless</code> lifts a ban for a whole file, not for one match. There are no globs or severities yet.</p>
+    <p><b>It only constrains output.</b> A ledger cannot grant permissions, run commands or change instructions, and readers ignore any line that tries. Load ledgers only from your own project or a source you trust.</p>
+  </div>
+</section>
+
+<section class="row" id="libraries" aria-labelledby="libraries-h">
+  <h2 id="libraries-h">libraries</h2>
+  <div class="body wide">
+    <div class="body" style="padding:0"><p>Nineteen ledgers, each pinned to a released version and researched against live documentation on 2026-10-26. Every rule links to the migration guide or changelog it came from, in <code>libs/&lt;id&gt;/SOURCES.md</code>.</p></div>
     <ul class="libs">
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/three"><strong>three.js (WebGPU + TSL)</strong><span>r186 · 21 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/react"><strong>React</strong><span>19.3 · 20 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/react-router"><strong>React Router</strong><span>8.5 · 17 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/nextjs"><strong>Next.js</strong><span>16.4 · 20 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/tailwind"><strong>Tailwind CSS</strong><span>4.3 · 10 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/svelte"><strong>Svelte + SvelteKit</strong><span>5.57 · 3.1 · 22 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/vue"><strong>Vue + Nuxt</strong><span>3.5 · 4.6 · 20 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/zod"><strong>Zod</strong><span>4.6 · 17 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/express"><strong>Express</strong><span>5.3 · 14 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/eslint"><strong>ESLint</strong><span>10.13 · 19 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/ai-sdk"><strong>Vercel AI SDK</strong><span>7.0 · 20 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/tanstack-query"><strong>TanStack Query</strong><span>5.104 · 16 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/prisma"><strong>Prisma ORM</strong><span>7.10 · 15 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/angular"><strong>Angular</strong><span>22.2 · 16 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/astro"><strong>Astro</strong><span>7.4 · 14 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/drizzle"><strong>Drizzle ORM</strong><span>0.45 · kit 0.31 · 13 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/mongoose"><strong>Mongoose</strong><span>9.11 · 17 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/openai"><strong>OpenAI Node SDK</strong><span>7.43 · 16 bans</span></a></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/vitest"><strong>Vitest</strong><span>5.0 · 17 bans</span></a></li>
-      <li><a class="add" href="https://github.com/REX-codebase/myelin/blob/main/docs/AUTHORING.md"><strong>Add yours &rarr;</strong><span>write a ledger</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/three">three.js (WebGPU + TSL)</a><i></i><span>r186 · 21 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/react">React</a><i></i><span>19.3 · 20 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/react-router">React Router</a><i></i><span>8.5 · 17 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/nextjs">Next.js</a><i></i><span>16.4 · 20 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/tailwind">Tailwind CSS</a><i></i><span>4.3 · 10 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/svelte">Svelte + SvelteKit</a><i></i><span>5.57 · 3.1 · 22 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/vue">Vue + Nuxt</a><i></i><span>3.5 · 4.6 · 20 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/zod">Zod</a><i></i><span>4.6 · 17 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/express">Express</a><i></i><span>5.3 · 14 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/eslint">ESLint</a><i></i><span>10.13 · 19 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/ai-sdk">Vercel AI SDK</a><i></i><span>7.0 · 20 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/tanstack-query">TanStack Query</a><i></i><span>5.104 · 16 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/prisma">Prisma ORM</a><i></i><span>7.10 · 15 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/angular">Angular</a><i></i><span>22.2 · 16 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/astro">Astro</a><i></i><span>7.4 · 14 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/drizzle">Drizzle ORM</a><i></i><span>0.45 · kit 0.31 · 13 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/mongoose">Mongoose</a><i></i><span>9.11 · 17 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/openai">OpenAI Node SDK</a><i></i><span>7.43 · 16 bans</span></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/vitest">Vitest</a><i></i><span>5.0 · 17 bans</span></li>
     </ul>
+    <div class="body" style="padding:22px 0 0"><p>Yours not here? <a href="https://github.com/REX-codebase/myelin/blob/main/docs/AUTHORING.md">Write a ledger.</a> Every rule needs a source link and a bench file.</p></div>
   </div>
 </section>
 
-<!-- EVIDENCE -->
-<section id="evidence" class="band" aria-labelledby="evidence-title">
-  <div class="wrap">
-    <div class="head">
-      <p class="kicker">Evidence</p>
-      <h2 class="h2" id="evidence-title">Measured, not promised.</h2>
-      <p class="lede">The first three tests ask whether a ledger flags stale code and leaves current code alone. The last two ask whether a model given a ledger writes less of it.</p>
-    </div>
-
-    <ul class="stats">
-      <li><span class="num">100%</span><span class="label2">of stale files caught</span><span class="sub">177 labelled stale files</span></li>
-      <li><span class="num">0</span><span class="label2">false alarms</span><span class="sub">on 129 labelled current files</span></li>
-      <li><span class="num">2,322</span><span class="label2">cross-library checks</span><span class="sub">0 false positives</span></li>
-      <li><span class="num">0</span><span class="label2">dependencies</span><span class="sub">zero-dependency Node CLI</span></li>
-    </ul>
-
-    <ul class="tests">
-      <li><div><strong>Labelled corpus</strong><small>177 stale files, 129 current files</small></div><span>100% of stale files caught. 0 false alarms on current files.</span></li>
-      <li><div><strong>Cross-library sweep</strong><small>every ledger over every other library's correct code</small></div><span>2,322 checks, 0 false positives.</span></li>
-      <li><div><strong>Official examples, untouched</strong><small>upstream repos, old release vs current</small></div><span>three.js r150: 97.8% flagged. three.js r186: 0.4% flagged (1 of 230, an old API in a comment).</span></li>
-      <li><div><strong>Agent A/B, bonfire scene</strong><small>GLM 5.3, 2 agents per arm</small></div><span>Unguided: both used two removed APIs. Guided: neither did.</span></li>
-      <li><div><strong>Agent A/B, lighthouse and neon street</strong><small>Claude Haiku 5.5, 6 agents per arm</small></div><span>Unguided: 5 of 6 used a stale API. Prose skill and Myelin: 0 of 6 each. Lint matched three.js's runtime warnings on all 18 pages.</span></li>
-    </ul>
-
-    <div class="caveat">
-      <strong>Where the lift is measured.</strong> Across 24 agents and two model families, 7 of 8 unguided runs wrote a stale three.js API and 0 of 16 guided runs did. The other 18 ledgers have detection benchmarks but no agent runs yet. A well-written prose skill matched the gate on stale-API rate; the gate's edge is that the same file verifies the output.
-    </div>
-    <p class="links-row"><a href="https://github.com/REX-codebase/myelin/blob/main/BENCHMARKS.md">Method and per-library tables</a> &nbsp;·&nbsp; <a href="https://github.com/REX-codebase/myelin/tree/main/eval/agent-ab">Run the agent A/B yourself</a></p>
-  </div>
-</section>
-
-<!-- FAQ -->
-<section id="faq" class="band" aria-labelledby="faq-title">
-  <div class="wrap">
-    <div class="faq-grid">
-    <div class="head">
-      <p class="kicker">FAQ</p>
-      <h2 class="h2" id="faq-title">Questions, answered plainly.</h2>
-      <p class="lede">Short answers about what Myelin installs, what it sends, and what it does not do.</p>
-    </div>
-    <div class="faq">
-      <details>
-        <summary>Do I need Node?</summary>
-        <p>Myelin is a Node.js program, so it needs Node 18 or newer to run. If you already have it, <code>npx github:REX-codebase/myelin setup</code> needs nothing else. Check with <code>node -v</code>.</p>
-      </details>
-      <details>
-        <summary>What does it change on my machine?</summary>
-        <p>The installer puts a <code>myelin</code> command on your PATH. <code>myelin setup</code> works in the project you run it in: it adds the matching ledgers and a short pointer in <code>AGENTS.md</code> or <code>CLAUDE.md</code>.</p>
-      </details>
-      <details>
-        <summary>Is anything sent over the network?</summary>
-        <p>The install step downloads Myelin from GitHub, once. Myelin itself makes no network calls. It reads your project and its bundled ledgers from disk and prints results to your terminal.</p>
-      </details>
-      <details>
-        <summary>Does it replace tests?</summary>
-        <p>No. Myelin reads text, so it catches stale names and patterns, not logic or types. Keep your tests and your type checker. A clean pass means no known-stale pattern was found, not that the code runs.</p>
-      </details>
-      <details>
-        <summary>How do I uninstall?</summary>
-        <p>macOS, Linux and WSL: <code>curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh -s -- --uninstall</code></p>
-        <p>Windows PowerShell: <code>&amp; ([scriptblock]::Create((irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1))) -Uninstall</code></p>
-        <p>If you installed with npm, Homebrew or Scoop, use <code>npm uninstall -g myelin-ledger</code>, <code>brew uninstall myelin</code> or <code>scoop uninstall myelin</code>.</p>
-      </details>
-    </div>
-    </div>
-  </div>
-</section>
-
-<!-- FINAL CTA -->
-<section class="final" id="get" aria-labelledby="final-title">
-  <div class="wrap">
-    <h2 id="final-title">Stop shipping last year's APIs.</h2>
-    <p class="lede">Install in one command, run <code>myelin setup</code>, and your agent starts from this year's rules.</p>
-    <div class="cmds">
-      <p class="label">macOS, Linux and WSL</p>
-      <div class="cmd"><code>curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh</code><button class="copy" type="button">Copy</button></div>
-      <p class="label">Windows PowerShell</p>
-      <div class="cmd"><code>irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1 | iex</code><button class="copy" type="button">Copy</button></div>
-    </div>
-    <p class="final-links"><a href="https://github.com/REX-codebase/myelin">Star on GitHub</a><a href="https://github.com/REX-codebase/myelin/blob/main/docs/SPEC.md">Read the spec</a><a href="https://github.com/REX-codebase/myelin/blob/main/CHANGELOG.md">Changelog</a></p>
-  </div>
-</section>
-
+</div>
 </main>
 
-<footer class="site-foot">
-  <div class="wrap foot">
-    <div>
-      <a class="brand" href="#top">MYELIN</a>
-      <p class="fine">Rule ledgers that keep AI-written code on current library versions. MIT licensed. Published by REX-codebase.</p>
-    </div>
-    <nav aria-label="Footer">
-      <a href="https://github.com/REX-codebase/myelin/blob/main/LICENSE">MIT</a>
-      <a href="https://github.com/REX-codebase/myelin/blob/main/SECURITY.md">Security</a>
-      <a href="https://github.com/REX-codebase/myelin/blob/main/CHANGELOG.md">Changelog</a>
-      <a href="https://github.com/REX-codebase/myelin/blob/main/docs/SPEC.md">Spec</a>
-      <a href="https://github.com/REX-codebase/myelin/blob/main/CONTRIBUTING.md">Contribute</a>
-      <a href="https://github.com/REX-codebase/myelin">GitHub</a>
-    </nav>
+<footer>
+  <div class="page">
+    <section class="row" aria-labelledby="colophon-h" style="border-top:1px solid var(--ink)">
+      <h2 id="colophon-h">colophon</h2>
+      <div class="body colophon">
+        <p>Myelin is MIT licensed and published by REX-codebase. This page is one HTML file. It makes no requests beyond itself, and its type is whatever serif and monospace your system already has.</p>
+        <p>The blue is Luxol fast blue, the stain pathologists use to make myelin visible under a microscope. The page is white because myelin is white matter.</p>
+        <ul class="foot-links">
+          <li><a href="https://github.com/REX-codebase/myelin">GitHub</a></li>
+          <li><a href="https://github.com/REX-codebase/myelin/blob/main/docs/SPEC.md">Spec</a></li>
+          <li><a href="https://github.com/REX-codebase/myelin/blob/main/docs/WHY.md">Why</a></li>
+          <li><a href="https://github.com/REX-codebase/myelin/blob/main/docs/ROADMAP.md">Roadmap</a></li>
+          <li><a href="https://github.com/REX-codebase/myelin/blob/main/CHANGELOG.md">Changelog</a></li>
+          <li><a href="https://github.com/REX-codebase/myelin/blob/main/SECURITY.md">Security</a></li>
+          <li><a href="https://github.com/REX-codebase/myelin/blob/main/CONTRIBUTING.md">Contribute</a></li>
+          <li><a href="https://github.com/REX-codebase/myelin/blob/main/LICENSE">MIT</a></li>
+        </ul>
+      </div>
+    </section>
   </div>
 </footer>
-
-<p id="status" class="sr-only" role="status" aria-live="polite"></p>
 
 <script>
 (function () {
   'use strict';
-
-  var status = document.getElementById('status');
-  function announce(msg) {
-    status.textContent = '';
-    setTimeout(function () { status.textContent = msg; }, 30);
-  }
-
-  /* ---------- Tabs ---------- */
-  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
-
-  function select(tab, moveFocus) {
-    tabs.forEach(function (t) {
-      var on = t === tab;
-      t.setAttribute('aria-selected', on ? 'true' : 'false');
-      t.tabIndex = on ? 0 : -1;
-      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
-    });
-    if (moveFocus) tab.focus();
-  }
-
-  tabs.forEach(function (tab, i) {
-    tab.addEventListener('click', function () { select(tab, false); });
-    tab.addEventListener('keydown', function (e) {
-      var next = null;
-      if (e.key === 'ArrowRight') next = tabs[(i + 1) % tabs.length];
-      else if (e.key === 'ArrowLeft') next = tabs[(i - 1 + tabs.length) % tabs.length];
-      else if (e.key === 'Home') next = tabs[0];
-      else if (e.key === 'End') next = tabs[tabs.length - 1];
-      if (next) { e.preventDefault(); select(next, true); }
-    });
-  });
-
-  /* ---------- OS detection ---------- */
-  var hint = document.getElementById('detect-hint');
-  var detected = null;
+  /* Put the install command for this computer first. Without JS the order is unchanged. */
+  var wrap = document.getElementById('cmds');
+  var os = null;
   try {
-    var ua = navigator.userAgent || '';
-    var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
-    if (/Win/.test(plat) || /Windows/i.test(ua)) detected = 'windows';
-    else if (/Mac|iPhone|iPad|iPod/i.test(plat + ' ' + ua) || /Linux|X11|CrOS/i.test(plat + ' ' + ua)) detected = 'unix';
-  } catch (err) { detected = null; }
-
-  var chosen = detected ? tabs.filter(function (t) { return t.getAttribute('data-os') === detected; })[0] : null;
-  if (chosen) {
-    select(chosen, false);
-    hint.textContent = detected === 'windows'
-      ? 'Showing the Windows install for your system.'
-      : 'Showing the macOS and Linux install for your system.';
-  } else {
-    select(tabs[2], false);
-    hint.textContent = 'Pick your platform. npm works anywhere Node 18+ runs.';
+    var ua = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+    var all = ua + ' ' + (navigator.userAgent || '');
+    if (/Win/i.test(all)) os = 'windows';
+    else if (/Mac|Linux|X11|CrOS/i.test(all)) os = 'unix';
+  } catch (e) { os = null; }
+  if (os) {
+    var hit = wrap.querySelector('[data-os="' + os + '"]');
+    if (hit) {
+      wrap.insertBefore(hit, wrap.firstChild);
+      var tag = hit.querySelector('.hit');
+      if (tag) tag.hidden = false;
+    }
   }
 
-  /* ---------- Copy ---------- */
-  function fallbackCopy(text) {
+  function fallback(text) {
     try {
       var ta = document.createElement('textarea');
-      ta.value = text;
-      ta.setAttribute('readonly', '');
-      ta.style.position = 'fixed';
-      ta.style.top = '0';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
+      ta.value = text; ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:0;opacity:0';
+      document.body.appendChild(ta); ta.select();
       var ok = document.execCommand('copy');
       document.body.removeChild(ta);
       return ok;
-    } catch (err) { return false; }
+    } catch (e) { return false; }
   }
-
-  function copyText(text) {
+  function copy(text) {
     try {
       if (navigator.clipboard && window.isSecureContext) {
-        return navigator.clipboard.writeText(text).then(function () { return true; },
-          function () { return fallbackCopy(text); });
+        return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return fallback(text); });
       }
-    } catch (err) { /* fall through */ }
-    return Promise.resolve(fallbackCopy(text));
+    } catch (e) { /* fall through */ }
+    return Promise.resolve(fallback(text));
   }
-
-  document.querySelectorAll('.copy').forEach(function (btn) {
-    var label = btn.textContent;
+  Array.prototype.forEach.call(document.querySelectorAll('.copy'), function (btn) {
     btn.addEventListener('click', function () {
-      var code = btn.parentNode.querySelector('code');
-      var text = code.textContent;
-      copyText(text).then(function (ok) {
-        if (ok) {
-          btn.textContent = 'Copied';
-          btn.classList.add('done');
-          announce('Copied to clipboard: ' + text);
-        } else {
-          var range = document.createRange();
-          range.selectNodeContents(code);
-          var sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(range);
-          btn.textContent = 'Press Ctrl+C';
-          announce('Copy was blocked. The command is selected, press Ctrl+C or Command+C.');
-        }
-        setTimeout(function () {
-          btn.textContent = label;
-          btn.classList.remove('done');
-        }, 2000);
+      var cmd = btn.closest('.cmd').querySelector('.t').textContent;
+      copy(cmd).then(function (ok) {
+        btn.textContent = ok ? 'copied' : 'select and copy';
+        setTimeout(function () { btn.textContent = 'copy'; }, 1800);
       });
     });
   });
-
-  /* ---------- Terminal typing loop ---------- */
-  var term = document.getElementById('term');
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (term && !reduce && 'IntersectionObserver' in window) {
-    var lines = Array.prototype.map.call(term.querySelectorAll('.l'), function (el) {
-      return { el: el, text: el.textContent, cmd: el.classList.contains('cmd-line') || el.textContent.charAt(0) === '$' };
-    });
-    var gen = 0;
-    var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
-
-    var play = async function (myGen) {
-      while (gen === myGen) {
-        lines.forEach(function (l) { l.el.textContent = ''; });
-        for (var i = 0; i < lines.length && gen === myGen; i++) {
-          var l = lines[i];
-          if (l.cmd) {
-            for (var c = 1; c <= l.text.length && gen === myGen; c++) {
-              l.el.textContent = l.text.slice(0, c);
-              await wait(24);
-            }
-            await wait(320);
-          } else {
-            l.el.textContent = l.text;
-            await wait(170);
-          }
-        }
-        await wait(4500);
-      }
-    };
-
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          if (!observer.running) { observer.running = true; play(++gen); }
-        } else {
-          observer.running = false;
-          gen++;
-        }
-      });
-    }, { threshold: 0.35 });
-    observer.running = false;
-    observer.observe(term);
-  }
 })();
 </script>
 </body>
