@@ -128,11 +128,11 @@ Four tests, all reproducible from this repo. The first three measure one thing: 
 | **Labelled corpus**<br><sub>177 stale files, 129 current files</sub> | 100% of stale files caught. 0 false alarms on current files. |
 | **Cross-library sweep**<br><sub>every ledger over every other library's correct code</sub> | 1,056 checks, 0 false positives. |
 | **Official examples, untouched**<br><sub>upstream repos, old release vs current</sub> | three.js r150: 97.8% flagged. three.js r186: 0.4% flagged (1 of 230, an old API in a comment). Next.js 16.4.3's own examples: 19 genuine pre-16 patterns. |
-| **Agent A/B**<br><sub>bonfire scene, 2 agents per arm</sub> | Unguided: both used two removed APIs. Guided: neither did. |
+| **Agent A/B**<br><sub>bonfire scene, GLM 5.3, 2 agents per arm</sub> | Unguided: both used two removed APIs. Guided: neither did. |
 
 <p align="center"><img src="assets/bonfire-ab.png" alt="The same bonfire task, built by agents with no guidance, a prose skill, and the Myelin gate plus lint" width="100%"></p>
 
-<p align="center"><sub>Same task, three arms, two agents each (first run of each arm shown). No guidance: two lint failures and two runtime warnings. Prose skill and Myelin gate: both clean. Two agents per arm is a small sample, see <a href="eval/bonfire-ab/README.md">eval/bonfire-ab</a>.</sub></p>
+<p align="center"><sub>Same task, three arms, two GLM 5.3 agents each (first run of each arm shown). No guidance: two lint failures and two runtime warnings. Prose skill and Myelin gate: both clean. Two agents per arm is a small sample, see <a href="eval/bonfire-ab/README.md">eval/bonfire-ab</a>.</sub></p>
 
 Method, per-library tables and reproduction steps: **[BENCHMARKS.md](BENCHMARKS.md)**
 

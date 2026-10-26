@@ -1,6 +1,6 @@
 # Bonfire A/B: no guidance vs prose skill vs Myelin gate
 
-A small, non-statistical experiment (2 agents per arm, same model family, run 2026-10-26).
+A small, non-statistical experiment (2 agents per arm, all GLM 5.3, run 2026-10-26).
 
 **Task (identical for all six agents):** write one self-contained `index.html` with a realistic night-time bonfire scene in three.js **r186** (`three@0.186.1` from jsdelivr) on **WebGPURenderer** (flames, sparks, smoke, logs, stones, ground, lighting). No web search, no docs, no `node_modules`, no other workspace files. Report techniques and API uncertainties.
 
