@@ -3,36 +3,42 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Page not found: Myelin</title>
-<meta name="color-scheme" content="dark light">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f19'/%3E%3Crect x='6' y='7' width='20' height='4.5' rx='2.25' fill='%235ff4ff'/%3E%3Crect x='6' y='14' width='20' height='4.5' rx='2.25' fill='%235ff4ff'/%3E%3Crect x='6' y='21' width='12' height='4.5' rx='2.25' fill='%235ff4ff' opacity='.55'/%3E%3C/svg%3E" type="image/svg+xml">
+<title>Not in the ledger: Myelin</title>
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
-:root{--bg:#0b0f19;--text:#e9eef7;--muted:#9ba7bb;--accent:#5ff4ff;--ink:#5ff4ff;--line:#1d2638;--on:#0b0f19;color-scheme:dark}
-@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#f5f8fc;--text:#0b0f19;--muted:#4b5870;--accent:#00a8b8;--ink:#00616d;--line:#d3dce9;--on:#0b0f19;color-scheme:light}}
+:root{--bg:#08080A;--ink:#F4F4F2;--mute:#9A9AA3;--line:rgba(255,255,255,.14);--acc:#7F99FF;
+--sans:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI Variable Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,"Liberation Mono",monospace;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
-main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;width:100%;max-width:640px;margin:0 auto;padding:64px 16px}
-.mark{display:flex;flex-direction:column;gap:6px;margin-bottom:28px}
-.mark span{display:block;height:8px;width:56px;border-radius:4px;background:var(--accent)}
-.mark span:nth-child(2){width:40px;opacity:.7}
-.mark span:nth-child(3){width:24px;opacity:.4}
-.code{font:700 13px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.14em;color:var(--ink);text-transform:uppercase}
-h1{font-size:clamp(2rem,6vw,2.8rem);line-height:1.12;letter-spacing:-.025em;margin:12px 0 14px}
-p{color:var(--muted);margin:0 0 28px;font-size:17px}
-a.btn{display:inline-block;text-decoration:none;background:var(--accent);color:var(--on);font-weight:700;padding:12px 18px;border-radius:10px}
-a.btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-footer{border-top:1px solid var(--line);padding:20px 16px;text-align:center;font-size:14px;color:var(--muted)}
-footer a{color:var(--ink)}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.55 var(--sans);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+header{height:64px;display:flex;align-items:center;padding:0 24px}
+header a{font-weight:500;font-size:15px;letter-spacing:.32em;text-decoration:none;text-transform:uppercase;color:var(--ink)}
+main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px 12vh}
+.bar{display:flex;align-items:center;margin-bottom:44px}
+.bar i{display:block;width:84px;height:34px;border-radius:17px;background:linear-gradient(180deg,#FBFBFC,#B9B9C3 55%,#5A5A66)}
+.bar b{display:block;width:26px;height:4px;background:#8A93B5}
+.bar b+i,.bar i+b{margin:0}
+h1{margin:0;font-weight:300;font-size:clamp(36px,6vw,72px);line-height:1.04;letter-spacing:-.028em}
+p{margin:20px 0 0;max-width:30em;color:var(--mute)}
+pre{margin:28px 0 0;font:13.5px/1.7 var(--mono);color:var(--mute);text-align:left}
+pre b{color:var(--acc);font-weight:700}
+pre i{font-style:normal;color:#E8808D}
+.cta{display:inline-flex;align-items:center;justify-content:center;margin-top:36px;min-width:176px;height:42px;padding:0 24px;border-radius:4px;background:var(--ink);color:var(--bg);font:500 14px/1 var(--sans);text-decoration:none}
+.cta:hover{background:#fff}
+:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
 </style>
 </head>
 <body>
+<header><a href="/myelin/">Myelin</a></header>
 <main>
-  <div class="mark" aria-hidden="true"><span></span><span></span><span></span></div>
-  <p class="code">Error 404</p>
-  <h1>This page is not in the ledger.</h1>
-  <p>The link may be old, or the page moved. The Myelin site lives at the home page.</p>
-  <a class="btn" href="https://rex-codebase.github.io/myelin/">Back to Myelin</a>
+<div class="bar" aria-hidden="true"><i></i><b></b><i></i><b></b><i></i></div>
+<h1>That page is not<br>in the ledger.</h1>
+<p>The address you followed does not match anything here. It may have moved, or it may never have existed.</p>
+<pre><b>$</b> myelin lint page /myelin/missing
+<i>FAIL B404</i>  no such page</pre>
+<a class="cta" href="/myelin/">Back to the front page</a>
 </main>
-<footer>MIT licensed. <a href="https://github.com/REX-codebase/myelin">GitHub</a></footer>
 </body>
 </html>
