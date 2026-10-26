@@ -57,3 +57,38 @@ test('pulse light cannot overflow into NaN', () => {
   // which blacks out every lit surface, so the trail exponent must be clamped.
   assert.match(scene, /exp\(min\(x, 0\)\.div\(trailL\)\)/, 'trail exponent is not clamped to <= 0');
 });
+
+test('every addon the scene imports is preloaded, so the module graph is not a waterfall', () => {
+  const addons = [...scene.matchAll(/from 'three\/addons\/([^']+)'/g)].map((m) => m[1]);
+  assert.ok(addons.length >= 4, 'expected the scene to import several addons');
+  for (const a of addons) assert.ok(page.includes(`examples/jsm/${a}"`), `no modulepreload for ${a}`);
+  // the addons' own dependency, which would otherwise be a second serial round trip
+  assert.ok(page.includes('display/GaussianBlurNode.js"'), 'GaussianBlurNode (imported by DepthOfFieldNode) is not preloaded');
+  for (const core of ['three.core.js', 'three.webgpu.js', 'three.tsl.js']) assert.ok(page.includes(`build/${core}"`), `no modulepreload for ${core}`);
+});
+
+test('the quality ladder only drops work, never adds it, and ends above a legible floor', () => {
+  assert.match(scene, /const LADDER = \[/);
+  assert.match(scene, /ratioScale \*= 0\.8/, 'pixel rung does not scale the ratio down');
+  assert.match(scene, /MathU\.clamp\(ratioScale \* Math\.min\(window\.devicePixelRatio \|\| 1, RATIO_CAP,[\s\S]*?, 0\.6, 2\)/, 'pixel ratio is not floored at 0.6');
+  assert.match(scene, /\.\.\.LADDER\[rung\+\+\]\(\)|!LADDER\[rung\+\+\]\(\)/, 'ladder does not skip rungs that are already spent');
+});
+
+test('the page loads nothing from a third party except the pinned three.js CDN, and says so', () => {
+  const tags = [...page.matchAll(/<(?:link|script|img|source|iframe|video|audio)\b[^>]*?(?:src|href)="(https?:\/\/[^"]+)"/g)].map((m) => new URL(m[1]).host);
+  const map = (page.match(/<script type="importmap">([\s\S]*?)<\/script>/) || ['', ''])[1];
+  const imports = [...map.matchAll(/"(https?:\/\/[^"]+)"/g)].map((m) => new URL(m[1]).host);
+  assert.deepEqual([...new Set([...tags, ...imports])], ['cdn.jsdelivr.net'], 'a new third-party host needs a deliberate decision, and a line in the footer');
+  assert.doesNotMatch(page, /url\(\s*["']?https?:/, 'CSS pulls in an external resource');
+  assert.match(page, /No cookies and no analytics\./);
+  assert.match(page, /loads three\.js r186 from cdn\.jsdelivr\.net/);
+});
+
+test('the page and scene use no storage, tracking or network APIs of their own', () => {
+  // look at code only: the footer's own sentence says "no analytics"
+  const inline = [...page.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join('\n');
+  for (const [name, text] of [['inline scripts in index.html', inline], ['scene.js', scene]]) {
+    const hit = /document\.cookie|localStorage|sessionStorage|indexedDB|sendBeacon|XMLHttpRequest|\bfetch\(|WebSocket|gtag\(|analytics/.exec(text);
+    assert.equal(hit, null, `${name} uses ${hit && hit[0]}, which contradicts the footer's privacy line`);
+  }
+});

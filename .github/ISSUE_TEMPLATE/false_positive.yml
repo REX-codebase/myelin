@@ -1,0 +1,45 @@
+name: A rule fired on correct code
+description: A ledger rule reported a failure, but the code is right for the library version the ledger targets.
+title: "[false positive] <ledger> <rule id>: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Rules are regular expressions, so they can fire on code that is correct (an old API named in a comment, a variable that happens to share a name). These reports are the most useful ones: each is fixed in the rule, never by weakening the test corpus.
+  - type: input
+    id: rule
+    attributes:
+      label: Ledger and rule id
+      description: For example `nextjs B3`. It is the id at the start of each FAIL line.
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: The output
+      description: Paste the lint output, or `myelin fix <ledger> <file>`.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: The code that was flagged
+      description: The smallest snippet that still fires the rule.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: library
+    attributes:
+      label: Library version in your project
+      description: For example `next 16.4.3`.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Myelin version
+      description: Output of `myelin --version`.
+    validations:
+      required: true

@@ -46,6 +46,18 @@ Pick the line for your system. Each one installs the `myelin` command. Myelin is
 | Windows (PowerShell) | `irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1 \| iex` |
 | No install (any OS, Node 18+) | `npx github:REX-codebase/myelin setup` |
 
+The installers fetch the **latest release** and check it against the SHA-256 that release publishes before installing anything. A mismatch stops the install and writes nothing. To pin a version:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh -s -- --ref v0.3.0   # macOS, Linux, WSL
+```
+
+```powershell
+$env:MYELIN_REF = 'v0.3.0'; irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1 | iex   # Windows
+```
+
+A release tag is verified. A branch or commit is installed as is and labelled unverified.
+
 **Then run `myelin setup`.** It is the first-run wizard, and it:
 
 1. Detects the libraries in your project from `package.json`.

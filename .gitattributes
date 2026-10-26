@@ -1,0 +1,11 @@
+# Shell scripts must keep LF endings even on a Windows checkout, or `sh install.sh` breaks.
+*.sh text eol=lf
+*.myelin text eol=lf
+
+# Keep GitHub's language bar honest: this is a Node CLI. The generated pages, fixtures and
+# docs below are not what the project is written in.
+site/** linguist-documentation
+examples/** linguist-documentation
+eval/** linguist-vendored
+libs/*/bench/** linguist-vendored
+assets/** linguist-generated
