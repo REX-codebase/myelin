@@ -1,6 +1,7 @@
 name: release
 
-# Push a tag like v0.2.2 to publish it.
+# Bump "version" in package.json and add a "## <version>" section to CHANGELOG.md,
+# merge that, then push a tag like v0.3.0 to publish it.
 on:
   push:
     tags:
@@ -28,11 +29,36 @@ jobs:
         with:
           node-version: 22
 
+      # A tag that disagrees with package.json would publish a tarball whose name and
+      # contents say a different version than the release.
+      - name: Check the tag matches the package version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::Tag $TAG does not match package.json version $VERSION. Bump the version, merge it, then tag."
+            exit 1
+          fi
+          if ! grep -q "^## $VERSION\b" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## $VERSION' section."
+            exit 1
+          fi
+
       - name: Build the npm tarball
         run: npm pack
 
+      # The Windows installer takes a zip of the same package/ layout.
+      - name: Build the zip for Windows
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          mkdir unpacked
+          tar -xzf "myelin-ledger-$VERSION.tgz" -C unpacked
+          (cd unpacked && zip -qr "../myelin-ledger-$VERSION.zip" package)
+
+      # The installers verify their download against this file.
       - name: Write checksums
-        run: sha256sum myelin-ledger-*.tgz install.sh install.ps1 > SHA256SUMS
+        run: sha256sum myelin-ledger-*.tgz myelin-ledger-*.zip install.sh install.ps1 > SHA256SUMS
 
       - name: Create the GitHub Release
         env:
@@ -46,7 +72,45 @@ jobs:
             --generate-notes \
             --verify-tag \
             $prerelease \
-            myelin-ledger-*.tgz install.sh install.ps1 SHA256SUMS
+            myelin-ledger-*.tgz myelin-ledger-*.zip install.sh install.ps1 SHA256SUMS
+
+  # Run the documented one-line installers against the release that was just published,
+  # on each OS, and require that they took the verified path rather than falling back to main.
+  smoke:
+    needs: release
+    if: ${{ !contains(github.ref_name, '-') }}   # /releases/latest ignores prereleases
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install (macOS, Linux)
+        if: runner.os != 'Windows'
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh 2>&1 | tee install.log
+          grep -q "verified its SHA-256" install.log || { echo "::error::The installer did not take the verified release path"; exit 1; }
+          grep -q "release $TAG, SHA-256 verified" install.log || { echo "::error::The installer did not install $TAG"; exit 1; }
+          test "$("$HOME/.local/bin/myelin" --version)" = "${TAG#v}"
+
+      - name: Install (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1 -OutFile install.ps1
+          ./install.ps1 -NoModifyPath *>&1 | Tee-Object -FilePath install.log
+          if (-not (Select-String -Path install.log -SimpleMatch 'verified its SHA-256' -Quiet)) { throw 'The installer did not take the verified release path' }
+          if (-not (Select-String -Path install.log -SimpleMatch "release $env:TAG, SHA-256 verified" -Quiet)) { throw "The installer did not install $env:TAG" }
+          $v = (& (Join-Path $env:LOCALAPPDATA 'Myelin\bin\myelin.cmd') --version)
+          if ($v -ne $env:TAG.TrimStart('v')) { throw "installed $v, expected $($env:TAG)" }
 
   npm:
     needs: release

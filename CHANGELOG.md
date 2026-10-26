@@ -1,7 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (2026-10-26)
 
+- **Verified installs.** `install.sh` and `install.ps1` now install the latest published release and check it against the SHA-256 in that release's `SHA256SUMS` before writing anything; a mismatch, a missing checksum or a missing release asset stops the install. `--ref v0.3.0` (or `$env:MYELIN_REF`) pins a release and is verified the same way; a branch or commit still works and is labelled unverified. Until the first release exists, the installers fall back to `main` and say so. Tested against a local stand-in for GitHub on Linux and macOS (`install.sh`) and on Windows PowerShell 5.1 and 7 (`install.ps1`).
+- **Release workflow.** Refuses a tag that does not match `package.json` or has no `## <version>` changelog section, publishes a zip for the Windows installer alongside the tarball, and, after publishing, runs the documented one-line installers on Linux, macOS and Windows and requires that they took the verified release path.
+- **Ledger drift check.** `libs/pins.json` records the library version each ledger targets (a test proves each pin matches its ledger), `npm run drift` compares them with npm's latest (a prerelease `latest` tag is compared against the newest stable), and a weekly workflow keeps one issue open while a ledger is a minor or major release behind.
+- **Docs and repo.** Fixed seven broken links in `docs/REFERENCE.md` and added tests that every relative link and anchor in the Markdown resolves. The site states that it sets no cookies, runs no analytics and loads only three.js from cdn.jsdelivr.net, and a test enforces it. Added issue forms (bug, rule false positive, stale ledger or new library) and `.gitattributes` so GitHub no longer reports the project as HTML.
 - **Landing page performance.** The 3D scene now renders a pixel budget instead of a fixed pixel ratio (a retina laptop drops from 4.0 to 2.4 megapixels, a 4K monitor from 8.3 to 2.4), caps itself near 60 fps on 120 and 144 Hz displays, and steps down through a quality ladder when frames run long: lens fringe, then depth of field, then resolution, then grain. Geometry is about 44% lighter (150k to 84k triangles), the sheath drops its iridescence layer, boot yields to the browser between heavy steps, the whole module graph is preloaded so there is no waterfall, and the per-frame layout read is gone. Stills match the previous render within grain noise. Boot stages appear in the browser's Performance panel as `myelin:*` marks.
 - **Landing page rebuilt as a film.** The hero and every chapter now sit on one fixed three.js scene (`site/scene.js`): a myelinated axon of pearlescent, studio-lit sheath segments with exposed nodes of Ranvier, action potentials that hop node to node, and a terminal arbor with one pearl per library. A damped camera dollies through the chapters as you scroll. Depth of field, bloom, lens fringing, grain, warp streaks and a hand-built studio environment give it its look. Hover a library and its terminal lights up in the arbor; stale-to-current flips, lint failures and the Copy button fire pulses.
 - The scene is written against Myelin's own three.js ledger (r186, WebGPURenderer, TSL, RenderPipeline) and `test/site.test.mjs` lints it on every run, checks the import map pins the ledger's release, and checks the page keeps its SVG fallback. It falls back to WebGL 2 where WebGPU is missing, keeps the old SVG hero if the module cannot load, honours `prefers-reduced-motion` and data saver, pauses while the white "limits" section covers it, and steps its pixel ratio down on slow frames.
@@ -22,7 +26,7 @@
 - New `action.yml` at the repo root: a composite GitHub Action that runs `lint` and fails the job on any violation. Inputs `libs` (ids, paths, or `detect`), `paths` and `ext`. Usage in docs/HOSTS.md.
 - Fixed: under `comments skip`, a quote inside a regex literal (`/"/`) or an apostrophe hid a comment later on the same line, so a banned name in that comment fired.
 - Fixed: a UTF-8 byte order mark at the start of a `.myelin` file made the ledger invalid ("first line must be myelin").
-- 59 tests (was 46).
+- 112 tests (was 46 in 0.2.1).
 
 ## 0.2.1
 

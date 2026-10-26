@@ -5,7 +5,7 @@
 class Myelin < Formula
   desc "Rule ledgers that keep AI-written code on current library versions"
   homepage "https://github.com/REX-codebase/myelin"
-  url "https://github.com/REX-codebase/myelin/archive/refs/tags/v0.2.1.tar.gz"
+  url "https://github.com/REX-codebase/myelin/archive/refs/tags/v0.3.0.tar.gz"
   sha256 "REPLACE_WITH_RELEASE_SHA256"
   license "MIT"
   head "https://github.com/REX-codebase/myelin.git", branch: "main"
