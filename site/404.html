@@ -4,37 +4,41 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Not in the ledger: Myelin</title>
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="dark">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
-:root{--paper:#fff;--ink:#15171c;--mute:#566070;--rule:#d6dae1;--blue:#1c3d9e;--tint:#f4f5f7;
---serif:Charter,"Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Liberation Serif",serif;
---mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace}
-@media (prefers-color-scheme:dark){:root{--paper:#111318;--ink:#e7e9ee;--mute:#9ba3b3;--rule:#2a2f3a;--blue:#93aaff;--tint:#1a1d25}}
+:root{--bg:#08080A;--ink:#F4F4F2;--mute:#9A9AA3;--line:rgba(255,255,255,.14);--acc:#7F99FF;
+--sans:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI Variable Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,"Liberation Mono",monospace;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font:19px/1.62 var(--serif)}
-header{border-bottom:1px solid var(--ink)}
-header div,main{max-width:1080px;margin:0 auto;padding:0 32px}
-header div{padding-top:18px;padding-bottom:14px}
-header a{font:500 17px/1 var(--mono);color:var(--ink);text-decoration:none}
-main{padding-top:84px;padding-bottom:96px}
-h1{margin:0 0 22px;font-weight:600;font-size:clamp(34px,5vw,52px);line-height:1.1;letter-spacing:-.015em}
-p{margin:0 0 1em;max-width:34em}
-pre{margin:28px 0;padding:14px 18px;max-width:34em;background:var(--tint);border-left:3px solid var(--blue);font:14px/1.7 var(--mono);white-space:pre-wrap}
-pre b{color:var(--blue)}
-a{color:var(--blue);text-underline-offset:3px}
-:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
-@media (max-width:560px){header div,main{padding-left:20px;padding-right:20px}}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.55 var(--sans);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+header{height:64px;display:flex;align-items:center;padding:0 24px}
+header a{font-weight:500;font-size:15px;letter-spacing:.32em;text-decoration:none;text-transform:uppercase;color:var(--ink)}
+main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px 12vh}
+.bar{display:flex;align-items:center;margin-bottom:44px}
+.bar i{display:block;width:84px;height:34px;border-radius:17px;background:linear-gradient(180deg,#FBFBFC,#B9B9C3 55%,#5A5A66)}
+.bar b{display:block;width:26px;height:4px;background:#8A93B5}
+.bar b+i,.bar i+b{margin:0}
+h1{margin:0;font-weight:300;font-size:clamp(36px,6vw,72px);line-height:1.04;letter-spacing:-.028em}
+p{margin:20px 0 0;max-width:30em;color:var(--mute)}
+pre{margin:28px 0 0;font:13.5px/1.7 var(--mono);color:var(--mute);text-align:left}
+pre b{color:var(--acc);font-weight:700}
+pre i{font-style:normal;color:#E8808D}
+.cta{display:inline-flex;align-items:center;justify-content:center;margin-top:36px;min-width:176px;height:42px;padding:0 24px;border-radius:4px;background:var(--ink);color:var(--bg);font:500 14px/1 var(--sans);text-decoration:none}
+.cta:hover{background:#fff}
+:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
 </style>
 </head>
 <body>
-<header><div><a href="/myelin/">myelin</a></div></header>
+<header><a href="/myelin/">Myelin</a></header>
 <main>
-<h1>That page is not in the ledger.</h1>
+<div class="bar" aria-hidden="true"><i></i><b></b><i></i><b></b><i></i></div>
+<h1>That page is not<br>in the ledger.</h1>
 <p>The address you followed does not match anything here. It may have moved, or it may never have existed.</p>
 <pre><b>$</b> myelin lint page /myelin/missing
-FAIL B404  no such page</pre>
-<p><a href="/myelin/">Back to the front page</a>, or <a href="https://github.com/REX-codebase/myelin">read the source on GitHub</a>.</p>
+<i>FAIL B404</i>  no such page</pre>
+<a class="cta" href="/myelin/">Back to the front page</a>
 </main>
 </body>
 </html>

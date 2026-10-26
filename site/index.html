@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Myelin: rule ledgers for AI-written code</title>
 <meta name="description" content="Models write last year's APIs with total confidence. Myelin is a plain-text rule file the model reads before it writes and a linter runs after.">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#08080A">
 <meta property="og:title" content="Myelin: rule ledgers for AI-written code">
-<meta property="og:description" content="A checklist the model can read and a linter the machine can run, from the same plain-text file.">
+<meta property="og:description" content="Your AI learned last year's docs. Myelin teaches it this year's.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://rex-codebase.github.io/myelin/">
 <meta property="og:image" content="https://rex-codebase.github.io/myelin/og.png">
@@ -15,399 +16,748 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script>document.documentElement.className='js'</script>
 <style>
 :root{
-  --paper:#ffffff;
-  --ink:#15171c;
-  --mute:#566070;
-  --rule:#d6dae1;
-  --tint:#f4f5f7;
-  --blue:#1c3d9e;
-  --bad:#a3261d;
-  --good:#17643a;
-  --serif:Charter,"Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Liberation Serif",serif;
+  --bg:#08080A;--bg2:#0E0E11;--ink:#F4F4F2;--mute:#9A9AA3;--faint:#5F5F68;
+  --line:rgba(255,255,255,.14);--acc:#7F99FF;
+  --lbg:#F4F4F2;--link:#111113;--lmute:#5C5C64;--lline:rgba(0,0,0,.14);--lacc:#2A45D6;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI Variable Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace;
-  color-scheme:light;
-}
-@media (prefers-color-scheme: dark){
-  :root{
-    --paper:#111318;
-    --ink:#e7e9ee;
-    --mute:#9ba3b3;
-    --rule:#2a2f3a;
-    --tint:#1a1d25;
-    --blue:#93aaff;
-    --bad:#ff948b;
-    --good:#74d49c;
-    color-scheme:dark;
-  }
+  --ease:cubic-bezier(.2,.7,.2,1);
+  color-scheme:dark;
 }
 *,*::before,*::after{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--paper);color:var(--ink);font:19px/1.62 var(--serif);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-a{color:var(--blue);text-underline-offset:3px;text-decoration-thickness:1px}
-a:hover{text-decoration-thickness:2px}
-code,pre,kbd{font-family:var(--mono)}
-code{font-size:.82em;background:var(--tint);padding:.12em .38em;border-radius:2px;overflow-wrap:anywhere}
-:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
-p{margin:0 0 1.05em}
-.page{max-width:1080px;margin:0 auto;padding:0 32px}
-.skip{position:absolute;left:12px;top:-60px;background:var(--ink);color:var(--paper);padding:8px 12px;font:14px var(--mono);z-index:5}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;background:var(--bg)}
+@media (min-width:900px) and (min-height:640px){html.js{scroll-snap-type:y proximity}}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.55 var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden}
+a{color:inherit}
+p{margin:0}
+h1,h2,h3{margin:0;font-weight:300}
+code,pre{font-family:var(--mono)}
+:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:2px}
+.wrap{width:min(1240px,calc(100% - 64px));margin:0 auto}
+@media (max-width:640px){.wrap{width:calc(100% - 40px)}}
+.skip{position:absolute;left:12px;top:-60px;z-index:60;background:var(--ink);color:var(--bg);padding:10px 14px;font:500 14px var(--sans);border-radius:4px}
 .skip:focus{top:12px}
 
-/* masthead */
-.mast{border-bottom:1px solid var(--ink)}
-.mast .page{display:flex;justify-content:space-between;align-items:baseline;gap:12px 24px;flex-wrap:wrap;padding-top:18px;padding-bottom:14px}
-.mast .name{font:500 17px/1 var(--mono);color:var(--ink);text-decoration:none;letter-spacing:-.01em}
-.mast .name small{font-size:13px;color:var(--mute);margin-left:10px;font-weight:400}
-.mast nav{display:flex;gap:4px 22px;flex-wrap:wrap;font:14.5px/1.4 var(--mono)}
-.mast nav a{color:var(--ink);text-decoration:none}
-.mast nav a:hover{color:var(--blue);text-decoration:underline}
+/* ---------- nav ---------- */
+.nav{position:fixed;inset:0 0 auto 0;height:64px;z-index:50;transition:background .4s var(--ease),border-color .4s var(--ease);border-bottom:1px solid transparent}
+.nav.solid.on-light{background:rgba(244,244,242,.78);border-color:var(--lline)}
+.nav.on-light .brand,.nav.on-light li a{color:var(--link)}
+.nav.on-light li a:hover{background:rgba(0,0,0,.07)}
+.nav.solid{background:rgba(8,8,10,.72);-webkit-backdrop-filter:saturate(1.4) blur(18px);backdrop-filter:saturate(1.4) blur(18px);border-color:var(--line)}
+.nav .wrap{height:100%;display:flex;align-items:center;justify-content:space-between;gap:20px;width:min(1360px,calc(100% - 48px))}
+.brand{font-weight:500;font-size:15px;letter-spacing:.32em;text-decoration:none;text-transform:uppercase}
+.nav ul{display:flex;align-items:center;gap:6px;list-style:none;margin:0;padding:0}
+.nav li a{display:block;padding:8px 14px;font-size:14px;font-weight:500;text-decoration:none;border-radius:4px;color:rgba(244,244,242,.86);transition:background .2s}
+.nav li a:hover{background:rgba(255,255,255,.1)}
+@media (max-width:760px){.nav li.l{display:none}}
 
-/* title */
-.title{padding:84px 0 20px}
-.title h1{margin:0;font-weight:600;font-size:clamp(34px,5.2vw,56px);line-height:1.08;letter-spacing:-.015em;max-width:17em}
-.title h1 em{font-style:normal;color:var(--blue)}
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;min-width:176px;height:42px;padding:0 24px;border-radius:4px;font:500 14px/1 var(--sans);text-decoration:none;border:1px solid transparent;transition:background .25s,border-color .25s,color .25s;cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--bg)}
+.btn.primary:hover{background:#fff}
+.btn.ghost{border-color:rgba(244,244,242,.42);color:var(--ink);background:rgba(8,8,10,.2)}
+.btn.ghost:hover{background:rgba(244,244,242,.12);border-color:rgba(244,244,242,.7)}
 
-/* rows: a label gutter and the text */
-.row{display:grid;grid-template-columns:168px minmax(0,1fr);gap:0 40px;padding:52px 0;border-top:1px solid var(--rule)}
-.row.first{border-top:0;padding-top:32px}
-.row > h2{margin:6px 0 0;font:400 13.5px/1.4 var(--mono);color:var(--mute);letter-spacing:0}
-.row > h2::before{content:"\2192\00a0";color:var(--blue)}
-.body{min-width:0;max-width:44rem}
-.body.wide{max-width:none}
-.lead{font-size:21px;line-height:1.55}
-.lead code{white-space:nowrap}
-@media (max-width:820px){
-  .row{grid-template-columns:1fr;gap:10px}
-  .row > h2{margin:0}
-  .title{padding-top:52px}
-  body{font-size:18px}
-}
-@media (max-width:560px){.page{padding:0 20px}.cmd pre{word-break:break-all}}
+/* ---------- sections ---------- */
+.s{position:relative;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:112px 0 88px;scroll-snap-align:start}
+.s.light{background:var(--lbg);color:var(--link)}
+.s.alt{background:var(--bg2)}
+.h2{font-size:clamp(32px,4.6vw,60px);line-height:1.04;letter-spacing:-.022em}
+.lede{margin-top:22px;max-width:30em;font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:var(--mute)}
+.light .lede{color:var(--lmute)}
+.rv{opacity:0;transform:translateY(26px);transition:opacity 1s var(--ease),transform 1s var(--ease)}
+.rv.in{opacity:1;transform:none}
+html:not(.js) .rv{opacity:1;transform:none}
+.d1{transition-delay:.12s}.d2{transition-delay:.24s}.d3{transition-delay:.36s}
 
-/* install blocks */
-.cmd{margin:0 0 26px}
-.cmd .for{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font:13.5px/1.4 var(--mono);color:var(--mute);margin-bottom:6px}
-.cmd .for b{color:var(--ink);font-weight:500}
-.cmd .hit{color:var(--blue)}
-.cmd pre{margin:0;padding:14px 16px;background:var(--tint);border-left:3px solid var(--blue);font-size:14px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
-.cmd pre i{font-style:normal;color:var(--mute);user-select:none}
-.copy{appearance:none;border:0;background:none;padding:2px 0;color:var(--blue);font:13.5px/1.4 var(--mono);text-decoration:underline;text-underline-offset:3px;cursor:pointer;flex:0 0 auto}
-.copy:hover{text-decoration-thickness:2px}
-details{margin:6px 0 0}
-details summary{cursor:pointer;font:13.5px/1.4 var(--mono);color:var(--blue);padding:4px 0}
-details pre{margin:10px 0 0;padding:14px 16px;background:var(--tint);font-size:13.5px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
-
-/* the ledger, with margin notes */
-.ledger{margin:30px 0 8px;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink)}
-.ledger .g{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);border-top:1px solid var(--rule)}
-.ledger .g:first-child{border-top:0}
-.ledger .c{margin:0;background:var(--tint);padding:13px 18px;font:13.5px/1.7 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
-.ledger .n{position:relative;align-self:start;padding:13px 0 13px 24px;color:var(--mute);font:15px/1.5 var(--serif)}
-.ledger .n::before{content:"";position:absolute;left:0;top:calc(13px + .78em);width:14px;border-top:1px solid var(--blue)}
-.ledger .n b{color:var(--ink);font-weight:600}
-.sig{color:var(--blue);font-weight:700}
-.ban{color:var(--bad)}
-.dim{color:var(--mute)}
-@media (max-width:820px){
-  .ledger .g{grid-template-columns:1fr}
-  .ledger .n{padding:10px 0 16px 0}
-  .ledger .n::before{display:none}
-}
-.sigils{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;margin:18px 0 0;font-size:15px;line-height:1.45;border-top:1px solid var(--rule)}
-.sigils div{padding:12px 14px 4px 0}
-.sigils b{display:block;font:700 18px/1.2 var(--mono);color:var(--blue)}
-@media (max-width:820px){.sigils{grid-template-columns:repeat(2,minmax(0,1fr))}}
-
-/* tables */
-table{width:100%;border-collapse:collapse;font-size:16px;line-height:1.5}
-table.catch{table-layout:fixed}
-@media (min-width:761px){table.ev td:first-child,table.ev th:first-child{width:34%}}
-table.catch th:nth-child(1){width:150px}table.catch th:nth-child(4){width:44px}
-th{font:400 13px/1.3 var(--mono);color:var(--mute);text-align:left;padding:0 18px 10px 0;border-bottom:1px solid var(--ink)}
-td{padding:13px 18px 13px 0;border-bottom:1px solid var(--rule);vertical-align:top}
-td:last-child,th:last-child{padding-right:0}
-td.lib{font-weight:600;white-space:nowrap}
-td.id{font:13px/1.5 var(--mono);color:var(--mute);white-space:nowrap}
-td code{background:none;padding:0;font-size:13.5px}
-.old{color:var(--bad);text-decoration:line-through;text-decoration-thickness:1px}
-.new{color:var(--good)}
-.mk{user-select:none;margin-right:.5em;text-decoration:none;display:inline-block}
+/* ---------- hero ---------- */
+.hero{padding:0;min-height:100vh;min-height:100svh;overflow:hidden;justify-content:space-between}
+.hero-text{position:relative;z-index:3;padding-top:clamp(92px,15vh,160px);text-align:center}
+.hero h1{font-size:clamp(34px,5.6vw,76px);line-height:1.04;letter-spacing:-.028em}
+.hero h1 .old{display:block;color:#7D7D86}
+.hero h1 .new{display:block;color:var(--ink);font-weight:400}
+.stage{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;z-index:1}
+.stage svg{position:absolute;left:0;width:100%}
+.stage .far{top:-2vh;height:74vh;filter:blur(28px);opacity:.15;transform:translate3d(0,var(--fy,0),0) scale(1.7);will-change:transform}
+.stage .main{top:27vh;height:clamp(260px,60vh,640px)}
+.vig{position:absolute;inset:0;background:radial-gradient(120% 92% at 50% 52%,rgba(8,8,10,0) 40%,rgba(8,8,10,.92) 100%),linear-gradient(180deg,rgba(8,8,10,.55),rgba(8,8,10,0) 28%,rgba(8,8,10,0) 66%,rgba(8,8,10,.8))}
+.flare{opacity:0;animation:flare 2.8s linear infinite;animation-delay:var(--d)}
+.rim{opacity:0;animation:rim 2.8s linear infinite;animation-delay:var(--d)}
+@keyframes flare{0%{opacity:0}4%{opacity:1}12%{opacity:.5}24%,100%{opacity:0}}
+@keyframes rim{0%{opacity:0}4%{opacity:.9}20%,100%{opacity:0}}
+@media (max-height:760px){.hero h1{font-size:clamp(30px,4.6vw,58px)}.hero-text{padding-top:clamp(84px,13vh,120px)}}
+.hero-foot{position:relative;z-index:3;padding-bottom:36px}
+.cta{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:44px}
+.spec{display:grid;grid-template-columns:repeat(4,1fr);margin:0;padding:22px 0 0;border-top:1px solid var(--line);list-style:none}
+.spec li{padding:0 20px;text-align:center}
+.spec li+li{border-left:1px solid var(--line)}
+.spec b{display:block;font-weight:300;font-size:clamp(26px,3.2vw,42px);line-height:1.1;letter-spacing:-.02em}
+.spec span{display:block;margin-top:6px;font-size:13px;line-height:1.4;color:var(--mute)}
 @media (max-width:760px){
-  table.stack thead{display:none}
-  table.stack,table.stack tbody,table.stack tr,table.stack td{display:block;width:100%}
-  table.stack tr{padding:14px 0;border-bottom:1px solid var(--rule)}
-  table.stack td{border:0;padding:2px 0;white-space:normal}
-  table.stack td.lib,table.stack td.id{white-space:normal}
+  .spec{grid-template-columns:1fr 1fr;gap:20px 0}
+  .spec li:nth-child(3){border-left:0}
+  .cta{margin-bottom:30px}
+  .btn{min-width:150px}
 }
-.lint{margin:20px 0 0;padding:16px 18px;background:var(--tint);font:13.5px/1.75 var(--mono);white-space:pre;overflow-x:auto}
-@media (max-width:760px){.lint{white-space:pre-wrap;overflow-wrap:anywhere}}
-.lint .f{color:var(--bad)}
-.lint .p{color:var(--good)}
-.note-s{font-size:15.5px;color:var(--mute)}
 
-/* limits */
-.limits p{margin:0 0 1em}
-.limits b{font-weight:600}
+/* ---------- ledger chapter ---------- */
+.two{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:72px;align-items:center}
+.two.flip{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}
+@media (max-width:980px){.two,.two.flip{grid-template-columns:minmax(0,1fr);gap:44px}}
+.two>*{min-width:0}
+.modes{display:flex;gap:8px;margin-top:30px;flex-wrap:wrap}
+.modes button{appearance:none;font:500 14px/1 var(--sans);color:var(--mute);background:transparent;border:1px solid var(--line);padding:12px 18px;border-radius:4px;cursor:pointer;transition:all .25s}
+.modes button[aria-pressed="true"]{color:var(--bg);background:var(--ink);border-color:var(--ink)}
+.modes button:hover:not([aria-pressed="true"]){color:var(--ink);border-color:rgba(244,244,242,.5)}
+.mode-note{margin-top:18px;min-height:3.2em;font-size:15.5px;line-height:1.6;color:var(--mute);max-width:26em}
+.card{background:#0C0C0F;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.card .bar{display:flex;align-items:center;gap:7px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.card .bar i{width:10px;height:10px;border-radius:50%;background:#2C2C33}
+.card .bar span{margin-left:10px;font:400 12.5px/1 var(--mono);color:var(--faint)}
+.ledger pre{margin:0;padding:26px 28px 28px;font-size:14px;line-height:1.75;color:var(--ink);overflow-x:auto;white-space:pre}
+.ledger .dim{color:var(--faint)}
+.ledger .sg{color:var(--acc);font-weight:700}
+.ledger .rule{display:grid;grid-template-columns:auto 1fr;column-gap:14px;margin-top:14px;white-space:pre-wrap}
+.ledger .rule .k{color:var(--faint)}
+.ledger .rx,.ledger .ms{transition:opacity .6s var(--ease),color .6s}
+.ledger[data-mode="model"] .rx{opacity:.28}
+.ledger[data-mode="machine"] .ms{opacity:.28}
+.ledger[data-mode="machine"] .rx{color:#fff;text-shadow:0 0 18px rgba(127,153,255,.45)}
+.ledger[data-mode="model"] .ms{color:#fff}
+.ledger .ms{color:var(--mute)}
+.cap{margin-top:14px;font-size:13px;color:var(--faint)}
 
-/* libraries */
-.libs{list-style:none;margin:22px 0 0;padding:0;columns:2;column-gap:56px}
-.libs a{color:var(--ink);text-decoration:none}
-.libs a:hover{color:var(--blue);text-decoration:underline}
-.libs li{break-inside:avoid;display:flex;align-items:baseline;gap:8px;padding:5px 0;font-size:17px}
-.libs li i{flex:1 1 auto;border-bottom:1px dotted var(--mute);transform:translateY(-4px);min-width:16px}
-.libs li span{font:13.5px/1.4 var(--mono);color:var(--mute);white-space:nowrap}
-@media (max-width:760px){.libs{columns:1}}
+/* ---------- pairs ---------- */
+.pairs-s{background:#000;overflow:hidden}
+.pairs-head{position:relative;z-index:2}
+.pairs{list-style:none;margin:48px 0 0;padding:0}
+.js .pairs{position:relative;height:min(50vh,420px);margin-top:36px}
+.pairs li{display:grid;gap:4px;padding:16px 0;border-top:1px solid var(--line);font:400 15px/1.5 var(--mono)}
+.pairs li .l{color:var(--faint);font-size:12.5px;letter-spacing:.04em}
+.pairs s{color:#A55C66;text-decoration-thickness:1px}
+.pairs b{font-weight:400;color:var(--ink)}
+.js .pairs li{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:0;border:0;padding:0;text-align:center;opacity:0;pointer-events:none}
+.js .pairs li.on{opacity:1;pointer-events:auto}
+.js .pairs .l{position:static;margin-bottom:30px;font-size:13px}
+.js .pairs s,.js .pairs b{display:block;font-size:clamp(17px,3.2vw,46px);line-height:1.2;letter-spacing:-.01em;max-width:100%;overflow-wrap:anywhere}
+.js .pairs s{position:relative;text-decoration:none;color:#7D7D86;transition:color .5s}
+.js .pairs s::after{content:"";position:absolute;left:-2%;right:-2%;top:54%;height:2px;background:#C46A76;transform:scaleX(0);transform-origin:left;transition:transform .55s var(--ease) .9s}
+.js .pairs li.on s::after{transform:scaleX(1)}
+.js .pairs b{margin-top:22px;opacity:0;transform:translateY(14px);transition:opacity .6s var(--ease) 1.5s,transform .6s var(--ease) 1.5s}
+.js .pairs li.on b{opacity:1;transform:none}
+.ticks{display:none;gap:8px;margin-top:30px}
+.js .ticks{display:flex}
+.ticks button{appearance:none;width:34px;height:20px;border:0;background:transparent;cursor:pointer;position:relative;padding:0}
+.ticks button::before{content:"";position:absolute;left:0;right:0;top:9px;height:2px;background:rgba(255,255,255,.2)}
+.ticks button::after{content:"";position:absolute;left:0;top:9px;height:2px;width:0;background:var(--ink)}
+.ticks button.on::after{width:100%;transition:width 4.8s linear}
+.ticks button.done::after{width:100%}
 
-/* colophon */
-.colophon{font-size:16px;color:var(--mute)}
-.colophon a{color:var(--ink)}
-.foot-links{display:flex;flex-wrap:wrap;gap:4px 22px;margin:18px 0 0;padding:0;list-style:none;font:14px/1.5 var(--mono)}
-.foot-links a{color:var(--ink)}
-footer{padding-bottom:72px}
-.sw{display:inline-block;width:.8em;height:.8em;background:var(--blue);vertical-align:-.08em;margin-right:.2em}
+/* ---------- terminal ---------- */
+.lint-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 72px;align-items:end;margin-bottom:48px}
+.lint-head .lede{margin-top:0}
+@media (max-width:860px){.lint-head{grid-template-columns:1fr;gap:20px}}
+.term pre{margin:0;padding:28px 32px 32px;font-size:clamp(11.5px,1.12vw,15px);line-height:1.8;color:#D6D6DC;white-space:pre;overflow-x:auto;min-height:19.5em}
+.term .c{color:var(--acc)}
+.term .f{color:#E8808D}
+.term .p{color:#7BD9A0}
+.term .d{color:var(--faint)}
+.term .ln{display:block;min-height:1.8em}
+@media (max-width:640px){.term pre,.ledger pre{padding:20px 18px;font-size:12.5px;white-space:pre-wrap;overflow-wrap:anywhere}.term .ln{display:block}}
+
+/* ---------- libraries (light) ---------- */
+.libs{list-style:none;margin:56px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--lline)}
+.libs li{border-bottom:1px solid var(--lline)}
+.libs a{display:block;padding:22px 20px 22px 0;text-decoration:none;height:100%}
+.libs strong{display:block;font-weight:400;font-size:clamp(19px,1.9vw,26px);line-height:1.2;letter-spacing:-.012em;transition:color .2s}
+.libs span{display:block;margin-top:6px;font:400 12.5px/1.4 var(--mono);color:var(--lmute)}
+.libs a:hover strong{color:var(--lacc)}
+.libs .add strong{color:var(--lacc)}
+@media (max-width:980px){.libs{grid-template-columns:repeat(2,minmax(0,1fr))}.libs a{padding-right:12px}}
+
+/* ---------- evidence ---------- */
+.nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:64px 0 0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.nums li{padding:34px 36px 0 0}
+.nums li+li{padding-left:36px;border-left:1px solid var(--line)}
+.nums b{display:block;font-weight:200;font-size:clamp(54px,8.4vw,128px);line-height:1;letter-spacing:-.04em}
+.nums p{margin-top:20px;font-size:15.5px;line-height:1.55;color:var(--mute);max-width:21em}
+@media (max-width:860px){.nums{grid-template-columns:1fr}.nums li,.nums li+li{padding:28px 0 30px;border-left:0;border-top:1px solid var(--line)}.nums li:first-child{border-top:0}}
+.honest{margin-top:56px;max-width:44em;font-size:16px;line-height:1.65;color:var(--mute)}
+.honest strong{color:var(--ink);font-weight:500}
+.honest a{color:var(--ink)}
+
+/* ---------- fine print (light) ---------- */
+.fine{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 64px;margin:56px 0 0;padding:0;list-style:none}
+.fine li{padding:24px 0;border-top:1px solid var(--lline)}
+.fine h3{font-size:19px;font-weight:500;letter-spacing:-.005em}
+.fine p{margin-top:6px;font-size:15.5px;line-height:1.6;color:var(--lmute)}
+@media (max-width:860px){.fine{grid-template-columns:1fr}}
+
+/* ---------- install ---------- */
+.install{text-align:center;overflow:hidden;padding-bottom:30vh}
+.install .wrap{position:relative;z-index:2}
+.install .lede{margin-left:auto;margin-right:auto}
+.install .tail{position:absolute;left:0;right:0;bottom:-20vh;width:100%;height:56vh;opacity:.5;pointer-events:none;z-index:1;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 48%);mask-image:linear-gradient(180deg,transparent 0,#000 48%)}
+.install .tail-fade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(8,8,10,0) 70%,rgba(8,8,10,.55))}
+.tabs{display:flex;gap:4px;margin-top:40px;flex-wrap:wrap;justify-content:center}
+.tabs button{appearance:none;font:500 14px/1 var(--sans);color:var(--mute);background:transparent;border:0;padding:12px 16px;border-radius:4px;cursor:pointer;transition:all .2s}
+.tabs button[aria-selected="true"]{color:var(--ink);background:rgba(255,255,255,.1)}
+.tabs button:hover{color:var(--ink)}
+.cmdbox{margin:14px auto 0;text-align:left;display:flex;align-items:center;gap:20px;padding:22px 22px 22px 26px;background:#0C0C0F;border:1px solid var(--line);border-radius:10px;max-width:980px}
+.cmdbox code{flex:1 1 auto;min-width:0;font-size:clamp(12px,1.02vw,15px);line-height:1.6;color:var(--ink);overflow-wrap:anywhere}
+@media (min-width:900px){.cmdbox code{white-space:nowrap;overflow-x:auto;scrollbar-width:none}.cmdbox code::-webkit-scrollbar{display:none}}
+@media (max-width:640px){.cmdbox code{word-break:break-all}}
+.cmdbox code i{font-style:normal;color:var(--faint);user-select:none}
+.copy{flex:0 0 auto;appearance:none;font:500 14px/1 var(--sans);height:40px;min-width:88px;padding:0 18px;border-radius:4px;background:var(--ink);color:var(--bg);border:0;cursor:pointer;transition:background .2s}
+.copy:hover{background:#fff}
+@media (max-width:640px){.cmdbox{flex-direction:column;align-items:stretch;gap:14px;padding:18px}}
+.then{margin:26px auto 0;max-width:40em;text-align:left;font-size:16px;line-height:1.65;color:var(--mute)}
+.then code{color:var(--ink);font-size:.9em;background:rgba(255,255,255,.08);padding:2px 7px;border-radius:3px}
+.install details{margin:22px auto 0;max-width:980px;text-align:left}
+.install summary{cursor:pointer;margin:0;font-size:14px;color:var(--mute);padding:6px 0;width:max-content}
+.install summary:hover{color:var(--ink)}
+.install details pre{margin:10px 0 0;padding:16px 18px;background:#0C0C0F;border:1px solid var(--line);border-radius:8px;font-size:13px;line-height:1.7;color:var(--mute);white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* ---------- footer ---------- */
+.foot{border-top:1px solid var(--line);padding:44px 0 56px;font-size:14px;color:var(--mute)}
+.foot .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:28px 48px}
+.foot .brand{display:inline-block;color:var(--ink);font-size:13px}
+.foot p{margin-top:12px;max-width:34em;line-height:1.6}
+.foot nav{display:flex;flex-wrap:wrap;gap:6px 24px}
+.foot nav a{text-decoration:none;padding:4px 0}
+.foot nav a:hover{color:var(--ink)}
+
+@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.hero h1 .old{animation:rise 1.2s var(--ease) .15s both}
+.hero h1 .new{animation:rise 1.2s var(--ease) .55s both}
+.hero .cta{animation:rise 1.1s var(--ease) 1s both}
+.hero .spec{animation:rise 1.1s var(--ease) 1.2s both}
+.stage{animation:fadein 2s ease .05s both}
+@media (prefers-reduced-motion:reduce){
+  .hero h1 .old,.hero h1 .new,.hero .cta,.hero .spec,.stage{animation:none}
+  .js .pairs s::after,.js .pairs b{transition:none}
+  .flare.lit{opacity:.75}
+  html{scroll-behavior:auto}
+  .flare,.rim{animation:none}
+  .rv{opacity:1;transform:none;transition:none}
+}
+
 </style>
 </head>
 <body>
-<a class="skip" href="#install">Skip to install</a>
+<a class="skip" href="#how">Skip to content</a>
 
-<header class="mast">
-  <div class="page">
-    <a class="name" href="#top">myelin<small>0.2.1</small></a>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Myelin, back to top">Myelin</a>
     <nav aria-label="Primary">
-      <a href="#install">install</a>
-      <a href="#ledger">the ledger</a>
-      <a href="#evidence">evidence</a>
-      <a href="#limits">limits</a>
-      <a href="#libraries">libraries</a>
-      <a href="https://github.com/REX-codebase/myelin">github</a>
+      <ul>
+        <li class="l"><a href="#how">How it works</a></li>
+        <li class="l"><a href="#libraries">Libraries</a></li>
+        <li class="l"><a href="#evidence">Evidence</a></li>
+        <li class="l"><a href="https://github.com/REX-codebase/myelin">GitHub</a></li>
+        <li><a href="#install">Install</a></li>
+      </ul>
     </nav>
   </div>
 </header>
 
-<main id="top">
-<div class="page">
+<main>
 
-<div class="title">
-  <h1>Your AI learned last year's docs. <em>Myelin teaches it this year's.</em></h1>
-</div>
+<!-- ============ HERO ============ -->
+<section class="s hero" id="top" aria-labelledby="hero-h">
+  <div class="stage" aria-hidden="true">
+    <svg width="0" height="0" style="position:absolute" focusable="false"><defs>
+      <linearGradient id="sheathV" gradientUnits="userSpaceOnUse" x1="0" y1="130" x2="0" y2="360"><stop offset="0" stop-color="#FCFCFD"/><stop offset=".18" stop-color="#EDEDF1"/><stop offset=".5" stop-color="#C4C4CD"/><stop offset=".82" stop-color="#70707C"/><stop offset="1" stop-color="#2B2B33"/></linearGradient>
+      <linearGradient id="endShade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".66"/><stop offset=".10" stop-color="#000" stop-opacity=".07"/><stop offset=".90" stop-color="#000" stop-opacity=".07"/><stop offset="1" stop-color="#000" stop-opacity=".66"/></linearGradient>
+      <linearGradient id="core" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8A93B5"/><stop offset=".5" stop-color="#DDE2F5"/><stop offset="1" stop-color="#4A5070"/></linearGradient>
+      <radialGradient id="flare"><stop offset="0" stop-color="#D5E0FF" stop-opacity=".95"/><stop offset=".3" stop-color="#7390FF" stop-opacity=".55"/><stop offset="1" stop-color="#5B7CFF" stop-opacity="0"/></radialGradient>
+      <linearGradient id="rimL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8CA6FF" stop-opacity=".7"/><stop offset="1" stop-color="#8CA6FF" stop-opacity="0"/></linearGradient>
+      <linearGradient id="rimR" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#8CA6FF" stop-opacity=".7"/><stop offset="1" stop-color="#8CA6FF" stop-opacity="0"/></linearGradient>
+      <linearGradient id="fade" gradientUnits="userSpaceOnUse" x1="0" y1="404" x2="0" y2="620"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+      <mask id="reflect" maskUnits="userSpaceOnUse" x="-400" y="380" width="2400" height="260"><rect x="-400" y="380" width="2400" height="260" fill="url(#fade)"/></mask>
+      <filter id="soft" x="-5%" y="-150%" width="110%" height="400%"><feGaussianBlur stdDeviation="3"/></filter>
+      <g id="axon">
+<rect x="-400" y="237" width="3600" height="16" fill="url(#core)"/>
+<g class="seg">
+<rect x="-260" y="130" width="430" height="230" rx="84" fill="url(#sheathV)"/>
+<rect x="-240" y="137" width="390" height="216" rx="74" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="-228" y="141" width="366" height="207" rx="68" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="-216" y="145" width="342" height="199" rx="62" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="-260" y="130" width="430" height="230" rx="84" fill="url(#endShade)"/>
+<rect x="-209" y="146" width="329" height="13" rx="6.5" fill="#fff" opacity=".62" filter="url(#soft)"/>
+<rect x="-184" y="346" width="278" height="5" rx="2.5" fill="#B7C4FF" opacity=".28" filter="url(#soft)"/>
+<rect class="rim" style="--d:-0.19s" x="-260" y="130" width="80" height="230" rx="84" fill="url(#rimL)"/>
+<rect class="rim" style="--d:0.00s" x="90" y="130" width="80" height="230" rx="84" fill="url(#rimR)"/>
+</g>
+<g class="seg">
+<rect x="216" y="130" width="520" height="230" rx="84" fill="url(#sheathV)"/>
+<rect x="236" y="137" width="480" height="216" rx="74" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="248" y="141" width="456" height="207" rx="68" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="260" y="145" width="432" height="199" rx="62" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="216" y="130" width="520" height="230" rx="84" fill="url(#endShade)"/>
+<rect x="266" y="146" width="419" height="13" rx="6.5" fill="#fff" opacity=".62" filter="url(#soft)"/>
+<rect x="291" y="346" width="368" height="5" rx="2.5" fill="#B7C4FF" opacity=".28" filter="url(#soft)"/>
+<rect class="rim" style="--d:0.00s" x="216" y="130" width="80" height="230" rx="84" fill="url(#rimL)"/>
+<rect class="rim" style="--d:0.19s" x="656" y="130" width="80" height="230" rx="84" fill="url(#rimR)"/>
+</g>
+<g class="seg">
+<rect x="782" y="130" width="470" height="230" rx="84" fill="url(#sheathV)"/>
+<rect x="802" y="137" width="430" height="216" rx="74" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="814" y="141" width="406" height="207" rx="68" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="826" y="145" width="382" height="199" rx="62" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="782" y="130" width="470" height="230" rx="84" fill="url(#endShade)"/>
+<rect x="832" y="146" width="369" height="13" rx="6.5" fill="#fff" opacity=".62" filter="url(#soft)"/>
+<rect x="857" y="346" width="318" height="5" rx="2.5" fill="#B7C4FF" opacity=".28" filter="url(#soft)"/>
+<rect class="rim" style="--d:0.19s" x="782" y="130" width="80" height="230" rx="84" fill="url(#rimL)"/>
+<rect class="rim" style="--d:0.38s" x="1172" y="130" width="80" height="230" rx="84" fill="url(#rimR)"/>
+</g>
+<g class="seg">
+<rect x="1298" y="130" width="540" height="230" rx="84" fill="url(#sheathV)"/>
+<rect x="1318" y="137" width="500" height="216" rx="74" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="1330" y="141" width="476" height="207" rx="68" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="1342" y="145" width="452" height="199" rx="62" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="1298" y="130" width="540" height="230" rx="84" fill="url(#endShade)"/>
+<rect x="1348" y="146" width="439" height="13" rx="6.5" fill="#fff" opacity=".62" filter="url(#soft)"/>
+<rect x="1373" y="346" width="388" height="5" rx="2.5" fill="#B7C4FF" opacity=".28" filter="url(#soft)"/>
+<rect class="rim" style="--d:0.38s" x="1298" y="130" width="80" height="230" rx="84" fill="url(#rimL)"/>
+<rect class="rim" style="--d:0.57s" x="1758" y="130" width="80" height="230" rx="84" fill="url(#rimR)"/>
+</g>
+<g class="seg">
+<rect x="1884" y="130" width="480" height="230" rx="84" fill="url(#sheathV)"/>
+<rect x="1904" y="137" width="440" height="216" rx="74" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="1916" y="141" width="416" height="207" rx="68" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="1928" y="145" width="392" height="199" rx="62" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="1884" y="130" width="480" height="230" rx="84" fill="url(#endShade)"/>
+<rect x="1934" y="146" width="379" height="13" rx="6.5" fill="#fff" opacity=".62" filter="url(#soft)"/>
+<rect x="1959" y="346" width="328" height="5" rx="2.5" fill="#B7C4FF" opacity=".28" filter="url(#soft)"/>
+<rect class="rim" style="--d:0.57s" x="1884" y="130" width="80" height="230" rx="84" fill="url(#rimL)"/>
+<rect class="rim" style="--d:0.76s" x="2284" y="130" width="80" height="230" rx="84" fill="url(#rimR)"/>
+</g>
+<g class="seg">
+<rect x="2410" y="130" width="510" height="230" rx="84" fill="url(#sheathV)"/>
+<rect x="2430" y="137" width="470" height="216" rx="74" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="2442" y="141" width="446" height="207" rx="68" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="2454" y="145" width="422" height="199" rx="62" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="2410" y="130" width="510" height="230" rx="84" fill="url(#endShade)"/>
+<rect x="2460" y="146" width="409" height="13" rx="6.5" fill="#fff" opacity=".62" filter="url(#soft)"/>
+<rect x="2485" y="346" width="358" height="5" rx="2.5" fill="#B7C4FF" opacity=".28" filter="url(#soft)"/>
+<rect class="rim" style="--d:0.76s" x="2410" y="130" width="80" height="230" rx="84" fill="url(#rimL)"/>
+<rect class="rim" style="--d:0.95s" x="2840" y="130" width="80" height="230" rx="84" fill="url(#rimR)"/>
+</g>
+<g class="seg">
+<rect x="2966" y="130" width="450" height="230" rx="84" fill="url(#sheathV)"/>
+<rect x="2986" y="137" width="410" height="216" rx="74" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="2998" y="141" width="386" height="207" rx="68" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="3010" y="145" width="362" height="199" rx="62" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="2966" y="130" width="450" height="230" rx="84" fill="url(#endShade)"/>
+<rect x="3016" y="146" width="349" height="13" rx="6.5" fill="#fff" opacity=".62" filter="url(#soft)"/>
+<rect x="3041" y="346" width="298" height="5" rx="2.5" fill="#B7C4FF" opacity=".28" filter="url(#soft)"/>
+<rect class="rim" style="--d:0.95s" x="2966" y="130" width="80" height="230" rx="84" fill="url(#rimL)"/>
+<rect class="rim" style="--d:1.14s" x="3336" y="130" width="80" height="230" rx="84" fill="url(#rimR)"/>
+</g>
+<g class="seg">
+<rect x="3462" y="130" width="520" height="230" rx="84" fill="url(#sheathV)"/>
+<rect x="3482" y="137" width="480" height="216" rx="74" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="3494" y="141" width="456" height="207" rx="68" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="3506" y="145" width="432" height="199" rx="62" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="3462" y="130" width="520" height="230" rx="84" fill="url(#endShade)"/>
+<rect x="3512" y="146" width="419" height="13" rx="6.5" fill="#fff" opacity=".62" filter="url(#soft)"/>
+<rect x="3537" y="346" width="368" height="5" rx="2.5" fill="#B7C4FF" opacity=".28" filter="url(#soft)"/>
+<rect class="rim" style="--d:1.14s" x="3462" y="130" width="80" height="230" rx="84" fill="url(#rimL)"/>
+<rect class="rim" style="--d:1.33s" x="3902" y="130" width="80" height="230" rx="84" fill="url(#rimR)"/>
+</g>
+<g class="seg">
+<rect x="4028" y="130" width="480" height="230" rx="84" fill="url(#sheathV)"/>
+<rect x="4048" y="137" width="440" height="216" rx="74" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="4060" y="141" width="416" height="207" rx="68" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="4072" y="145" width="392" height="199" rx="62" fill="none" stroke="#000" stroke-opacity=".06" stroke-width="1"/>
+<rect x="4028" y="130" width="480" height="230" rx="84" fill="url(#endShade)"/>
+<rect x="4078" y="146" width="379" height="13" rx="6.5" fill="#fff" opacity=".62" filter="url(#soft)"/>
+<rect x="4103" y="346" width="328" height="5" rx="2.5" fill="#B7C4FF" opacity=".28" filter="url(#soft)"/>
+<rect class="rim" style="--d:1.33s" x="4028" y="130" width="80" height="230" rx="84" fill="url(#rimL)"/>
+<rect class="rim" style="--d:1.52s" x="4428" y="130" width="80" height="230" rx="84" fill="url(#rimR)"/>
+</g>
+<g class="flare" style="--d:0.00s"><ellipse cx="193.0" cy="245" rx="46" ry="128" fill="url(#flare)"/><circle cx="193.0" cy="245" r="6" fill="#EEF2FF"/></g>
+<g class="flare lit" style="--d:0.19s"><ellipse cx="759.0" cy="245" rx="46" ry="128" fill="url(#flare)"/><circle cx="759.0" cy="245" r="6" fill="#EEF2FF"/></g>
+<g class="flare" style="--d:0.38s"><ellipse cx="1275.0" cy="245" rx="46" ry="128" fill="url(#flare)"/><circle cx="1275.0" cy="245" r="6" fill="#EEF2FF"/></g>
+<g class="flare" style="--d:0.57s"><ellipse cx="1861.0" cy="245" rx="46" ry="128" fill="url(#flare)"/><circle cx="1861.0" cy="245" r="6" fill="#EEF2FF"/></g>
+<g class="flare" style="--d:0.76s"><ellipse cx="2387.0" cy="245" rx="46" ry="128" fill="url(#flare)"/><circle cx="2387.0" cy="245" r="6" fill="#EEF2FF"/></g>
+<g class="flare" style="--d:0.95s"><ellipse cx="2943.0" cy="245" rx="46" ry="128" fill="url(#flare)"/><circle cx="2943.0" cy="245" r="6" fill="#EEF2FF"/></g>
+<g class="flare" style="--d:1.14s"><ellipse cx="3439.0" cy="245" rx="46" ry="128" fill="url(#flare)"/><circle cx="3439.0" cy="245" r="6" fill="#EEF2FF"/></g>
+<g class="flare" style="--d:1.33s"><ellipse cx="4005.0" cy="245" rx="46" ry="128" fill="url(#flare)"/><circle cx="4005.0" cy="245" r="6" fill="#EEF2FF"/></g>
+      </g>
+    </defs></svg>
+    <svg class="far" id="far" viewBox="0 0 1600 640" preserveAspectRatio="xMidYMid slice" focusable="false"><use href="#axon"/></svg>
+    <svg class="main" id="mainax" viewBox="0 0 1600 640" preserveAspectRatio="xMidYMid slice" focusable="false"><use href="#axon"/><g mask="url(#reflect)" opacity=".34"><use href="#axon" transform="translate(0,764) scale(1,-1)"/></g></svg>
+    <div class="vig"></div>
+  </div>
 
-<section class="row first" aria-labelledby="what">
-  <h2 id="what">what it is</h2>
-  <div class="body">
-    <p class="lead">Models are trained on yesterday's documentation. They write <code>new THREE.Clock()</code>, <code>ReactDOM.render</code>, <code>@tailwind base</code> and a synchronous <code>cookies()</code> with total confidence. The code looks right, and then it breaks, or warns, or quietly ships a deprecated API.</p>
-    <p>Myelin is a checklist the model can read and a linter the machine can run, from the same plain-text file. Nineteen libraries ship in the box.</p>
+  <div class="wrap hero-text">
+    <h1 id="hero-h"><span class="old">Your AI learned last year's docs.</span><span class="new">Myelin teaches it this year's.</span></h1>
+  </div>
+
+  <div class="wrap hero-foot">
+    <div class="cta">
+      <a class="btn primary" href="#install">Install Myelin</a>
+      <a class="btn ghost" href="#how">How it works</a>
+    </div>
+    <ul class="spec" aria-label="At a glance">
+      <li><b>19</b><span>libraries, each pinned to one release</span></li>
+      <li><b>324</b><span>machine-checked bans</span></li>
+      <li><b>0</b><span>dependencies</span></li>
+      <li><b>100%</b><span>of 177 labelled stale files caught</span></li>
+    </ul>
   </div>
 </section>
 
-<section class="row" id="install" aria-labelledby="install-h">
-  <h2 id="install-h">install</h2>
-  <div class="body">
-    <p>You need Node 18 or newer. That is the only requirement.</p>
-
-    <div id="cmds">
-      <div class="cmd" data-os="unix">
-        <div class="for"><span><b>macOS, Linux, WSL</b> <span class="hit" hidden>· looks like yours</span></span><button class="copy" type="button">copy</button></div>
-        <pre><i>$ </i><span class="t">curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh</span></pre>
+<!-- ============ ONE FILE, TWO READERS ============ -->
+<section class="s" id="how" aria-labelledby="how-h">
+  <div class="wrap two">
+    <div>
+      <h2 class="h2 rv" id="how-h">One file.<br>Two readers.</h2>
+      <p class="lede rv d1">A ledger is a short text file of hard rules for one library at one version. Each rule is a pattern and the sentence that explains the fix. Your model reads it before it writes. A script runs it after.</p>
+      <div class="modes rv d2" role="group" aria-label="Who is reading the ledger">
+        <button type="button" data-mode="model" aria-pressed="true">The model reads</button>
+        <button type="button" data-mode="machine" aria-pressed="false">The machine runs</button>
       </div>
-      <div class="cmd" data-os="windows">
-        <div class="for"><span><b>Windows PowerShell</b> <span class="hit" hidden>· looks like yours</span></span><button class="copy" type="button">copy</button></div>
-        <pre><i>PS&gt; </i><span class="t">irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1 | iex</span></pre>
-      </div>
-      <div class="cmd" data-os="npx">
-        <div class="for"><span><b>Already have Node and want to install nothing</b></span><button class="copy" type="button">copy</button></div>
-        <pre><i>$ </i><span class="t">npx github:REX-codebase/myelin setup</span></pre>
-      </div>
+      <p class="mode-note rv d2" id="mode-note" aria-live="polite">The sentence tells the model what is wrong and what to write instead.</p>
     </div>
+    <div class="rv d1">
+      <div class="card ledger" id="ledger" data-mode="model" role="img" aria-label="An excerpt of three.myelin: three ban rules, each a pattern followed by an explanatory sentence">
+        <div class="bar"><i></i><i></i><i></i><span>three.myelin</span></div>
+<pre><span class="dim">myelin 1
+id      three</span>
 
-    <p>The installer unpacks Myelin into <code>~/.myelin</code> and leaves one launcher in <code>~/.local/bin</code>. It never uses sudo and it does not install Node for you. Run it again later to upgrade. On Windows the same layout lives under <code>%LOCALAPPDATA%\Myelin</code>, and the installer adds it to your user PATH.</p>
-    <p>Then, inside a project, run <code>myelin setup</code>. It reads your <code>package.json</code>, copies the matching ledgers into <code>.myelin/</code>, and adds a short block to <code>AGENTS.md</code> or <code>CLAUDE.md</code> so your agent runs the rules before it writes and lint after. Run it again whenever your dependencies change; it replaces its own block and touches nothing else. If something looks wrong, <code>myelin doctor</code> will say what.</p>
+<span class="rule"><span class="k"><b class="sg">!</b> B5</span><span><span class="rx">/\bnew\s+(THREE\.)?Clock\s*\(/</span>
+<span class="ms">THREE.Clock is deprecated since r183.
+Use THREE.Timer: timer.connect(document) …</span></span></span>
+<span class="rule"><span class="k"><b class="sg">!</b> B6</span><span><span class="rx">/\bPCFSoftShadowMap\b/</span>
+<span class="ms">PCFSoftShadowMap was removed in r186.
+Use THREE.PCFShadowMap, which is soft now …</span></span></span>
+<span class="rule"><span class="k"><b class="sg">!</b> B16</span><span><span class="rx">/\.(renderAsync|clearAsync|hasFeatureAsync)\s*\(/</span>
+<span class="ms">The *Async renderer methods are deprecated
+since r181. Initialise once, then call render() …</span></span></span></pre>
+      </div>
+      <p class="cap">From the three.js ledger, trimmed. In the file each rule sits on one line.</p>
+    </div>
+  </div>
+</section>
 
-    <details>
-      <summary>uninstall</summary>
+<!-- ============ WHAT IT CATCHES ============ -->
+<section class="s pairs-s" id="catch" aria-labelledby="catch-h">
+  <div class="wrap">
+    <div class="pairs-head">
+      <h2 class="h2 rv" id="catch-h">It catches what<br>looks right.</h2>
+      <p class="lede rv d1">Each pair is a real rule from a shipped ledger: the call a model reaches for, and what the library expects now.</p>
+    </div>
+    <ol class="pairs rv d2" id="pairs">
+      <li data-l="three.js r186 · B5"><span class="l">three.js r186 · B5</span><s>const clock = new THREE.Clock();</s><b>const timer = new THREE.Timer();</b></li>
+      <li data-l="React 19 · B1"><span class="l">React 19 · B1</span><s>ReactDOM.render(&lt;App /&gt;, root);</s><b>createRoot(root).render(&lt;App /&gt;);</b></li>
+      <li data-l="Next.js 16 · B1"><span class="l">Next.js 16 · B1</span><s>cookies().get('token')</s><b>(await cookies()).get('token')</b></li>
+      <li data-l="Tailwind 4 · T1"><span class="l">Tailwind 4 · T1</span><s>@tailwind base;</s><b>@import "tailwindcss";</b></li>
+      <li data-l="Zod 4 · B1"><span class="l">Zod 4 · B1</span><s>z.string().email()</s><b>z.email()</b></li>
+      <li data-l="Svelte 5 · B1"><span class="l">Svelte 5 · B1</span><s>export let name;</s><b>let { name } = $props();</b></li>
+      <li data-l="Express 5 · E9"><span class="l">Express 5 · E9</span><s>app.get('*', handler);</s><b>app.get('/*splat', handler);</b></li>
+      <li data-l="React Router 8 · R1"><span class="l">React Router 8 · R1</span><s>import { Link } from 'react-router-dom';</s><b>import { Link } from 'react-router';</b></li>
+    </ol>
+    <div class="ticks" id="ticks" aria-label="Choose a pair"></div>
+  </div>
+</section>
+
+<!-- ============ LINT ============ -->
+<section class="s alt" id="lint" aria-labelledby="lint-h">
+  <div class="wrap">
+    <div class="lint-head">
+      <h2 class="h2 rv" id="lint-h">Every failure<br>carries its fix.</h2>
+      <p class="lede rv d1">Lint prints the rule, the line and the sentence the model needs to repair the file. Run it again. It exits 1 on any violation, so CI can stop the merge.</p>
+    </div>
+    <div class="card term rv d2">
+      <div class="bar"><i></i><i></i><i></i><span>~/scene</span></div>
+<pre id="term" aria-label="Terminal output of myelin lint, failing on five rules and then passing"><span class="ln"><span class="c">$ myelin lint three scene.js</span></span><span class="ln"><span class="f">FAIL B2   scene.js:2  EffectComposer and its passes only work with WebGLRenderer.</span></span><span class="ln"><span class="f">FAIL B14  scene.js:4  This ledger targets the WebGPU path: use new THREE.WebGPURenderer() from …</span></span><span class="ln"><span class="f">FAIL B7   scene.js:5  The encoding API was replaced in r152 and removed in r162: renderer.outpu…</span></span><span class="ln"><span class="f">FAIL B6   scene.js:6  PCFSoftShadowMap was removed in r186 (both renderers warn and fall back).</span></span><span class="ln"><span class="f">FAIL B5   scene.js:7  THREE.Clock is deprecated since r183.</span></span><span class="ln"><span class="d">5 failure(s). Each message carries the r186 fix.</span></span><span class="ln"> </span><span class="ln"><span class="c">$ myelin lint three scene.js   # after one retry with the fixes</span></span><span class="ln"><span class="p">21 bans, 0 requires, 1 unit(s) checked: clean</span></span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LIBRARIES (light) ============ -->
+<section class="s light" id="libraries" aria-labelledby="libs-h">
+  <div class="wrap">
+    <h2 class="h2 rv" id="libs-h">Nineteen libraries.<br>One release each.</h2>
+    <p class="lede rv d1">Each ledger was researched against live documentation on 2026-10-26 and targets a named release. Every rule links to the migration guide or changelog it came from.</p>
+    <ul class="libs rv d2">
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/three"><strong>three.js</strong><span>r186 · WebGPU + TSL · 21 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/react"><strong>React</strong><span>19.3 · 20 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/react-router"><strong>React Router</strong><span>8.5 · 17 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/nextjs"><strong>Next.js</strong><span>16.4 · 20 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/tailwind"><strong>Tailwind CSS</strong><span>4.3 · 10 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/svelte"><strong>Svelte + SvelteKit</strong><span>5.57 · 3.1 · 22 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/vue"><strong>Vue + Nuxt</strong><span>3.5 · 4.6 · 20 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/zod"><strong>Zod</strong><span>4.6 · 17 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/express"><strong>Express</strong><span>5.3 · 14 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/eslint"><strong>ESLint</strong><span>10.13 · 19 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/ai-sdk"><strong>Vercel AI SDK</strong><span>7.0 · 20 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/tanstack-query"><strong>TanStack Query</strong><span>5.104 · 16 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/prisma"><strong>Prisma ORM</strong><span>7.10 · 15 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/angular"><strong>Angular</strong><span>22.2 · 16 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/astro"><strong>Astro</strong><span>7.4 · 14 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/drizzle"><strong>Drizzle ORM</strong><span>0.45 · kit 0.31 · 13 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/mongoose"><strong>Mongoose</strong><span>9.11 · 17 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/openai"><strong>OpenAI Node SDK</strong><span>7.43 · 16 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/vitest"><strong>Vitest</strong><span>5.0 · 17 bans</span></a></li>
+      <li class="add"><a class="add" href="https://github.com/REX-codebase/myelin/blob/main/docs/AUTHORING.md"><strong>Add yours</strong><span>every rule needs a source link</span></a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section class="s" id="evidence" aria-labelledby="ev-h">
+  <div class="wrap">
+    <h2 class="h2 rv" id="ev-h">What the tests say.</h2>
+    <ul class="nums">
+      <li class="rv"><b>100%</b><p>of 177 labelled stale files caught, with 0 false alarms on 129 current ones. Across every other library's correct code: 2,322 checks, 0 false positives.</p></li>
+      <li class="rv d1"><b>97.8%</b><p>of three.js r150's own examples flagged. Against r186 the same ledger flags 0.4%: one file of 230, an old API inside a comment.</p></li>
+      <li class="rv d2"><b>5 → 0</b><p>of 6 agents wrote a stale API with no guidance. With Myelin, none did. Claude Haiku 5.5 on three.js scenes, 6 agents per arm.</p></li>
+    </ul>
+    <p class="honest rv d2"><strong>Where the lift is measured.</strong> Across 24 agents and two model families, 7 of 8 unguided runs wrote a stale three.js API and 0 of 16 guided runs did. The other eighteen ledgers have detection benchmarks but no agent runs yet, and a well-written prose skill matched the gate on stale-API rate. The gate's edge is that the same file verifies the output. <a href="https://github.com/REX-codebase/myelin/blob/main/BENCHMARKS.md">Read the method and per-library tables.</a></p>
+  </div>
+</section>
+
+<!-- ============ FINE PRINT (light) ============ -->
+<section class="s light" id="limits" aria-labelledby="fine-h">
+  <div class="wrap">
+    <h2 class="h2 rv" id="fine-h">What it won't do.</h2>
+    <p class="lede rv d1">Myelin is deliberately small. These are its edges.</p>
+    <ul class="fine rv d2">
+      <li><h3>It reads text, not meaning.</h3><p>Rules are regular expressions. They catch stale names and patterns, not logic, types or intent. Keep your tests and your type checker.</p></li>
+      <li><h3>Clean is not correct.</h3><p>A pass means no known-stale pattern was found. It does not mean the code runs.</p></li>
+      <li><h3>Comments can trip it.</h3><p>A banned token inside a comment can fire a rule. A ledger can set <code>comments skip</code> to blank comments first; so far only three.js does.</p></li>
+      <li><h3>Every ledger is pinned.</h3><p>Each targets one release and a research date. Check its <code>= version</code> line before trusting it on a newer major.</p></li>
+      <li><h3>The lift is measured on three.js.</h3><p>The other eighteen ledgers have detection benchmarks but no agent runs yet.</p></li>
+      <li><h3>It is narrow on purpose.</h3><p>The three.js ledger covers WebGPU and TSL, not WebGL-only projects. <code>unless</code> lifts a ban for a whole file, not one match. No globs or severities yet.</p></li>
+      <li><h3>It only constrains output.</h3><p>A ledger cannot grant permissions, run commands or change instructions, and readers ignore any line that tries. Load ledgers only from sources you trust.</p></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ INSTALL ============ -->
+<section class="s install" id="install" aria-labelledby="inst-h">
+  <div class="wrap">
+    <h2 class="h2 rv" id="inst-h">Get Myelin.</h2>
+    <p class="lede rv d1">You need Node 18 or newer. The installer unpacks into your home folder, never uses sudo, and does not install Node for you. Run it again later to upgrade.</p>
+
+    <div class="tabs rv d2" role="tablist" aria-label="Install method" id="tabs">
+      <button type="button" role="tab" id="t-unix" aria-selected="true" aria-controls="cmd" data-k="unix">macOS · Linux · WSL</button>
+      <button type="button" role="tab" id="t-win" aria-selected="false" aria-controls="cmd" data-k="win" tabindex="-1">Windows</button>
+      <button type="button" role="tab" id="t-npx" aria-selected="false" aria-controls="cmd" data-k="npx" tabindex="-1">No install · npx</button>
+    </div>
+    <div class="cmdbox rv d2" id="cmd" role="tabpanel" aria-labelledby="t-unix">
+      <code><i id="prompt">$ </i><span id="cmdtext">curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh</span></code>
+      <button class="copy" type="button" id="copy">Copy</button>
+    </div>
+    <p class="then rv d3">Then, inside a project, run <code>myelin setup</code>. It reads your <code>package.json</code>, copies the matching ledgers into <code>.myelin/</code> and adds a short block to <code>AGENTS.md</code> or <code>CLAUDE.md</code>, so your agent runs the rules before it writes and lint after. If something looks wrong, <code>myelin doctor</code> will say what.</p>
+    <details class="rv d3">
+      <summary>Uninstall</summary>
       <pre>curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh -s -- --uninstall
 
 &amp; ([scriptblock]::Create((irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1))) -Uninstall</pre>
     </details>
   </div>
+  <svg class="tail" viewBox="0 0 1600 640" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false"><use href="#axon"/></svg>
+  <div class="tail-fade" aria-hidden="true"></div>
 </section>
 
-<section class="row" id="ledger" aria-labelledby="ledger-h">
-  <h2 id="ledger-h">the ledger</h2>
-  <div class="body wide">
-    <div class="body" style="padding:0">
-      <p>A ledger is one short text file of hard rules for one library at one version. Each rule is a regular expression plus the sentence that explains the fix. This is the three.js ledger with its long lines trimmed.</p>
-    </div>
-
-    <figure style="margin:0" aria-label="An excerpt of three.myelin with notes in the margin">
-    <div class="ledger">
-      <div class="g"><pre class="c"><span class="sig">myelin</span> 1
-id      three
-about   three.js r186 on the WebGPU + TSL path (WebGPURenderer, …
-fires   three.js | threejs | three/webgpu | three/tsl …</pre><div class="n"><b>The header.</b> <b>myelin 1</b> is the format version, and a reader rejects versions it does not know. <b>fires</b> lists the words that make a tool load this ledger.</div></div>
-      <div class="g"><pre class="c"><span class="sig">=</span> version   three.js r186 (npm three@0.186.1)</pre><div class="n"><b>A fact.</b> The model reads it. Nothing checks it.</div></div>
-      <div class="g"><pre class="c"><span class="sig">!</span> B5 <span class="ban">/\bnew\s+(THREE\.)?Clock\s*\(/</span>   THREE.Clock is deprecated since r183. Use THREE.Timer … -&gt; <span class="sig">$boot</span></pre><div class="n"><b>A ban.</b> The regex is what lint runs. The sentence is what the model reads. <b>-&gt; $boot</b> points at a snippet to copy.</div></div>
-      <div class="g"><pre class="c"><span class="sig">~</span> P1 Use *NodeMaterial classes whenever you assign node slots …</pre><div class="n"><b>A preference.</b> Read by the model, not checked by the machine.</div></div>
-      <div class="g"><pre class="c"><span class="sig">$</span> boot
-import * as THREE from 'three/webgpu';
-<span class="dim">…</span>
-<span class="sig">$$</span></pre><div class="n"><b>A snippet.</b> Code the model should copy exactly, between <b>$</b> and <b>$$</b>.</div></div>
-    </div>
-    </figure>
-
-    <div class="sigils" aria-label="The five sigils">
-      <div><b>!</b>Ban. Must never appear in the output.</div>
-      <div><b>+</b>Require. Must appear in the output.</div>
-      <div><b>~</b>Preference. Read by the model, not checked.</div>
-      <div><b>=</b>Fact. Versions and budgets. Read, not checked.</div>
-      <div><b>$</b>Snippet. Copy-exact code a rule can point to.</div>
-    </div>
-
-    <div class="body" style="padding:28px 0 0">
-      <p>Before the model writes, <code>myelin gate three</code> prints the rules as plain text, or your agent reads the file directly. After, <code>myelin lint three src/</code> runs every ban and require against your files and exits 1 on any violation. In a chat window with no tools, paste the output of <code>myelin gate three --all</code> into the prompt. The full grammar is in <a href="https://github.com/REX-codebase/myelin/blob/main/docs/SPEC.md">docs/SPEC.md</a>.</p>
-    </div>
-  </div>
-</section>
-
-<section class="row" id="catches" aria-labelledby="catches-h">
-  <h2 id="catches-h">what it catches</h2>
-  <div class="body wide">
-    <div class="body" style="padding:0"><p>Each of these is a real rule from a shipped ledger: the call a model reaches for, and what the library expects now.</p></div>
-    <table class="stack catch">
-      <thead><tr><th>library</th><th>stale</th><th>current</th><th>rule</th></tr></thead>
-      <tbody>
-        <tr><td class="lib">three.js r186</td><td><code class="old"><span class="mk">&minus;</span>const clock = new THREE.Clock();</code></td><td><code class="new"><span class="mk">+</span>const timer = new THREE.Timer();</code></td><td class="id">B5</td></tr>
-        <tr><td class="lib">React 19</td><td><code class="old"><span class="mk">&minus;</span>ReactDOM.render(&lt;App /&gt;, root);</code></td><td><code class="new"><span class="mk">+</span>createRoot(root).render(&lt;App /&gt;);</code></td><td class="id">B1</td></tr>
-        <tr><td class="lib">Next.js 16</td><td><code class="old"><span class="mk">&minus;</span>cookies().get('token')</code></td><td><code class="new"><span class="mk">+</span>(await cookies()).get('token')</code></td><td class="id">B1</td></tr>
-        <tr><td class="lib">Tailwind 4</td><td><code class="old"><span class="mk">&minus;</span>@tailwind base;</code></td><td><code class="new"><span class="mk">+</span>@import "tailwindcss";</code></td><td class="id">T1</td></tr>
-        <tr><td class="lib">Zod 4</td><td><code class="old"><span class="mk">&minus;</span>z.string().email()</code></td><td><code class="new"><span class="mk">+</span>z.email()</code></td><td class="id">B1</td></tr>
-        <tr><td class="lib">Svelte 5</td><td><code class="old"><span class="mk">&minus;</span>export let name;</code></td><td><code class="new"><span class="mk">+</span>let { name } = $props();</code></td><td class="id">B1</td></tr>
-        <tr><td class="lib">Express 5</td><td><code class="old"><span class="mk">&minus;</span>app.get('*', handler);</code></td><td><code class="new"><span class="mk">+</span>app.get('/*splat', handler);</code></td><td class="id">E9</td></tr>
-        <tr><td class="lib">React Router 8</td><td><code class="old"><span class="mk">&minus;</span>from 'react-router-dom'</code></td><td><code class="new"><span class="mk">+</span>from 'react-router'</code></td><td class="id">R1</td></tr>
-      </tbody>
-    </table>
-
-    <div class="body" style="padding:34px 0 0"><p>And this is what lint prints for a three.js scene the model just wrote. Every failure carries its fix, so the model can repair the file and run lint again.</p></div>
-<pre class="lint"><span class="dim">$ myelin lint three scene.js</span>
-<span class="f">FAIL B2   scene.js:2  EffectComposer and its passes only work with WebGLRenderer.</span>
-<span class="f">FAIL B14  scene.js:4  This ledger targets the WebGPU path: use new THREE.WebGPURenderer() from …</span>
-<span class="f">FAIL B7   scene.js:5  The encoding API was replaced in r152 and removed in r162: renderer.outpu…</span>
-<span class="f">FAIL B6   scene.js:6  PCFSoftShadowMap was removed in r186 (both renderers warn and fall back).</span>
-<span class="f">FAIL B5   scene.js:7  THREE.Clock is deprecated since r183.</span>
-<span class="dim">5 failure(s). Each message carries the r186 fix.</span>
-
-<span class="dim">$ myelin lint three scene.js        # after one retry with the fixes</span>
-<span class="p">21 bans, 0 requires, 1 unit(s) checked: clean</span></pre>
-  </div>
-</section>
-
-<section class="row" id="evidence" aria-labelledby="evidence-h">
-  <h2 id="evidence-h">evidence</h2>
-  <div class="body wide">
-    <div class="body" style="padding:0"><p>Five tests, all reproducible from the repository. The first three ask whether a ledger flags stale code and leaves current code alone. The last two ask whether a model given a ledger writes less of it.</p></div>
-    <table class="stack ev">
-      <thead><tr><th>test</th><th>result</th></tr></thead>
-      <tbody>
-        <tr><td class="lib" style="white-space:normal">Labelled corpus<br><span class="note-s" style="font-weight:400">177 stale files, 129 current files</span></td><td>100% of stale files caught. 0 false alarms on current files.</td></tr>
-        <tr><td class="lib" style="white-space:normal">Cross-library sweep<br><span class="note-s" style="font-weight:400">every ledger over every other library's correct code</span></td><td>2,322 checks, 0 false positives.</td></tr>
-        <tr><td class="lib" style="white-space:normal">Official examples, untouched<br><span class="note-s" style="font-weight:400">upstream repos, old release against current</span></td><td>three.js r150: 97.8% flagged. three.js r186: 0.4% flagged (1 of 230, an old API in a comment). Next.js 16.4.3's own examples: 19 genuine pre-16 patterns.</td></tr>
-        <tr><td class="lib" style="white-space:normal">Agent A/B, bonfire scene<br><span class="note-s" style="font-weight:400">GLM 5.3, 2 agents per arm</span></td><td>Unguided: both used two removed APIs. Guided: neither did.</td></tr>
-        <tr><td class="lib" style="white-space:normal">Agent A/B, lighthouse and neon street<br><span class="note-s" style="font-weight:400">Claude Haiku 5.5, 6 agents per arm</span></td><td>Unguided: 5 of 6 used a stale API. A prose skill and Myelin: 0 of 6 each. Lint matched three.js's runtime warnings on all 18 pages.</td></tr>
-      </tbody>
-    </table>
-    <div class="body" style="padding:24px 0 0"><p class="note-s">Method, per-library tables and how to rerun them: <a href="https://github.com/REX-codebase/myelin/blob/main/BENCHMARKS.md">BENCHMARKS.md</a>.</p></div>
-  </div>
-</section>
-
-<section class="row" id="limits" aria-labelledby="limits-h">
-  <h2 id="limits-h">limits</h2>
-  <div class="body limits">
-    <p class="lead">Myelin is deliberately small. These are its edges.</p>
-    <p><b>It reads text, not meaning.</b> Rules are regular expressions. They catch stale names and patterns. They cannot judge logic, types or intent, so keep your tests and your type checker.</p>
-    <p><b>Clean is not correct.</b> A pass means no known-stale pattern was found. It does not mean the code runs.</p>
-    <p><b>The lift is measured on three.js only.</b> Across 24 agents and two model families, 7 of 8 unguided runs wrote a stale three.js API and 0 of 16 guided runs did. The other eighteen ledgers have detection benchmarks but no agent runs yet. A well-written prose skill matched the gate on stale-API rate; the gate's edge is that the same file verifies the output.</p>
-    <p><b>Comments can trip it.</b> A banned token inside a comment can fire a rule. Ledgers can set <code>comments skip</code> to blank comments out first, and so far only the three.js ledger does.</p>
-    <p><b>Every ledger is pinned to one release.</b> Each targets a single version and a research date. Check the <code>= version</code> line before you trust one on a newer major.</p>
-    <p><b>It is narrow on purpose.</b> The three.js ledger covers the WebGPU and TSL path, not WebGL-only projects. <code>unless</code> lifts a ban for a whole file, not for one match. There are no globs or severities yet.</p>
-    <p><b>It only constrains output.</b> A ledger cannot grant permissions, run commands or change instructions, and readers ignore any line that tries. Load ledgers only from your own project or a source you trust.</p>
-  </div>
-</section>
-
-<section class="row" id="libraries" aria-labelledby="libraries-h">
-  <h2 id="libraries-h">libraries</h2>
-  <div class="body wide">
-    <div class="body" style="padding:0"><p>Nineteen ledgers, each pinned to a released version and researched against live documentation on 2026-10-26. Every rule links to the migration guide or changelog it came from, in <code>libs/&lt;id&gt;/SOURCES.md</code>.</p></div>
-    <ul class="libs">
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/three">three.js (WebGPU + TSL)</a><i></i><span>r186 · 21 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/react">React</a><i></i><span>19.3 · 20 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/react-router">React Router</a><i></i><span>8.5 · 17 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/nextjs">Next.js</a><i></i><span>16.4 · 20 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/tailwind">Tailwind CSS</a><i></i><span>4.3 · 10 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/svelte">Svelte + SvelteKit</a><i></i><span>5.57 · 3.1 · 22 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/vue">Vue + Nuxt</a><i></i><span>3.5 · 4.6 · 20 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/zod">Zod</a><i></i><span>4.6 · 17 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/express">Express</a><i></i><span>5.3 · 14 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/eslint">ESLint</a><i></i><span>10.13 · 19 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/ai-sdk">Vercel AI SDK</a><i></i><span>7.0 · 20 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/tanstack-query">TanStack Query</a><i></i><span>5.104 · 16 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/prisma">Prisma ORM</a><i></i><span>7.10 · 15 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/angular">Angular</a><i></i><span>22.2 · 16 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/astro">Astro</a><i></i><span>7.4 · 14 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/drizzle">Drizzle ORM</a><i></i><span>0.45 · kit 0.31 · 13 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/mongoose">Mongoose</a><i></i><span>9.11 · 17 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/openai">OpenAI Node SDK</a><i></i><span>7.43 · 16 bans</span></li>
-      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/vitest">Vitest</a><i></i><span>5.0 · 17 bans</span></li>
-    </ul>
-    <div class="body" style="padding:22px 0 0"><p>Yours not here? <a href="https://github.com/REX-codebase/myelin/blob/main/docs/AUTHORING.md">Write a ledger.</a> Every rule needs a source link and a bench file.</p></div>
-  </div>
-</section>
-
-</div>
 </main>
 
-<footer>
-  <div class="page">
-    <section class="row" aria-labelledby="colophon-h" style="border-top:1px solid var(--ink)">
-      <h2 id="colophon-h">colophon</h2>
-      <div class="body colophon">
-        <p>Myelin is MIT licensed and published by REX-codebase. This page is one HTML file. It makes no requests beyond itself, and its type is whatever serif and monospace your system already has.</p>
-        <p>The blue is Luxol fast blue, the stain pathologists use to make myelin visible under a microscope. The page is white because myelin is white matter.</p>
-        <ul class="foot-links">
-          <li><a href="https://github.com/REX-codebase/myelin">GitHub</a></li>
-          <li><a href="https://github.com/REX-codebase/myelin/blob/main/docs/SPEC.md">Spec</a></li>
-          <li><a href="https://github.com/REX-codebase/myelin/blob/main/docs/WHY.md">Why</a></li>
-          <li><a href="https://github.com/REX-codebase/myelin/blob/main/docs/ROADMAP.md">Roadmap</a></li>
-          <li><a href="https://github.com/REX-codebase/myelin/blob/main/CHANGELOG.md">Changelog</a></li>
-          <li><a href="https://github.com/REX-codebase/myelin/blob/main/SECURITY.md">Security</a></li>
-          <li><a href="https://github.com/REX-codebase/myelin/blob/main/CONTRIBUTING.md">Contribute</a></li>
-          <li><a href="https://github.com/REX-codebase/myelin/blob/main/LICENSE">MIT</a></li>
-        </ul>
-      </div>
-    </section>
+<footer class="foot">
+  <div class="wrap">
+    <div>
+      <span class="brand">Myelin</span>
+      <p>Rule ledgers that keep AI-written code on current library versions. MIT licensed. The sheath above is white because myelin is white matter.</p>
+    </div>
+    <nav aria-label="Footer">
+      <a href="https://github.com/REX-codebase/myelin">GitHub</a>
+      <a href="https://github.com/REX-codebase/myelin/blob/main/docs/SPEC.md">Spec</a>
+      <a href="https://github.com/REX-codebase/myelin/blob/main/docs/WHY.md">Why</a>
+      <a href="https://github.com/REX-codebase/myelin/blob/main/docs/ROADMAP.md">Roadmap</a>
+      <a href="https://github.com/REX-codebase/myelin/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="https://github.com/REX-codebase/myelin/blob/main/SECURITY.md">Security</a>
+      <a href="https://github.com/REX-codebase/myelin/blob/main/CONTRIBUTING.md">Contribute</a>
+    </nav>
   </div>
 </footer>
+
+<p id="status" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></p>
 
 <script>
 (function () {
   'use strict';
-  /* Put the install command for this computer first. Without JS the order is unchanged. */
-  var wrap = document.getElementById('cmds');
-  var os = null;
-  try {
-    var ua = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
-    var all = ua + ' ' + (navigator.userAgent || '');
-    if (/Win/i.test(all)) os = 'windows';
-    else if (/Mac|Linux|X11|CrOS/i.test(all)) os = 'unix';
-  } catch (e) { os = null; }
-  if (os) {
-    var hit = wrap.querySelector('[data-os="' + os + '"]');
-    if (hit) {
-      wrap.insertBefore(hit, wrap.firstChild);
-      var tag = hit.querySelector('.hit');
-      if (tag) tag.hidden = false;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var status = document.getElementById('status');
+  function announce(msg) { status.textContent = ''; setTimeout(function () { status.textContent = msg; }, 30); }
+
+  /* ---- nav + hero parallax ---- */
+  var nav = document.getElementById('nav');
+  var stage = $('.stage');
+  var ticking = false;
+  function onScroll() {
+    ticking = false;
+    var y = window.scrollY || 0;
+    nav.classList.toggle('solid', y > 40);
+    var under = document.elementsFromPoint(Math.floor(window.innerWidth / 2), 32).filter(function (n) { return n.classList && n.classList.contains('s'); })[0];
+    nav.classList.toggle('on-light', !!(under && under.classList.contains('light')));
+    if (!reduce && stage && y < window.innerHeight * 1.2) {
+      stage.style.setProperty('--fy', (y * 0.24).toFixed(1) + 'px');
+      stage.style.setProperty('--my', (y * 0.1).toFixed(1) + 'px');
     }
   }
+  window.addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+  onScroll();
+
+  /* ---- reveal on scroll ---- */
+  var rv = $$('.rv');
+  if ('IntersectionObserver' in window) {
+    var ro = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); ro.unobserve(e.target); } });
+    }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+    rv.forEach(function (el) { ro.observe(el); });
+  } else { rv.forEach(function (el) { el.classList.add('in'); }); }
+
+  /* ---- ledger: who is reading ---- */
+  var led = document.getElementById('ledger');
+  var modeBtns = $$('.modes button');
+  var note = document.getElementById('mode-note');
+  var notes = {
+    model: 'The sentence tells the model what is wrong and what to write instead.',
+    machine: 'The pattern is what lint runs. If it matches, the build fails.'
+  };
+  var mode = 'model', modeTimer = null;
+  function setMode(m) {
+    mode = m;
+    led.setAttribute('data-mode', m);
+    modeBtns.forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-mode') === m ? 'true' : 'false'); });
+    note.textContent = notes[m];
+  }
+  modeBtns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (modeTimer) { clearInterval(modeTimer); modeTimer = null; }
+      setMode(b.getAttribute('data-mode'));
+    });
+  });
+  if (!reduce && 'IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting && !modeTimer && !led.getAttribute('data-touched')) {
+          modeTimer = setInterval(function () { setMode(mode === 'model' ? 'machine' : 'model'); }, 4200);
+        } else if (!e.isIntersecting && modeTimer) { clearInterval(modeTimer); modeTimer = null; }
+      });
+    }, { threshold: 0.4 }).observe(led);
+  }
+
+  /* ---- stale to current pairs ---- */
+  var pairs = document.getElementById('pairs');
+  var items = $$('li', pairs);
+  var ticks = document.getElementById('ticks');
+  var cur = 0, pTimer = null, pActive = false;
+  items.forEach(function (li, i) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-label', li.getAttribute('data-l'));
+    b.addEventListener('click', function () { show(i, true); });
+    ticks.appendChild(b);
+  });
+  var tickBtns = $$('button', ticks);
+  function show(i, user) {
+    cur = i;
+    items.forEach(function (li, j) { li.classList.toggle('on', j === i); });
+    tickBtns.forEach(function (b, j) {
+      b.classList.remove('on'); b.classList.toggle('done', j < i);
+    });
+    void ticks.offsetWidth;
+    tickBtns[i].classList.add('on');
+    if (reduce) { tickBtns[i].classList.add('done'); }
+    if (pTimer) { clearTimeout(pTimer); pTimer = null; }
+    if (!reduce && pActive) { pTimer = setTimeout(function () { show((cur + 1) % items.length, false); }, 4800); }
+  }
+  if (document.documentElement.classList.contains('js')) {
+    show(0, false);
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) {
+          pActive = e.isIntersecting;
+          if (pActive) show(cur, false);
+          else if (pTimer) { clearTimeout(pTimer); pTimer = null; }
+        });
+      }, { threshold: 0.35 }).observe(pairs);
+    }
+  }
+
+  /* ---- terminal ---- */
+  var term = document.getElementById('term');
+  if (term && !reduce && 'IntersectionObserver' in window) {
+    var lines = $$('.ln', term).map(function (ln) {
+      var sp = ln.firstElementChild || ln;
+      return { sp: sp, text: sp.textContent, cmd: ln.textContent.charAt(0) === '$' };
+    });
+    var gen = 0, running = false;
+    var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+    var play = async function (g) {
+      while (gen === g) {
+        lines.forEach(function (l) { l.sp.textContent = ''; });
+        for (var i = 0; i < lines.length && gen === g; i++) {
+          var l = lines[i];
+          if (l.cmd) {
+            for (var c = 1; c <= l.text.length && gen === g; c++) { l.sp.textContent = l.text.slice(0, c); await wait(20); }
+            await wait(380);
+          } else { l.sp.textContent = l.text; await wait(l.text.trim() ? 190 : 60); }
+        }
+        await wait(6000);
+      }
+    };
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) { if (!running) { running = true; play(++gen); } }
+        else { running = false; gen++; }
+      });
+    }, { threshold: 0.4 }).observe(term);
+  }
+
+  /* ---- install tabs, OS detection, copy ---- */
+  var modes = {
+    unix: { p: '$ ', c: 'curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh' },
+    win: { p: 'PS> ', c: 'irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1 | iex' },
+    npx: { p: '$ ', c: 'npx github:REX-codebase/myelin setup' }
+  };
+  var tabs = $$('#tabs [role="tab"]');
+  var panel = document.getElementById('cmd');
+  var cmdText = document.getElementById('cmdtext');
+  var promptEl = document.getElementById('prompt');
+  function pick(t, focus) {
+    var k = t.getAttribute('data-k');
+    tabs.forEach(function (x) { var on = x === t; x.setAttribute('aria-selected', on ? 'true' : 'false'); x.tabIndex = on ? 0 : -1; });
+    promptEl.textContent = modes[k].p;
+    cmdText.textContent = modes[k].c;
+    panel.setAttribute('aria-labelledby', t.id);
+    if (focus) t.focus();
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { pick(t, false); });
+    t.addEventListener('keydown', function (e) {
+      var n = null;
+      if (e.key === 'ArrowRight') n = tabs[(i + 1) % tabs.length];
+      else if (e.key === 'ArrowLeft') n = tabs[(i + tabs.length - 1) % tabs.length];
+      if (n) { e.preventDefault(); pick(n, true); }
+    });
+  });
+  try {
+    var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+    if (/Win/i.test(plat + ' ' + (navigator.userAgent || ''))) pick(tabs[1], false);
+  } catch (e) { /* keep default */ }
 
   function fallback(text) {
     try {
@@ -415,12 +765,10 @@ import * as THREE from 'three/webgpu';
       ta.value = text; ta.setAttribute('readonly', '');
       ta.style.cssText = 'position:fixed;top:0;opacity:0';
       document.body.appendChild(ta); ta.select();
-      var ok = document.execCommand('copy');
-      document.body.removeChild(ta);
-      return ok;
+      var ok = document.execCommand('copy'); document.body.removeChild(ta); return ok;
     } catch (e) { return false; }
   }
-  function copy(text) {
+  function copyText(text) {
     try {
       if (navigator.clipboard && window.isSecureContext) {
         return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return fallback(text); });
@@ -428,13 +776,13 @@ import * as THREE from 'three/webgpu';
     } catch (e) { /* fall through */ }
     return Promise.resolve(fallback(text));
   }
-  Array.prototype.forEach.call(document.querySelectorAll('.copy'), function (btn) {
-    btn.addEventListener('click', function () {
-      var cmd = btn.closest('.cmd').querySelector('.t').textContent;
-      copy(cmd).then(function (ok) {
-        btn.textContent = ok ? 'copied' : 'select and copy';
-        setTimeout(function () { btn.textContent = 'copy'; }, 1800);
-      });
+  var copyBtn = document.getElementById('copy');
+  copyBtn.addEventListener('click', function () {
+    var text = cmdText.textContent;
+    copyText(text).then(function (ok) {
+      copyBtn.textContent = ok ? 'Copied' : 'Select it';
+      announce(ok ? 'Copied to clipboard' : 'Copy was blocked. Select the command and copy it.');
+      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 1800);
     });
   });
 })();
