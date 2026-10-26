@@ -1,0 +1,4 @@
+Write a Three.js WebGPU scene of a small procedural hut using TSL node materials.
+It needs a thatched roof with subsurface scattering and frayed straw edges, stucco walls
+that get dirtier near the ground, a glass window, a triplanar rocky ground, and a field of
+wind-animated grass driven by a compute shader. Return the complete JavaScript as files.

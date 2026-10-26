@@ -1,0 +1,222 @@
+myelin 1
+id      three-webgpu-hut
+about   Procedural hut scene in Three.js WebGPU + TSL: thatch, stucco, glass, compute grass
+fires   three.js | webgpu | tsl | procedural hut | thatch
+status  DRAFT. Snippets pass this file's own lint but have NOT been run on a GPU. API names follow recent three/webgpu; verify against the installed version.
+
+= env.renderer    WebGPURenderer, await renderer.init() before first render
+= env.imports     'three/webgpu' and 'three/tsl' only
+= env.tonemap     ACESFilmicToneMapping set on renderer.toneMapping
+= env.post        pass -> GTAO (stand-in for SSAO) -> TRAA (TAA) -> bloom threshold 0.9, via PostProcessing. No snippet yet.
+= tier.high       grass=1000000 fray=5000 res=2.0 ao=on
+= tier.mid        grass=200000  fray=3000 res=1.0 ao=on    (default)
+= tier.low        grass=50000   fray=1000 res=1.0 ao=off
+= rng             seeded only. Same seed, same hut.
+
+! B1 /Math\.random\(/            Unseeded randomness. Use the seeded rng. -> $rng
+! B2 /three\/nodes/              Removed path. Import 'three/webgpu' and 'three/tsl'. -> $boot
+! B3 /WebGLRenderer/             WebGPU only. -> $boot
+! B4 /\bbumpMap\b/               Use normalNode with procedural noise. -> $stucco
+! B5 /ShaderMaterial|\bGLSL\b|glsl`/   Shaders are TSL nodes, never raw GLSL.
+! B6 /new THREE\.Mesh(Standard|Physical)Material\(/   Use the *NodeMaterial classes so node slots work. -> $thatch
+! B7 /new THREE\.DirectionalLight\(/ unless /shadow\.bias\s*=\s*-0\.0005/   Every DirectionalLight sets shadow.bias = -0.0005. -> $boot
+
++ R1 /WebGPURenderer/                      Create the renderer with WebGPURenderer. -> $boot
++ R2 /await renderer\.init\(\)/            Initialise before rendering. -> $boot
++ R3 /from 'three\/tsl'/                   Import TSL helpers from 'three/tsl'.
++ R4 /InstancedMesh/                       Foliage and straw are instanced. -> $grass
++ R5 /\.compute\(/                         Wind runs as a compute kernel. -> $grass
++ R6 /emissiveNode/                        Thatch uses the subsurface node. -> $thatch
++ R7 /triplanarTexture/                    Ground and rocks are triplanar. -> $ground
++ R8 /dispersion/                          Window glass sets dispersion. -> $glass
+
+~ P1 Pick a tier from the = tier lines before writing counts. Default mid. Never hardcode a count outside a tier.
+~ P2 Name counts as constants (GRASS_COUNT, FRAY_COUNT) so the budget is visible.
+~ P3 If the user's hardware is unknown, say which tier you chose in one line after the code.
+
+$ rng
+export function makeRng(seed) {
+  let a = seed >>> 0;
+  return function next() {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+$$
+
+$ boot
+import * as THREE from 'three/webgpu';
+import { makeRng } from './rng.js';
+
+export const TIERS = {
+  high: { grass: 1000000, fray: 5000, res: 2.0 },
+  mid:  { grass: 200000,  fray: 3000, res: 1.0 },
+  low:  { grass: 50000,   fray: 1000, res: 1.0 },
+};
+
+export async function boot(canvas, tierName = 'mid') {
+  const tier = TIERS[tierName];
+  const renderer = new THREE.WebGPURenderer({ canvas, antialias: false });
+  await renderer.init();
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, tier.res));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.shadowMap.enabled = true;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+  camera.position.set(7, 3.5, 9);
+  camera.lookAt(0, 1.5, 0);
+
+  const sun = new THREE.DirectionalLight(0xfff1d6, 3.0);
+  sun.position.set(6, 10, 4);
+  sun.castShadow = true;
+  sun.shadow.bias = -0.0005;
+  sun.shadow.mapSize.set(2048, 2048);
+  scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xbcd7ff, 0x3a3326, 0.6));
+
+  return { renderer, scene, camera, sun, tier, rand: makeRng(1337) };
+}
+$$
+
+$ thatch
+import * as THREE from 'three/webgpu';
+import { Fn, vec3, float, uniform, normalize, dot, pow, clamp,
+         normalWorld, positionWorld, positionLocal, normalLocal,
+         cameraPosition, mx_noise_float } from 'three/tsl';
+
+export function makeThatch(sun) {
+  const sssColor = uniform(new THREE.Color(0.8, 0.6, 0.3));
+  const sssDist = float(0.5);
+  const sssPower = float(2.0);
+  const lightDir = uniform(sun.position.clone().normalize());
+
+  const sss = Fn(([nrm, viewDir, ldir]) => {
+    const scatter = pow(clamp(dot(viewDir, ldir.negate()), 0.0, 1.0), sssPower);
+    return vec3(sssColor).mul(scatter).mul(sssDist);
+  });
+
+  const mat = new THREE.MeshStandardNodeMaterial({ color: 0xb08a4a, roughness: 1.0 });
+  const viewDir = normalize(cameraPosition.sub(positionWorld));
+  mat.emissiveNode = sss(normalWorld, viewDir, lightDir);
+  const bump = mx_noise_float(positionLocal.mul(0.1 * 40.0)).mul(0.08);
+  mat.positionNode = positionLocal.add(normalLocal.mul(bump));
+
+  const LAYERS = 12;
+  const geo = new THREE.PlaneGeometry(4.6, 3.2, 128, 128);
+  const roof = new THREE.InstancedMesh(geo, mat, LAYERS);
+  const m = new THREE.Matrix4();
+  for (let i = 0; i < LAYERS; i++) {
+    m.makeTranslation(0, 0, i * 0.012);
+    roof.setMatrixAt(i, m);
+  }
+  roof.castShadow = true;
+  return roof;
+}
+
+export function makeFray(rand, count) {
+  const FRAY_COUNT = count;
+  const straw = new THREE.CylinderGeometry(0.004, 0.002, 0.25, 3);
+  const mat = new THREE.MeshStandardNodeMaterial({ color: 0xc9a45c, roughness: 1.0 });
+  const mesh = new THREE.InstancedMesh(straw, mat, FRAY_COUNT);
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const e = new THREE.Euler();
+  for (let i = 0; i < FRAY_COUNT; i++) {
+    e.set((rand() - 0.5) * 1.2, rand() * 6.28, (rand() - 0.5) * 1.2);
+    q.setFromEuler(e);
+    m.compose(new THREE.Vector3((rand() - 0.5) * 4.6, 0, rand() * 0.15), q, new THREE.Vector3(1, 1, 1));
+    mesh.setMatrixAt(i, m);
+  }
+  return mesh;
+}
+$$
+
+$ stucco
+import * as THREE from 'three/webgpu';
+import { vec3, float, mix, smoothstep, positionWorld, mx_worley_noise_float } from 'three/tsl';
+
+export function makeStucco() {
+  const mat = new THREE.MeshPhysicalNodeMaterial({ roughness: 0.9, clearcoat: 0.0 });
+  const clean = vec3(0.92, 0.91, 0.88);
+  const dirty = vec3(0.45, 0.44, 0.42);
+  const grime = float(1.0).sub(smoothstep(0.8, 1.5, positionWorld.y));
+  mat.colorNode = mix(clean, dirty, grime);
+  const cells = mx_worley_noise_float(positionWorld.mul(50.0));
+  mat.roughnessNode = float(0.9).add(cells.mul(0.05));
+  return mat;
+}
+$$
+
+$ glass
+import * as THREE from 'three/webgpu';
+import { vec3, mix, positionWorld, mx_noise_float } from 'three/tsl';
+
+export function makeGlass() {
+  const mat = new THREE.MeshPhysicalNodeMaterial({
+    transmission: 1.0,
+    thickness: 0.2,
+    ior: 1.5,
+    roughness: 0.05,
+    dispersion: 0.1,
+  });
+  const grime = mx_noise_float(positionWorld.mul(8.0)).mul(0.5).add(0.5);
+  mat.colorNode = mix(vec3(1.0), vec3(0.7, 0.72, 0.68), grime.mul(0.3));
+  return mat;
+}
+$$
+
+$ ground
+import * as THREE from 'three/webgpu';
+import { texture, triplanarTexture, float, positionWorld, normalWorld } from 'three/tsl';
+
+export function makeGround(rockMap) {
+  const mat = new THREE.MeshStandardNodeMaterial({ roughness: 1.0 });
+  mat.colorNode = triplanarTexture(texture(rockMap), null, null, float(0.4), positionWorld, normalWorld);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), mat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  return ground;
+}
+$$
+
+$ grass
+import * as THREE from 'three/webgpu';
+import { Fn, instancedArray, instanceIndex, uniform, time, sin,
+         vec2, vec3, float, positionLocal } from 'three/tsl';
+
+export function makeGrass(renderer, rand, count) {
+  const GRASS_COUNT = count;
+  const roots = new Float32Array(GRASS_COUNT * 3);
+  const phases = new Float32Array(GRASS_COUNT);
+  for (let i = 0; i < GRASS_COUNT; i++) {
+    roots[i * 3] = (rand() - 0.5) * 50;
+    roots[i * 3 + 2] = (rand() - 0.5) * 50;
+    phases[i] = rand() * 6.2832;
+  }
+  const rootBuf = instancedArray(roots, 'vec3');
+  const phaseBuf = instancedArray(phases, 'float');
+  const swayBuf = instancedArray(GRASS_COUNT, 'vec2');
+  const windStrength = uniform(0.15);
+
+  const kernel = Fn(() => {
+    const wind = sin(time.add(phaseBuf.element(instanceIndex))).mul(windStrength);
+    swayBuf.element(instanceIndex).assign(vec2(wind, wind.mul(0.5)));
+  })().compute(GRASS_COUNT);
+
+  const blade = new THREE.PlaneGeometry(0.04, 0.5, 1, 4);
+  blade.translate(0, 0.25, 0);
+  const mat = new THREE.MeshStandardNodeMaterial({ color: 0x5f8f3a, side: THREE.DoubleSide });
+  const tip = positionLocal.y.mul(positionLocal.y).mul(2.0);
+  const s = swayBuf.element(instanceIndex);
+  mat.positionNode = rootBuf.element(instanceIndex).add(positionLocal).add(vec3(s.x, float(0), s.y).mul(tip));
+
+  const mesh = new THREE.InstancedMesh(blade, mat, GRASS_COUNT);
+  mesh.frustumCulled = false;
+  return { mesh, step: () => renderer.compute(kernel) };
+}
+$$

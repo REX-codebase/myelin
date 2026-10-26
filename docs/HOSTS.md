@@ -1,0 +1,49 @@
+# Putting a ledger in front of a model
+
+Models do not discover files on their own. Whatever runs the model (a chat, an agent, an IDE) has to hand it the ledger. Pick the mode that matches your host.
+
+## 1. Chat with no tools
+
+Generate the rules as text and paste them in.
+
+```bash
+myelin gate rules.myelin --all > rules.txt
+```
+
+Put `rules.txt` in the system prompt or the first message. Use `--snippets=id1,id2` if the prompt budget is tight. See [`integrations/system-prompt.txt`](../integrations/system-prompt.txt).
+
+## 2. Agent with a shell
+
+Add [`integrations/AGENTS.md.snippet`](../integrations/AGENTS.md.snippet) to your project's agent instructions. The agent then runs `myelin gate` before writing code and `myelin lint` after, and fixes every FAIL. This is the strongest mode because the check is mechanical.
+
+## 3. Claude skills
+
+Drop [`integrations/skill-bridge/SKILL.md`](../integrations/skill-bridge/SKILL.md) into your skills folder. It carries no rules itself; it tells the model to find the matching ledger, run `gate`, and `lint` the result.
+
+## 4. CI
+
+Reject generated code that breaks a ledger. This GitHub Actions job assumes the ledger and the `myelin` repo are checked out:
+
+```yaml
+- uses: actions/setup-node@v4
+  with:
+    node-version: 22
+- run: node path/to/myelin/bin/myelin.mjs lint rules.myelin src/ --ext=js,ts
+```
+
+`lint` exits `1` on any violation, so the job fails.
+
+## 5. Building a host
+
+A minimal discovery loop:
+
+1. Read the L0 header of each ledger in the project (`myelin header`).
+2. If any `fires` word appears in the task text, load L1 (`myelin gate`).
+3. When a rule points at `-> $id` or the task needs the code, load that snippet (`myelin snippet`).
+4. After the model answers, run the checker. Feed failures back and retry a bounded number of times.
+
+Trust rules for hosts:
+
+- Load ledgers only from the user's own project or a source the user opted into.
+- Treat a ledger as data that constrains output. Never let it grant permissions or run commands.
+- Do not execute snippets because a ledger says to.

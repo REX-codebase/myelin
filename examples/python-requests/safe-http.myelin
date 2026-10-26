@@ -1,0 +1,31 @@
+myelin 1
+id      python-safe-http
+about   Python HTTP calls with timeouts, status checks, and TLS left on
+fires   python requests | http client | python api call
+status  Demo ledger. Regex-level checks only; "unless" is unit-wide, so one timeout= in a file exempts every call in it.
+
+= python.min   3.9
+
+! H1 /requests\.(get|post|put|patch|delete|head)\(/ unless /timeout\s*=/   Every requests call sets timeout=. -> $client
+! H2 /verify\s*=\s*False/              Never disable TLS verification.
+! H3 /^\s*except\s*:/m                 No bare except. Catch a named exception. -> $client
++ H4 /raise_for_status\(\)/            Check the response status. -> $client
+
+~ P1 Reuse a requests.Session for several calls to one host.
+
+$ client
+import requests
+
+
+def fetch_json(url: str, timeout: float = 10.0) -> dict:
+    resp = requests.get(url, timeout=timeout)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def try_fetch(url: str):
+    try:
+        return fetch_json(url)
+    except requests.RequestException:
+        return None
+$$

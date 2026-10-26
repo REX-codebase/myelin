@@ -1,0 +1,29 @@
+myelin 1
+id      node-esm-lib
+about   Conventions for small dependency-free Node ESM libraries
+fires   node library | esm | npm package
+status  Demo ledger. Checks are regex-level only.
+
+= node.min   18
+= modules    ESM only; package.json has "type": "module"
+
+! N1 /\brequire\(/                     ESM only. Use import. -> $esm
+! N2 /\bmodule\.exports\b/              ESM only. Use export. -> $esm
+! N3 /^\s*var\s/m                       Use const or let.
+! N4 /console\.(log|debug)\(/ unless /\/\/ cli-output/   Libraries do not print. Mark deliberate CLI output with a cli-output comment. -> $esm
++ N5 /\bexport\s/                       Public API uses named exports. -> $esm
+
+~ P1 No default exports.
+~ P2 Pure functions where possible; no hidden global state.
+
+$ esm
+export function clamp(x, lo, hi) {
+  return Math.min(hi, Math.max(lo, x));
+}
+
+export function sum(values) {
+  let total = 0;
+  for (const v of values) total += v;
+  return total;
+}
+$$

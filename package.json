@@ -1,0 +1,40 @@
+{
+  "name": "myelin-ledger",
+  "version": "0.1.0",
+  "description": "Myelin: a model-agnostic, machine-checkable rule ledger format for LLM-generated code.",
+  "type": "module",
+  "bin": {
+    "myelin": "bin/myelin.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "docs",
+    "examples",
+    "integrations",
+    "eval",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "self": "node bin/myelin.mjs self examples",
+    "check": "npm test && npm run self"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "llm",
+    "prompt",
+    "rules",
+    "guardrails",
+    "linter",
+    "agents",
+    "skills"
+  ],
+  "license": "MIT"
+}

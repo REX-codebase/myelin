@@ -1,0 +1,13 @@
+Template for chat hosts that cannot run commands.
+Generate the block below with:   myelin gate rules.myelin --all
+and paste it into the system prompt, or into the first message of the conversation.
+Use --snippets=id1,id2 instead of --all when the prompt budget is tight.
+
+----------------------------------------------------------------------
+{{ output of: myelin gate rules.myelin --all }}
+----------------------------------------------------------------------
+
+Notes for the host author:
+- Only load a ledger from the user's own project or a source the user opted into.
+- The block is plain text. It carries no model-specific syntax.
+- If you can run commands for the model, prefer the lint loop in docs/HOSTS.md.
