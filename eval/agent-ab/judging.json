@@ -1,0 +1,320 @@
+{
+ "judges": [
+  {
+   "L16.png": {
+    "craft": 7,
+    "brief": 6
+   },
+   "L19.png": {
+    "craft": 5,
+    "brief": 5
+   },
+   "L22.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "L29.png": {
+    "craft": 7,
+    "brief": 6
+   },
+   "L51.png": {
+    "craft": 6,
+    "brief": 5
+   },
+   "L56.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "L60.png": {
+    "craft": 7,
+    "brief": 5
+   },
+   "L78.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "L93.png": {
+    "craft": 7,
+    "brief": 5
+   },
+   "N14.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "N17.png": {
+    "craft": 5,
+    "brief": 6
+   },
+   "N18.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "N21.png": {
+    "craft": 6,
+    "brief": 6
+   },
+   "N37.png": {
+    "craft": 6,
+    "brief": 6
+   },
+   "N63.png": {
+    "craft": 7,
+    "brief": 8
+   },
+   "N65.png": {
+    "craft": 6,
+    "brief": 6
+   },
+   "N74.png": {
+    "craft": 7,
+    "brief": 8
+   },
+   "N84.png": {
+    "craft": 8,
+    "brief": 9
+   }
+  },
+  {
+   "N84.png": {
+    "craft": 7,
+    "brief": 8
+   },
+   "N74.png": {
+    "craft": 7,
+    "brief": 7
+   },
+   "N65.png": {
+    "craft": 6,
+    "brief": 6
+   },
+   "N63.png": {
+    "craft": 5,
+    "brief": 7
+   },
+   "N37.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "N21.png": {
+    "craft": 6,
+    "brief": 6
+   },
+   "N18.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "N17.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "N14.png": {
+    "craft": 6,
+    "brief": 8
+   },
+   "L93.png": {
+    "craft": 7,
+    "brief": 5
+   },
+   "L78.png": {
+    "craft": 6,
+    "brief": 8
+   },
+   "L60.png": {
+    "craft": 7,
+    "brief": 8
+   },
+   "L56.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "L51.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "L29.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "L22.png": {
+    "craft": 6,
+    "brief": 6
+   },
+   "L19.png": {
+    "craft": 6,
+    "brief": 6
+   },
+   "L16.png": {
+    "craft": 6,
+    "brief": 6
+   }
+  },
+  {
+   "N14.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "N17.png": {
+    "craft": 6,
+    "brief": 6
+   },
+   "N18.png": {
+    "craft": 7,
+    "brief": 7
+   },
+   "N21.png": {
+    "craft": 6,
+    "brief": 6
+   },
+   "N37.png": {
+    "craft": 7,
+    "brief": 6
+   },
+   "N63.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "N65.png": {
+    "craft": 7,
+    "brief": 6
+   },
+   "N74.png": {
+    "craft": 8,
+    "brief": 8
+   },
+   "N84.png": {
+    "craft": 7,
+    "brief": 8
+   },
+   "L16.png": {
+    "craft": 6,
+    "brief": 6
+   },
+   "L19.png": {
+    "craft": 5,
+    "brief": 6
+   },
+   "L22.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "L29.png": {
+    "craft": 7,
+    "brief": 8
+   },
+   "L51.png": {
+    "craft": 6,
+    "brief": 6
+   },
+   "L56.png": {
+    "craft": 7,
+    "brief": 8
+   },
+   "L60.png": {
+    "craft": 7,
+    "brief": 7
+   },
+   "L78.png": {
+    "craft": 6,
+    "brief": 7
+   },
+   "L93.png": {
+    "craft": 8,
+    "brief": 6
+   }
+  }
+ ],
+ "key": {
+  "L51.png": "lighthouse/control-1",
+  "L29.png": "lighthouse/control-2",
+  "L60.png": "lighthouse/control-3",
+  "L93.png": "lighthouse/skill-1",
+  "L16.png": "lighthouse/skill-2",
+  "L19.png": "lighthouse/skill-3",
+  "L78.png": "lighthouse/myelin-1",
+  "L22.png": "lighthouse/myelin-2",
+  "L56.png": "lighthouse/myelin-3",
+  "N84.png": "neon/control-1",
+  "N17.png": "neon/control-2",
+  "N74.png": "neon/control-3",
+  "N37.png": "neon/skill-1",
+  "N14.png": "neon/skill-2",
+  "N21.png": "neon/skill-3",
+  "N65.png": "neon/myelin-1",
+  "N63.png": "neon/myelin-2",
+  "N18.png": "neon/myelin-3"
+ },
+ "mean": {
+  "lighthouse/control-1": {
+   "craft": 6,
+   "brief": 6
+  },
+  "lighthouse/control-2": {
+   "craft": 6.67,
+   "brief": 7
+  },
+  "lighthouse/control-3": {
+   "craft": 7,
+   "brief": 6.67
+  },
+  "lighthouse/skill-1": {
+   "craft": 7.33,
+   "brief": 5.33
+  },
+  "lighthouse/skill-2": {
+   "craft": 6.33,
+   "brief": 6
+  },
+  "lighthouse/skill-3": {
+   "craft": 5.33,
+   "brief": 5.67
+  },
+  "lighthouse/myelin-1": {
+   "craft": 6,
+   "brief": 7.33
+  },
+  "lighthouse/myelin-2": {
+   "craft": 6,
+   "brief": 6.67
+  },
+  "lighthouse/myelin-3": {
+   "craft": 6.33,
+   "brief": 7.33
+  },
+  "neon/control-1": {
+   "craft": 7.33,
+   "brief": 8.33
+  },
+  "neon/control-2": {
+   "craft": 5.67,
+   "brief": 6.33
+  },
+  "neon/control-3": {
+   "craft": 7.33,
+   "brief": 7.67
+  },
+  "neon/skill-1": {
+   "craft": 6.33,
+   "brief": 6.33
+  },
+  "neon/skill-2": {
+   "craft": 6,
+   "brief": 7.33
+  },
+  "neon/skill-3": {
+   "craft": 6,
+   "brief": 6
+  },
+  "neon/myelin-1": {
+   "craft": 6.33,
+   "brief": 6
+  },
+  "neon/myelin-2": {
+   "craft": 6,
+   "brief": 7.33
+  },
+  "neon/myelin-3": {
+   "craft": 6.33,
+   "brief": 7
+  }
+ }
+}
