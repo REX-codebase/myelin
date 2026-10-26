@@ -43,7 +43,8 @@ for (const page of pages) {
   await p.goto('file://' + resolve(page));
   await p.waitForTimeout(WAIT);
   const gpu = await p.evaluate(() => !!navigator.gpu);
-  await p.screenshot({ path: join(outDir, `${name}.png`) });
+  // A software-GPU frame can take tens of seconds, so allow a slow screenshot.
+  await p.screenshot({ path: join(outDir, `${name}.png`), timeout: 180000 });
   report[name] = { webgpu: gpu, logs: [...new Set(logs)].slice(0, 30) };
   await ctx.close();
 }
