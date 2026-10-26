@@ -76,7 +76,7 @@ banner() {
   printf '\n'
   if [ "$UTF" -eq 1 ]; then
     printf '  %s%s%s\n' "$CYAN" "╭────────────────────────────────────╮" "$RESET"
-    printf '  %s%s%s%s\n' "$CYAN" "│" "$RESET" "$BOLD  ◆  M Y E L I N                    $RESET$CYAN│$RESET"
+    printf '  %s%s%s%s\n' "$CYAN" "│" "$RESET" "$BOLD  ◆  M Y E L I N                    ${RESET}${CYAN}│${RESET}"
     printf '  %s%s%s\n' "$CYAN" "│     rule ledgers for AI code       │" "$RESET"
     printf '  %s%s%s\n\n' "$CYAN" "╰────────────────────────────────────╯" "$RESET"
   else
