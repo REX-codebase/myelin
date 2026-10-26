@@ -1,46 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="300" viewBox="0 0 1280 300" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif">
-  <defs>
-    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#5ff4ff"/></marker>
-    <style>
-      .flow{stroke-dasharray:6 8;animation:dash 1s linear infinite}
-      @keyframes dash{to{stroke-dashoffset:-14}}
-      .t{fill:#e9eef7;font-size:22px;font-weight:700}.s{fill:#8a96aa;font-size:15px}
-      .m{font-family:JetBrains Mono,Menlo,Consolas,monospace}
-    </style>
-  </defs>
-  <rect width="1280" height="300" rx="20" fill="#070a12"/>
-  <!-- boxes -->
-  <g>
-    <rect x="40" y="70" width="230" height="160" rx="18" fill="#0d1322" stroke="#2a3a55"/>
-    <g transform="translate(137,88)" fill="none" stroke="#5ff4ff" stroke-width="2.5"><rect width="36" height="40" rx="5"/><path d="M8 12h20M8 20h20M8 28h12"/></g>
-    <text x="155" y="158" text-anchor="middle" class="t">three.myelin</text>
-    <text x="155" y="186" text-anchor="middle" class="s">what changed since</text>
-    <text x="155" y="206" text-anchor="middle" class="s">the model was trained</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="236" viewBox="0 0 1280 236" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif">
+  <style>
+    .s{opacity:0;animation:in .5s ease-out forwards}
+    @keyframes in{from{opacity:0}to{opacity:1}}
+  </style>
+  <rect x=".5" y=".5" width="1279" height="235" rx="12" fill="#0b0f19" stroke="#1d2638"/>
+  <g class="s" style="animation-delay:0.00s">
+    <rect x="48" y="48" width="250" height="140" rx="10" fill="#0f1523" stroke="#1d2638"/>
+    <text x="70" y="80" style="font:600 12px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;letter-spacing:2px;fill:#5ff4ff">01</text>
+    <text x="70" y="108" style="font:600 20px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#e9eef7">Ledger</text>
+    <text x="70" y="132" style="font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">what changed since</text>
+    <text x="70" y="152" style="font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">the model was trained</text>
+    <text x="70" y="174" style="font:12px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#55627a">three.myelin</text>
+  </g><path d="M312 118 H345.3333333333333 m-6 -5 l6 5 l-6 5" fill="none" stroke="#55627a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <g class="s" style="animation-delay:0.15s">
+    <rect x="359.3333333333333" y="48" width="250" height="140" rx="10" fill="#0f1523" stroke="#1d2638"/>
+    <text x="381.3333333333333" y="80" style="font:600 12px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;letter-spacing:2px;fill:#5ff4ff">02</text>
+    <text x="381.3333333333333" y="108" style="font:600 20px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#e9eef7">Model</text>
+    <text x="381.3333333333333" y="132" style="font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">reads the rules</text>
+    <text x="381.3333333333333" y="152" style="font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">before it writes</text>
+    <text x="381.3333333333333" y="174" style="font:12px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#55627a">myelin gate</text>
+  </g><path d="M623.3333333333333 118 H656.6666666666666 m-6 -5 l6 5 l-6 5" fill="none" stroke="#55627a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <g class="s" style="animation-delay:0.30s">
+    <rect x="670.6666666666666" y="48" width="250" height="140" rx="10" fill="#0f1523" stroke="#1d2638"/>
+    <text x="692.6666666666666" y="80" style="font:600 12px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;letter-spacing:2px;fill:#5ff4ff">03</text>
+    <text x="692.6666666666666" y="108" style="font:600 20px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#e9eef7">Script</text>
+    <text x="692.6666666666666" y="132" style="font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">checks every ban</text>
+    <text x="692.6666666666666" y="152" style="font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">in every file</text>
+    <text x="692.6666666666666" y="174" style="font:12px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#55627a">myelin lint</text>
+  </g><path d="M934.6666666666666 118 H968 m-6 -5 l6 5 l-6 5" fill="none" stroke="#55627a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <g class="s" style="animation-delay:0.45s">
+    <rect x="982" y="48" width="250" height="140" rx="10" fill="#0f1523" stroke="#6ee7a066"/>
+    <text x="1004" y="80" style="font:600 12px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;letter-spacing:2px;fill:#6ee7a0">04</text>
+    <text x="1004" y="108" style="font:600 20px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#e9eef7">Current code</text>
+    <text x="1004" y="132" style="font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">or CI fails with</text>
+    <text x="1004" y="152" style="font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">the exact fix</text>
+    <text x="1004" y="174" style="font:12px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#55627a">exit 0 / exit 1</text>
   </g>
-  <g>
-    <rect x="370" y="70" width="230" height="160" rx="18" fill="#0d1322" stroke="#2a3a55"/>
-    <g transform="translate(485,108)" stroke="#5ff4ff" stroke-width="2.5" fill="#0d1322"><path d="M-16 -8L0 -18L16 -8M-16 -8L0 4L16 -8M-16 -8L-8 14M16 -8L8 14M0 4L-8 14M0 4L8 14" fill="none"/><circle cx="0" cy="-18" r="5"/><circle cx="-16" cy="-8" r="5"/><circle cx="16" cy="-8" r="5"/><circle cx="0" cy="4" r="5"/><circle cx="-8" cy="14" r="5"/><circle cx="8" cy="14" r="5"/></g>
-    <text x="485" y="158" text-anchor="middle" class="t">Any LLM</text>
-    <text x="485" y="186" text-anchor="middle" class="s">reads the rules</text>
-    <text x="485" y="206" text-anchor="middle" class="s m">myelin gate</text>
-  </g>
-  <g>
-    <rect x="700" y="70" width="230" height="160" rx="18" fill="#0d1322" stroke="#2a3a55"/>
-    <text x="815" y="120" text-anchor="middle" font-size="34" font-weight="700" fill="#5ff4ff" font-family="JetBrains Mono, Menlo, Consolas, monospace">{ }</text>
-    <text x="815" y="158" text-anchor="middle" class="t">Script checks</text>
-    <text x="815" y="186" text-anchor="middle" class="s">every ban, every file</text>
-    <text x="815" y="206" text-anchor="middle" class="s m">myelin lint</text>
-  </g>
-  <g>
-    <rect x="1030" y="70" width="210" height="160" rx="18" fill="#0b1a12" stroke="#2f7a45"/>
-    <g transform="translate(1135,108)" fill="none" stroke="#7dff9a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle r="20"/><path d="M-9 0l6 6l12-12"/></g>
-    <text x="1135" y="158" text-anchor="middle" class="t" fill="#7dff9a">Current code</text>
-    <text x="1135" y="186" text-anchor="middle" class="s">or CI fails with</text>
-    <text x="1135" y="206" text-anchor="middle" class="s">the exact fix</text>
-  </g>
-  <g stroke="#5ff4ff" stroke-width="3" fill="none" marker-end="url(#a)">
-    <path class="flow" d="M280 150 H360"/><path class="flow" d="M610 150 H690"/><path class="flow" d="M940 150 H1020"/>
-  </g>
-  <path d="M815 240 C815 285, 485 285, 485 240" stroke="#ff3b6b" stroke-width="2" fill="none" stroke-dasharray="5 6" marker-end="url(#a)"/>
-  <text x="650" y="292" text-anchor="middle" class="s" fill="#ff8aa5">FAIL → fix message + copy-exact snippet → retry</text>
 </svg>
