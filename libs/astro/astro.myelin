@@ -1,0 +1,167 @@
+myelin 1
+id      astro
+about   Astro 7 (current major): bans APIs removed or deprecated since Astro 5 (Astro.glob, legacy content collections, entry.slug and entry.render(), output hybrid, ViewTransitions, @astrojs/tailwind, astro:schema, defineAction schema)
+fires   astro | .astro | astro:content | astro:actions | astro:transitions | astro.config | getCollection | getEntry | defineCollection | Astro.glob
+comments skip
+status  Checked 2026-10-26 against astro 7.4.2 by building and running snippets with astro@7.4.2 under Node 22.23.4 (A1-A14 probed). Docs site unreachable from the sandbox, so rules cite package code, not doc pages. See SOURCES.md.
+
+= version      astro 7.4.2 (npm latest, 2026-10-26); engines node >=22.23.4
+= verified     2026-10-26
+= content      src/content.config.ts only; glob()/file() loaders from astro/loaders; getCollection, getEntry, render from astro:content; entry.id is the slug
+= zod          import { z } from 'astro/zod' (zod 4: z.email(), z.coerce.date())
+= output       default 'static'; 'hybrid' rejected; server output needs an adapter (prerender = false per page)
+= router       <ClientRouter /> from astro:transitions (ViewTransitions is no longer exported)
+= actions      defineAction({ accept, input, handler }) from astro:actions; read input, never schema; needs server output
+= experimental strict block: clientPrerender, contentIntellisense, chromeDevtoolsWorkspace, incrementalBuild, redirectPage, parallelPrerender, svgOptimizer, collectionStorage; env and fonts are top-level
+= markdown     default processor is satteri(); remark/rehype plugins go through unified({ remarkPlugins }) in markdown.processor
+= tailwind     @tailwindcss/vite in vite.plugins (what `astro add tailwind` writes)
+
+! A1 /\bAstro\.glob\s*\(/   Astro.glob() was removed in Astro 6 (runtime: "Astro.glob is not a function"). Content: getCollection() from astro:content. Other files: import.meta.glob(). -> $glob
+! A2 /\bdefineCollection\(\s*\{(?:(?!\bdefineCollection\b)[\s\S])*?\btype\s*:\s*['"](?:content|data)['"]/   Legacy collections (type: 'content' or 'data', src/content/config.ts) were removed in Astro 6. Put collections in src/content.config.ts with a loader: glob({ pattern, base }). -> $contentconfig
+! A3 /\bdefineCollection\(\s*\{\s*schema\s*:/   A schema with no loader is the legacy shape. It builds, but the collection is empty (getCollection returns []). Add loader: glob({ pattern, base }). -> $contentconfig
+! A4 /\b(?:entry|doc|article)\.slug\b/   Content entries have no slug (it is undefined). Use entry.id, which the glob loader sets from the file path. -> $entryid
+! A5 /\b(?:entry|doc|article)\.render\s*\(\s*\)/   entry.render() was removed. Import render from astro:content and call render(entry). -> $entryid
+! A6 /\bgetEntryBySlug\b|\bgetDataEntryById\b/   getEntryBySlug() and getDataEntryById() throw in current Astro. Use getEntry(collection, id) for content and data. -> $getentry
+! A7 /import\s*\{[^}]*\bz\b[^}]*\}\s*from\s*['"]astro:content['"]/   z exported from astro:content is deprecated (removed in Astro 8). Import it from 'astro/zod'. -> $zod
+! A8 /\boutput\s*:\s*['"]hybrid['"]/   output: 'hybrid' was removed (config validation exits with an error). Use the default static output, or output: 'server' with an adapter. -> $config
+! A9 /['"]@astrojs\/tailwind['"]/   @astrojs/tailwind is deprecated (its README says so) and its peer range stops at Astro 5, so it fails to install on Astro 7 (ERESOLVE). Use @tailwindcss/vite in vite.plugins. -> $tailwind
+! A10 /\bViewTransitions\b/   The ViewTransitions component is gone (build error: not exported by astro:transitions). Use <ClientRouter /> from astro:transitions in <head>. -> $router
+! A11 /\bexperimental\s*:\s*\{[^{}]*\b(?:contentLayer|viewTransitions|actions|env|fonts|svgo|rustCompiler)\b/   experimental keys outside the strict schema fail config validation (exit 1). Content Layer, actions and ClientRouter need no flag; env and fonts are top-level config. -> $config
+! A12 /\bmarkdown\s*:\s*\{(?:[^{}]|\{[^{}]*\})*?\b(?:remarkPlugins|rehypePlugins|gfm|smartypants|remarkRehype)\s*:/ unless /\bprocessor\s*:/   markdown.remarkPlugins, rehypePlugins, gfm, smartypants and remarkRehype are deprecated (still run; removal planned). Pass plugins to markdown.processor: unified({ remarkPlugins }) from @astrojs/markdown-remark. -> $config
+! A13 /['"]astro:schema['"]/   'astro:schema' is an alias kept only until Astro 8. Import z from 'astro/zod'. -> $zod
+! A14 /\bdefineAction\s*\(\s*\{[^}]*\bschema\s*:/   defineAction takes input, not schema. The schema key is ignored and the handler gets unvalidated input (verified). Use input: z.object({...}). -> $actions
+
+~ P1 Astro.site inside getStaticPaths is deprecated. Read import.meta.env.SITE instead.
+~ P2 For static sites keep the default output. Pages that need the server set export const prerender = false and need an adapter.
+~ P3 legacy.collectionsBackwardsCompat keeps the old src/content/config.ts working. It is a migration escape hatch, not a pattern to write.
+~ P4 Build URLs from entry.id (the glob loader's id), e.g. href={`/blog/${entry.id}/`}.
+
+$ glob
+---
+const products = Object.values(
+	import.meta.glob<{ default: { name: string; price: number } }>('../data/products/*.json', { eager: true })
+).map((mod) => mod.default);
+---
+
+<ul>
+	{products.map((p) => <li>{p.name}: {p.price}</li>)}
+</ul>
+$$
+
+$ contentconfig
+import { defineCollection } from 'astro:content';
+import { glob } from 'astro/loaders';
+import { z } from 'astro/zod';
+
+const blog = defineCollection({
+	loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/blog' }),
+	schema: z.object({
+		title: z.string(),
+		pubDate: z.coerce.date(),
+		draft: z.boolean().default(false)
+	})
+});
+
+export const collections = { blog };
+$$
+
+$ entryid
+---
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+	const posts = await getCollection('blog');
+	return posts.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+
+<h1>{entry.data.title}</h1>
+<Content />
+$$
+
+$ getentry
+---
+import { getEntry, render } from 'astro:content';
+
+const entry = await getEntry('blog', Astro.params.slug);
+if (!entry) {
+	return Astro.redirect('/404');
+}
+const { Content } = await render(entry);
+---
+
+<h1>{entry.data.title}</h1>
+<Content />
+$$
+
+$ zod
+import { z } from 'astro/zod';
+
+export const PostSchema = z.object({
+	title: z.string(),
+	pubDate: z.coerce.date()
+});
+$$
+
+$ actions
+import { ActionError, defineAction } from 'astro:actions';
+import { z } from 'astro/zod';
+
+export const server = {
+	subscribe: defineAction({
+		accept: 'form',
+		input: z.object({ email: z.email() }),
+		handler: async ({ email }) => {
+			if (!email.endsWith('@example.com')) {
+				throw new ActionError({ code: 'BAD_REQUEST', message: 'Use a company address' });
+			}
+			return { ok: true };
+		}
+	})
+};
+$$
+
+$ config
+import { defineConfig } from 'astro/config';
+
+export default defineConfig({
+	site: 'https://example.com',
+	markdown: {
+		shikiConfig: { theme: 'github-dark' }
+	}
+});
+$$
+
+$ tailwind
+import { defineConfig } from 'astro/config';
+import tailwindcss from '@tailwindcss/vite';
+
+export default defineConfig({
+	site: 'https://example.com',
+	vite: {
+		plugins: [tailwindcss()]
+	}
+});
+$$
+
+$ router
+---
+import { ClientRouter } from 'astro:transitions';
+
+const { title } = Astro.props;
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>{title}</title>
+		<ClientRouter />
+	</head>
+	<body>
+		<slot />
+	</body>
+</html>
+$$

@@ -17,7 +17,7 @@
 
 <p align="center">
   <img alt="zero dependencies" src="https://img.shields.io/badge/dependencies-0-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
-  <img alt="13 libraries" src="https://img.shields.io/badge/libraries-13-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
+  <img alt="19 libraries" src="https://img.shields.io/badge/libraries-19-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
   <img alt="node 18+" src="https://img.shields.io/badge/node-%E2%89%A518-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
   <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
 </p>
@@ -89,7 +89,7 @@ Full grammar in [docs/SPEC.md](docs/SPEC.md).
 
 ## Libraries
 
-Thirteen ledgers ship in the box, each pinned to a released version and researched against live docs on **2026-10-26**. Every rule links to the migration guide or changelog it came from in `libs/<id>/SOURCES.md`.
+Nineteen ledgers ship in the box, each pinned to a released version and researched against live docs on **2026-10-26**. Every rule links to the migration guide or changelog it came from in `libs/<id>/SOURCES.md`.
 
 | Library | Targets | Bans | Snippets |
 |---|---|--:|--:|
@@ -106,6 +106,12 @@ Thirteen ledgers ship in the box, each pinned to a released version and research
 | Vercel AI SDK | 7.0 | 20 | 5 |
 | TanStack Query | 5.104 | 16 | 7 |
 | Prisma ORM | 7.10 | 15 | 7 |
+| Angular | 22.2 | 16 | 7 |
+| Astro | 7.4 | 14 | 9 |
+| Drizzle ORM | 0.45 · kit 0.31 | 13 | 9 |
+| Mongoose | 9.11 | 17 | 8 |
+| OpenAI Node SDK | 7.43 | 16 | 6 |
+| Vitest | 5.0 | 17 | 8 |
 
 Missing yours? [Add a ledger](docs/AUTHORING.md). Every rule needs a source link and a bench file.
 
@@ -119,7 +125,7 @@ Four tests, all reproducible from this repo. The first three measure one thing: 
 
 | Test | Result |
 |---|---|
-| **Labelled corpus**<br><sub>120 stale files, 88 current files</sub> | 100% of stale files caught. 0 false alarms on current files. |
+| **Labelled corpus**<br><sub>177 stale files, 129 current files</sub> | 100% of stale files caught. 0 false alarms on current files. |
 | **Cross-library sweep**<br><sub>every ledger over every other library's correct code</sub> | 1,056 checks, 0 false positives. |
 | **Official examples, untouched**<br><sub>upstream repos, old release vs current</sub> | three.js r150: 97.8% flagged. three.js r186: 0.4% flagged (1 of 230, an old API in a comment). Next.js 16.4.3's own examples: 19 genuine pre-16 patterns. |
 | **Agent A/B**<br><sub>bonfire scene, 2 agents per arm</sub> | Unguided: both used two removed APIs. Guided: neither did. |

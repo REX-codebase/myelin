@@ -1,0 +1,9 @@
+---
+const products = Object.values(
+	import.meta.glob<{ default: { name: string; price: number } }>('../data/products/*.json', { eager: true })
+).map((mod) => mod.default);
+---
+
+<ul>
+	{products.map((p) => <li>{p.name}: {p.price}</li>)}
+</ul>

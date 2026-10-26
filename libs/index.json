@@ -16,5 +16,6 @@
   "openai": { "name": "OpenAI Node SDK", "packages": ["openai"] },
   "angular": { "name": "Angular", "packages": ["@angular/core", "@angular/common", "@angular/router", "@angular/forms", "@angular/cli"] },
   "vitest": { "name": "Vitest", "packages": ["vitest", "@vitest/*"] },
-  "drizzle": { "name": "Drizzle ORM", "packages": ["drizzle-orm", "drizzle-kit"] }
+  "drizzle": { "name": "Drizzle ORM", "packages": ["drizzle-orm", "drizzle-kit"] },
+  "astro": { "name": "Astro", "packages": ["astro", "@astrojs/*"] }
 }

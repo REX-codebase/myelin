@@ -33,6 +33,7 @@ libs/<id>/
 | `angular` | Angular | 22.2 | 2026-10-26 |
 | `vitest` | Vitest | 5.0 | 2026-10-26 |
 | `drizzle` | Drizzle ORM | 0.45 + kit 0.31 (v1 is RC, not targeted) | 2026-10-26 |
+| `astro` | Astro | 7.4 | 2026-10-26 |
 
 ## Scope notes
 

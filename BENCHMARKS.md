@@ -14,9 +14,14 @@ npm run bench
 | lib | bans | bad files | caught | good files | clean | rule recall | precision |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | ai-sdk | 20 | 8 | 100.0% | 6 | 100.0% | 100.0% | 100.0% |
+| angular | 16 | 10 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
+| astro | 14 | 9 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
+| drizzle | 13 | 10 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | eslint | 19 | 8 | 100.0% | 6 | 100.0% | 100.0% | 100.0% |
 | express | 14 | 7 | 100.0% | 5 | 100.0% | 100.0% | 100.0% |
+| mongoose | 17 | 9 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | nextjs | 20 | 12 | 100.0% | 8 | 100.0% | 100.0% | 100.0% |
+| openai | 16 | 10 | 100.0% | 6 | 100.0% | 100.0% | 100.0% |
 | prisma | 15 | 7 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | react | 20 | 10 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | react-router | 17 | 10 | 100.0% | 6 | 100.0% | 100.0% | 100.0% |
@@ -24,9 +29,10 @@ npm run bench
 | tailwind | 10 | 9 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | tanstack-query | 16 | 9 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | three | 21 | 11 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
+| vitest | 17 | 9 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | vue | 20 | 10 | 100.0% | 8 | 100.0% | 100.0% | 100.0% |
 | zod | 17 | 8 | 100.0% | 6 | 100.0% | 100.0% | 100.0% |
-| **TOTAL** | **231** | **120** | **100.0%** | **88** | **100.0%** | **100.0%** | **100.0%** |
+| **TOTAL** | **324** | **177** | **100.0%** | **129** | **100.0%** | **100.0%** | **100.0%** |
 
 - **caught**: stale files with at least one rule firing. **clean**: current files with no rule firing.
 - **rule recall / precision**: per-rule, against `expected.json`. A rule that fires where it shouldn't, or stays quiet where it should fire, counts against these.
@@ -40,7 +46,7 @@ Every ledger is run over every **other** library's current (`good/`) files. A le
 node bin/myelin.mjs bench --cross
 ```
 
-Result: **13 ledgers x other libs' good files: 1056 checks, 0 cross-library false positive(s)**
+Result: **19 ledgers x other libs' good files: 2322 checks, 0 cross-library false positive(s)**
 
 This test found real problems during development (Next.js's `params.x` rule firing on React Router and SvelteKit loaders, ESLint's `plugins: [` rule firing on Vite configs, Svelte's `<slot>` rule firing on Vue). Each was fixed in the rule, not the corpus.
 
