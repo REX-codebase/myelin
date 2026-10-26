@@ -1,0 +1,14 @@
+You are one participant in a controlled experiment. Work ONLY inside your run directory: <rundir>
+Rules: no web search, no web fetch, no reading any file outside <rundir> (except the files named below), no node_modules, no npm installs. Rely on what you know plus anything provided in <rundir>.
+
+TASK: write ONE self-contained file <rundir>/index.html: a production-quality, visually impressive real-time scene in three.js r186 (three@0.186.1, loaded from https://cdn.jsdelivr.net/npm/three@0.186.1/ via an import map) using WebGPURenderer. Aim for the look a professional technical artist would ship on a portfolio site: cinematic composition, good lighting and colour, atmosphere, post-processing, nothing placeholder-looking. Procedural content only (no external textures or models). Full-window canvas, responsive to resize, a tiny unobtrusive caption is allowed.
+
+SCENE: a rainy cyberpunk street at night. Requirements: a narrow street canyon with several tall buildings on both sides (procedural windows, some lit), glowing neon signs and strips in at least three colours, a wet reflective road with puddles that mirror the neon (roughness variation), falling rain (thousands of instanced or point streaks), drifting fog/haze that catches the light, a few street lamps, bloom on the neon, soft shadows, and a slow cinematic camera dolly down the street (or OrbitControls with autoRotate).
+
+GUIDANCE: <rundir>/SKILL.md is a guide to three.js r186. Read it fully BEFORE step 1 and follow it.
+
+PROCESS (follow exactly):
+1. Write your first complete version to <rundir>/index.html, then immediately copy it to <rundir>/draft.html (this draft is recorded and must not be edited afterwards).
+2. Review your code against SKILL.md and fix any mistakes in index.html.
+3. Improve visual quality: run `sh <rundir>/shoot.sh` (renders index.html headless with WebGPU on a software GPU, ~40 s, prints a PNG path) and look at the PNG with your Read tool. Iterate on index.html, at most 3 screenshots in total. Note: the software GPU is slow, so judge the image, not frame rate. You will not see the browser console.
+4. Final reply (plain text, under 250 words): techniques used; every three.js API you were unsure about; how many screenshot rounds; anything else notable.

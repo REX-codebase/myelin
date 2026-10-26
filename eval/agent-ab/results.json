@@ -1,0 +1,334 @@
+{
+ "lighthouse/control-1": {
+  "task": "lighthouse",
+  "arm": "control",
+  "draft": {
+   "ok": false,
+   "rules": [
+    "B1"
+   ]
+  },
+  "final": {
+   "ok": false,
+   "rules": [
+    "B1"
+   ]
+  },
+  "agentFirstLint": null,
+  "threeWarnings": [
+   "[warning] THREE.PostProcessing: \"PostProcessing\" has been renamed to \"RenderPipeline\". Please update your code to use \"THREE.RenderPipeline\" instead.",
+   "[warning] THREE.AttributeNode: Vertex attribute \"position\" not found on geometry."
+  ],
+  "errors": [],
+  "webgpu": true
+ },
+ "lighthouse/control-2": {
+  "task": "lighthouse",
+  "arm": "control",
+  "draft": {
+   "ok": false,
+   "rules": [
+    "B1",
+    "B6"
+   ]
+  },
+  "final": {
+   "ok": false,
+   "rules": [
+    "B1",
+    "B6"
+   ]
+  },
+  "agentFirstLint": null,
+  "threeWarnings": [
+   "[warning] THREE.PostProcessing: \"PostProcessing\" has been renamed to \"RenderPipeline\". Please update your code to use \"THREE.RenderPipeline\" instead.",
+   "[warning] THREE.WebGPURenderer: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.",
+   "[warning] THREE.AttributeNode: Vertex attribute \"position\" not found on geometry."
+  ],
+  "errors": [],
+  "webgpu": true
+ },
+ "lighthouse/control-3": {
+  "task": "lighthouse",
+  "arm": "control",
+  "draft": {
+   "ok": false,
+   "rules": [
+    "B1",
+    "B5",
+    "B6"
+   ]
+  },
+  "final": {
+   "ok": false,
+   "rules": [
+    "B1",
+    "B5",
+    "B6"
+   ]
+  },
+  "agentFirstLint": null,
+  "threeWarnings": [
+   "[warning] THREE.PostProcessing: \"PostProcessing\" has been renamed to \"RenderPipeline\". Please update your code to use \"THREE.RenderPipeline\" instead.",
+   "[warning] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.",
+   "[warning] THREE.WebGPURenderer: PCFSoftShadowMap has been removed. Using PCFShadowMap instead."
+  ],
+  "errors": [],
+  "webgpu": true
+ },
+ "lighthouse/myelin-1": {
+  "task": "lighthouse",
+  "arm": "myelin",
+  "draft": {
+   "ok": true,
+   "rules": []
+  },
+  "final": {
+   "ok": true,
+   "rules": []
+  },
+  "agentFirstLint": "21 bans, 0 requires, 1 unit(s) checked: clean",
+  "threeWarnings": [],
+  "errors": [],
+  "webgpu": true
+ },
+ "lighthouse/myelin-2": {
+  "task": "lighthouse",
+  "arm": "myelin",
+  "draft": {
+   "ok": true,
+   "rules": []
+  },
+  "final": {
+   "ok": true,
+   "rules": []
+  },
+  "agentFirstLint": "21 bans, 0 requires, 1 unit(s) checked: clean",
+  "threeWarnings": [],
+  "errors": [],
+  "webgpu": true
+ },
+ "lighthouse/myelin-3": {
+  "task": "lighthouse",
+  "arm": "myelin",
+  "draft": {
+   "ok": true,
+   "rules": []
+  },
+  "final": {
+   "ok": true,
+   "rules": []
+  },
+  "agentFirstLint": "21 bans, 0 requires, 1 unit(s) checked: clean",
+  "threeWarnings": [],
+  "errors": [],
+  "webgpu": true
+ },
+ "lighthouse/skill-1": {
+  "task": "lighthouse",
+  "arm": "skill",
+  "draft": {
+   "ok": true,
+   "rules": []
+  },
+  "final": {
+   "ok": true,
+   "rules": []
+  },
+  "agentFirstLint": null,
+  "threeWarnings": [],
+  "errors": [],
+  "webgpu": true
+ },
+ "lighthouse/skill-2": {
+  "task": "lighthouse",
+  "arm": "skill",
+  "draft": {
+   "ok": true,
+   "rules": []
+  },
+  "final": {
+   "ok": true,
+   "rules": []
+  },
+  "agentFirstLint": null,
+  "threeWarnings": [],
+  "errors": [],
+  "webgpu": true
+ },
+ "lighthouse/skill-3": {
+  "task": "lighthouse",
+  "arm": "skill",
+  "draft": {
+   "ok": true,
+   "rules": []
+  },
+  "final": {
+   "ok": true,
+   "rules": []
+  },
+  "agentFirstLint": null,
+  "threeWarnings": [],
+  "errors": [],
+  "webgpu": true
+ },
+ "neon/control-1": {
+  "task": "neon",
+  "arm": "control",
+  "draft": {
+   "ok": false,
+   "rules": [
+    "B1",
+    "B6"
+   ]
+  },
+  "final": {
+   "ok": false,
+   "rules": [
+    "B1",
+    "B6"
+   ]
+  },
+  "agentFirstLint": null,
+  "threeWarnings": [
+   "[warning] THREE.WebGPURenderer: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.",
+   "[warning] THREE.PostProcessing: \"PostProcessing\" has been renamed to \"RenderPipeline\". Please update your code to use \"THREE.RenderPipeline\" instead."
+  ],
+  "errors": [],
+  "webgpu": true
+ },
+ "neon/control-2": {
+  "task": "neon",
+  "arm": "control",
+  "draft": {
+   "ok": true,
+   "rules": []
+  },
+  "final": {
+   "ok": true,
+   "rules": []
+  },
+  "agentFirstLint": null,
+  "threeWarnings": [],
+  "errors": [],
+  "webgpu": true
+ },
+ "neon/control-3": {
+  "task": "neon",
+  "arm": "control",
+  "draft": {
+   "ok": false,
+   "rules": [
+    "B1"
+   ]
+  },
+  "final": {
+   "ok": false,
+   "rules": [
+    "B1"
+   ]
+  },
+  "agentFirstLint": null,
+  "threeWarnings": [
+   "[warning] THREE.PostProcessing: \"PostProcessing\" has been renamed to \"RenderPipeline\". Please update your code to use \"THREE.RenderPipeline\" instead."
+  ],
+  "errors": [],
+  "webgpu": true
+ },
+ "neon/myelin-1": {
+  "task": "neon",
+  "arm": "myelin",
+  "draft": {
+   "ok": true,
+   "rules": []
+  },
+  "final": {
+   "ok": true,
+   "rules": []
+  },
+  "agentFirstLint": "21 bans, 0 requires, 1 unit(s) checked: clean",
+  "threeWarnings": [],
+  "errors": [],
+  "webgpu": true
+ },
+ "neon/myelin-2": {
+  "task": "neon",
+  "arm": "myelin",
+  "draft": {
+   "ok": true,
+   "rules": []
+  },
+  "final": {
+   "ok": true,
+   "rules": []
+  },
+  "agentFirstLint": "21 bans, 0 requires, 1 unit(s) checked: clean",
+  "threeWarnings": [],
+  "errors": [],
+  "webgpu": true
+ },
+ "neon/myelin-3": {
+  "task": "neon",
+  "arm": "myelin",
+  "draft": {
+   "ok": true,
+   "rules": []
+  },
+  "final": {
+   "ok": true,
+   "rules": []
+  },
+  "agentFirstLint": "21 bans, 0 requires, 1 unit(s) checked: clean",
+  "threeWarnings": [],
+  "errors": [],
+  "webgpu": true
+ },
+ "neon/skill-1": {
+  "task": "neon",
+  "arm": "skill",
+  "draft": {
+   "ok": true,
+   "rules": []
+  },
+  "final": {
+   "ok": true,
+   "rules": []
+  },
+  "agentFirstLint": null,
+  "threeWarnings": [],
+  "errors": [],
+  "webgpu": true
+ },
+ "neon/skill-2": {
+  "task": "neon",
+  "arm": "skill",
+  "draft": {
+   "ok": true,
+   "rules": []
+  },
+  "final": {
+   "ok": true,
+   "rules": []
+  },
+  "agentFirstLint": null,
+  "threeWarnings": [],
+  "errors": [],
+  "webgpu": true
+ },
+ "neon/skill-3": {
+  "task": "neon",
+  "arm": "skill",
+  "draft": {
+   "ok": true,
+   "rules": []
+  },
+  "final": {
+   "ok": true,
+   "rules": []
+  },
+  "agentFirstLint": null,
+  "threeWarnings": [],
+  "errors": [],
+  "webgpu": true
+ }
+}
