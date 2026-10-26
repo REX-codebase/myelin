@@ -44,9 +44,6 @@ Pick the line for your system. Each one installs the `myelin` command. Myelin is
 |---|---|
 | macOS, Linux, WSL | `curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh \| sh` |
 | Windows (PowerShell) | `irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1 \| iex` |
-| npm (any OS, Node 18+) | `npm install -g myelin-ledger` |
-| Homebrew (macOS, Linux) | `brew install rex-codebase/tap/myelin` |
-| Scoop (Windows) | `scoop bucket add rex https://github.com/REX-codebase/scoop-bucket && scoop install myelin` |
 | No install (any OS, Node 18+) | `npx github:REX-codebase/myelin setup` |
 
 **Then run `myelin setup`.** It is the first-run wizard, and it:
@@ -77,7 +74,6 @@ curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1))) -Uninstall   # Windows
 ```
 
-If you installed with npm, Homebrew or Scoop, use `npm uninstall -g myelin-ledger`, `brew uninstall myelin` or `scoop uninstall myelin`.
 
 <p align="center"><img src="assets/demo.svg" alt="myelin lint catching five stale three.js APIs, then passing clean" width="100%"></p>
 
