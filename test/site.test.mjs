@@ -73,3 +73,22 @@ test('the quality ladder only drops work, never adds it, and ends above a legibl
   assert.match(scene, /MathU\.clamp\(ratioScale \* Math\.min\(window\.devicePixelRatio \|\| 1, RATIO_CAP,[\s\S]*?, 0\.6, 2\)/, 'pixel ratio is not floored at 0.6');
   assert.match(scene, /\.\.\.LADDER\[rung\+\+\]\(\)|!LADDER\[rung\+\+\]\(\)/, 'ladder does not skip rungs that are already spent');
 });
+
+test('the page loads nothing from a third party except the pinned three.js CDN, and says so', () => {
+  const tags = [...page.matchAll(/<(?:link|script|img|source|iframe|video|audio)\b[^>]*?(?:src|href)="(https?:\/\/[^"]+)"/g)].map((m) => new URL(m[1]).host);
+  const map = (page.match(/<script type="importmap">([\s\S]*?)<\/script>/) || ['', ''])[1];
+  const imports = [...map.matchAll(/"(https?:\/\/[^"]+)"/g)].map((m) => new URL(m[1]).host);
+  assert.deepEqual([...new Set([...tags, ...imports])], ['cdn.jsdelivr.net'], 'a new third-party host needs a deliberate decision, and a line in the footer');
+  assert.doesNotMatch(page, /url\(\s*["']?https?:/, 'CSS pulls in an external resource');
+  assert.match(page, /No cookies and no analytics\./);
+  assert.match(page, /loads three\.js r186 from cdn\.jsdelivr\.net/);
+});
+
+test('the page and scene use no storage, tracking or network APIs of their own', () => {
+  // look at code only: the footer's own sentence says "no analytics"
+  const inline = [...page.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join('\n');
+  for (const [name, text] of [['inline scripts in index.html', inline], ['scene.js', scene]]) {
+    const hit = /document\.cookie|localStorage|sessionStorage|indexedDB|sendBeacon|XMLHttpRequest|\bfetch\(|WebSocket|gtag\(|analytics/.exec(text);
+    assert.equal(hit, null, `${name} uses ${hit && hit[0]}, which contradicts the footer's privacy line`);
+  }
+});

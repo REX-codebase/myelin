@@ -1,0 +1,39 @@
+name: A ledger is out of date, or a library is missing
+description: A bundled ledger targets an old release, misses a deprecation, or you want a library added.
+title: "[ledger] <library>: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ledgers are pinned to one release and a research date, and every rule needs a source link. A link to the migration guide or changelog is the most useful thing you can add.
+  - type: input
+    id: library
+    attributes:
+      label: Library
+      description: For example `react-router`.
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is wrong
+      options:
+        - The ledger targets an older release than the current one
+        - A deprecated or removed API is not caught
+        - Add a library that has no ledger yet
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: Details
+      description: The release you expected, the API models still write, and the replacement.
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source link
+      description: The migration guide, changelog or release note that says so.
+    validations:
+      required: false

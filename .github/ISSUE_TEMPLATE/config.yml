@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security problem privately
+    url: https://github.com/REX-codebase/myelin/security/advisories/new
+    about: Use this for anything that could harm someone who loads a ledger or runs the installer. See SECURITY.md.
+  - name: Read the docs first
+    url: https://github.com/REX-codebase/myelin/blob/main/docs/REFERENCE.md
+    about: The CLI reference, the ledger format and how to write your own.
