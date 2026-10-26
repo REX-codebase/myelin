@@ -28,6 +28,7 @@ libs/<id>/
 | `ai-sdk` | Vercel AI SDK | `ai` 7.0 | 2026-10-26 |
 | `tanstack-query` | TanStack Query | 5.104 | 2026-10-26 |
 | `prisma` | Prisma ORM | 7.10 (v8 is RC, not targeted) | 2026-10-26 |
+| `mongoose` | Mongoose | 9.11 | 2026-10-26 |
 
 ## Scope notes
 
