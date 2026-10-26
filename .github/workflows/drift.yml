@@ -1,0 +1,44 @@
+name: ledger-drift
+
+# Ledgers are pinned to one release, so they go stale. Once a week, compare each pin with npm's
+# latest and keep a single issue up to date: opened on drift, edited in place, closed when resolved.
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ledger-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Compare pinned versions with npm
+        id: compare
+        run: |
+          node scripts/drift.mjs --md --json-file drift.json > drift.md
+          cat drift.md >> "$GITHUB_STEP_SUMMARY"
+          drift=$(node -e "const r=JSON.parse(require('fs').readFileSync('drift.json','utf8')); process.stdout.write(String(r.some((x)=>x.status==='major'||x.status==='minor')))")
+          echo "drift=$drift" >> "$GITHUB_OUTPUT"
+          # A registry outage is not drift. Say so, but do not open or close anything over it.
+          unknown=$(node -e "const r=JSON.parse(require('fs').readFileSync('drift.json','utf8')); process.stdout.write(String(r.filter((x)=>x.status==='unknown').length))")
+          echo "unknown=$unknown" >> "$GITHUB_OUTPUT"
+
+      - name: Open, update or close the drift issue
+        if: steps.compare.outputs.unknown == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRIFT: ${{ steps.compare.outputs.drift }}
+          BODY: drift.md
+        run: sh scripts/drift-issue.sh

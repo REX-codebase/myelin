@@ -53,6 +53,12 @@ Then feed it real output, good and bad, and see whether the rules fire when they
 - a requirement so loose it always passes,
 - an `unless` that exempts too much.
 
+## Keep a bundled ledger in step with its library
+
+A bundled ledger targets one release. When you re-verify one, change three things together: the `= version` and `= verified` lines in `libs/<id>/<id>.myelin`, and that library's entry in `libs/pins.json`. A test fails if the pin is not the version the ledger names.
+
+`npm run drift` compares every pin with npm's latest release and says which ledgers are behind. A weekly workflow runs it and keeps one issue open while any ledger is a minor or major release behind.
+
 ## When a rule will not fit a regex
 
 Move it to `~` as a preference, or to a skill. Do not write a regex so broad that it fires on correct code.
