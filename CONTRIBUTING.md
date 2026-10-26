@@ -26,3 +26,6 @@ Plain ES modules, no build step, no transpiler. Prefer small functions and clear
 ## Evidence
 
 If you claim a ledger improves model compliance, include the numbers from [eval/](eval/README.md): models, conditions, run counts, and the full table, including results that were not flattering.
+
+## License
+Contributions to Myelin are licensed under the [MIT License](LICENSE). By submitting a contribution, you agree that it may be distributed under the same license.
