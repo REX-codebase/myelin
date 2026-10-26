@@ -73,3 +73,7 @@ node eval/agent-ab/score.mjs <runs-dir> <path-to-unpacked-three-package>
 ```
 
 `results.json` has the draft and final lint, the agent's own first lint (myelin arm) and the runtime console per run.
+
+## Showcase (polished, not part of the comparison)
+
+The README demo uses the top-judged Myelin run of each scene (`myelin-3` in both, by the blind scores above), polished further by Haiku 5.5 with up to six more screenshot rounds against an art-direction brief, linting after every edit. These are a demonstration of the Myelin workflow, not experiment results: the other arms were not polished. Both final pages lint clean and printed nothing to the console when rendered. Files: [`showcase/`](showcase/).

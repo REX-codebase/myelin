@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Agent A/B with Claude Haiku 5.5** (`eval/agent-ab/`): 18 agents, two three.js r186 scenes, three arms. Stale-API first drafts: no guidance 5/6, prose skill 0/6, Myelin 0/6; lint matched three.js runtime warnings on all 18 pages; blind visual scores within noise. Offline WebGPU render harness and scorer included.
+- README **Demo** section: two polished Myelin scenes (lighthouse, neon street), lint clean with zero console warnings.
+- The bonfire A/B is now credited to GLM 5.3.
 - **6 new library ledgers** (19 total), researched 2026-10-26: Angular 22.2, Astro 7.4, Drizzle ORM 0.45 (+ drizzle-kit 0.31; v1 RC not targeted), Mongoose 9.11, OpenAI Node SDK 7.43, Vitest 5.0. 93 new bans, each sourced in `SOURCES.md`; corpus is now 177 stale and 129 current files, 0 cross-library false positives over 2322 checks.
 - svelte B5 (`<slot>`) no longer fires on Astro components, where `<slot />` is current.
 - `myelin --version` prints the version; `--ext` with no value is a usage error instead of matching nothing.

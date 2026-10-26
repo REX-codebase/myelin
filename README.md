@@ -9,6 +9,7 @@
 
 <p align="center">
   <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
+  <a href="#demo">Demo</a> &nbsp;·&nbsp;
   <a href="#libraries">Libraries</a> &nbsp;·&nbsp;
   <a href="#evidence">Evidence</a> &nbsp;·&nbsp;
   <a href="#constraints">Constraints</a> &nbsp;·&nbsp;
@@ -84,6 +85,21 @@ $$
 | `$` | **Snippet.** Copy-exact code a rule can point to. |
 
 Full grammar in [docs/SPEC.md](docs/SPEC.md).
+
+<br>
+
+## Demo
+
+Two real-time three.js r186 WebGPU scenes, written end to end by Claude Haiku 5.5 with the Myelin gate and lint in the loop. Every iteration was linted; both final pages lint clean and render with zero three.js console warnings.
+
+<p align="center"><img src="assets/showcase.jpg" alt="A storm lighthouse at dusk and a rainy neon street, both written by Claude Haiku 5.5 with Myelin, lint clean" width="100%"></p>
+
+<p align="center"><sub>Each scene is the top-judged Myelin run from the <a href="eval/agent-ab/README.md">agent A/B</a>, then polished by Haiku 5.5 over up to six more screenshot rounds against an art-direction brief. Procedural only, one HTML file each: <a href="eval/agent-ab/showcase/lighthouse/index.html">lighthouse</a>, <a href="eval/agent-ab/showcase/neon/index.html">neon street</a>. Rendered on a software GPU.</sub></p>
+
+```bash
+node bin/myelin.mjs lint three eval/agent-ab/showcase/*/index.html
+# 21 bans, 0 requires, 2 unit(s) checked: clean
+```
 
 <br>
 
