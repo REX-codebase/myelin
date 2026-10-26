@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- New `myelin fix <ledger> <file|dir>...`: like `lint`, but prints each failing rule's fix message and its snippet once, not once per file. Read-only. Same exit codes; `--json`, `--ext` and comma-separated lib ids work as in `lint`.
+- New `lint --watch`: re-runs the check when a file changes. Debounced; built on per-directory `fs.watch`, so it works on Node 18 on Linux. Ctrl-C stops it.
+- New `action.yml` at the repo root: a composite GitHub Action that runs `lint` and fails the job on any violation. Inputs `libs` (ids, paths, or `detect`), `paths` and `ext`. Usage in docs/HOSTS.md.
+- Fixed: under `comments skip`, a quote inside a regex literal (`/"/`) or an apostrophe hid a comment later on the same line, so a banned name in that comment fired.
+- Fixed: a UTF-8 byte order mark at the start of a `.myelin` file made the ledger invalid ("first line must be myelin").
+- 58 tests (was 46).
+
 ## 0.2.1
 
 - New optional header key `comments skip`: blanks `//`, `/* */` and HTML comments in JS/TS/HTML/CSS-like files before checking, so a comment naming a banned API is not a violation. Off by default (the eslint ledger's rules target comments). The three ledger turns it on.

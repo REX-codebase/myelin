@@ -3,6 +3,8 @@ import { join, extname } from 'node:path';
 import { parse } from './parse.mjs';
 import { check, snippetUnits } from './check.mjs';
 import { renderGate, renderHeader } from './gate.mjs';
+import { fixPlan } from './fix.mjs';
+import { watchLoop } from './watch.mjs';
 import { libPath, listLibs, detectLibs, benchAll, benchTable, benchCross } from './libs.mjs';
 import { mkdirSync, copyFileSync } from 'node:fs';
 
@@ -20,13 +22,16 @@ usage:
   myelin bench [lib...]                    score libs on their labelled corpus (--md table, --cross false-positive sweep)
   myelin validate <ledger>                 parse the ledger and report problems
   myelin self <ledger|dir>...              validate, then run the ledger's own snippets through its rules
-  myelin lint <ledger> <file|dir>...       check files against the ledger (--ext=js,ts to filter dirs)
+  myelin lint <ledger> <file|dir>...       check files against the ledger (--ext=js,ts to filter dirs, --watch to re-run on change)
+  myelin fix <ledger> <file|dir>...        like lint, but prints each failing rule's fix message and snippet once (read-only)
   myelin gate <ledger> [--snippets=a,b|--all]   print the rules as text for a model
   myelin header <ledger>                   print only the short L0 header
   myelin snippet <ledger> <id>             print one copy-exact snippet
   myelin init <path>                       write a starter ledger
+  myelin version                           print the version (also --version)
 
-flags:  --json  machine-readable output (validate, self, lint)
+flags:  --json  machine-readable output (validate, self, lint, fix)
+        --watch  lint: re-run when files change; Ctrl-C to stop
 exit codes: 0 clean, 1 rule failures or invalid ledger, 2 usage or file error
 `;
 
@@ -102,6 +107,14 @@ function requireValid(file, ledger) {
   }
 }
 
+function summary(result) {
+  const { bans, requires, units } = result.counts;
+  return (
+    `${bans} bans, ${requires} requires, ${units} unit(s) checked: ` +
+    (result.ok ? 'clean' : `${result.violations.length} failure(s)`)
+  );
+}
+
 function reportCheck(result, log) {
   for (const v of result.violations) {
     if (v.kind === 'ban') {
@@ -110,11 +123,70 @@ function reportCheck(result, log) {
       log(`FAIL ${v.id}  missing  ${v.message}${v.ref ? '  (-> $' + v.ref + ')' : ''}`);
     }
   }
-  const { bans, requires, units } = result.counts;
-  log(
-    `${bans} bans, ${requires} requires, ${units} unit(s) checked: ` +
-      (result.ok ? 'clean' : `${result.violations.length} failure(s)`),
-  );
+  log(summary(result));
+}
+
+// fix: one block per failing rule. A requirement has no place to point at, so it is "missing".
+function reportFix(ledger, result, log) {
+  for (const f of fixPlan(ledger, result)) {
+    const where =
+      f.kind === 'ban' ? f.places.map((p) => `${p.unit}${p.line ? ':' + p.line : ''}`).join(', ') : 'missing from all files';
+    log(`FIX ${f.id}  ${f.message}`);
+    log(`    ${where}`);
+    if (f.snippet !== null) {
+      log(`    snippet $${f.ref} (copy exact):`);
+      log('```');
+      log(f.snippet);
+      log('```');
+    }
+  }
+  log(summary(result));
+}
+
+// Shared by lint, lint --watch and fix: the ledgers named by <ledger> (a path, or a
+// comma-separated list of paths and lib ids) and the text units under the targets.
+function lintInputs(args, flags) {
+  const [ledgerArg, ...targets] = args;
+  if (!ledgerArg) throw new CliError('missing ledger path');
+  const names = existsSync(ledgerArg) ? [ledgerArg] : ledgerArg.split(',').map((x) => x.trim()).filter(Boolean);
+  const ledgers = names.map((n) => {
+    const l = load(n);
+    requireValid(n, l);
+    return [n, l];
+  });
+  if (!targets.length) throw new CliError('missing file or directory to check');
+  if (flags.ext === true) throw new CliError('--ext needs a value, e.g. --ext=js,ts');
+  const exts = String(flags.ext || DEFAULT_EXT).split(',').map((x) => x.trim());
+  const files = collect(targets, exts);
+  if (!files.length) throw new CliError('no files to check');
+  const units = files.map((f) => ({ name: f, text: readFileSync(f, 'utf8') }));
+  return { names, ledgers, units, targets };
+}
+
+function runLint(args, flags, log) {
+  const { ledgers, units } = lintInputs(args, flags);
+  const results = ledgers.map(([n, l]) => ({ ledger: n, ...check(l, units) }));
+  const ok = results.every((r) => r.ok);
+  if (flags.json) log(JSON.stringify(results.length === 1 ? results[0] : { ok, results }, null, 2));
+  else
+    for (const r of results) {
+      if (results.length > 1) log(`[${r.ledger}]`);
+      reportCheck(r, log);
+    }
+  return ok;
+}
+
+// Usage errors in the first run exit 2 like plain lint. After that a failing run is
+// reported and the watch keeps going, since the author is probably mid-edit.
+async function watchLint(args, flags, log) {
+  const { names, targets } = lintInputs(args, flags);
+  const ledgerFiles = names.map((n) => (existsSync(n) ? n : libPath(n))).filter(Boolean);
+  const job = () => {
+    log(`\n[${new Date().toLocaleTimeString()}] lint`);
+    runLint(args, flags, log);
+  };
+  log(`watching ${targets.join(', ')} (Ctrl-C to stop)`);
+  return await watchLoop([...targets, ...ledgerFiles], job);
 }
 
 const TEMPLATE = `myelin 1
@@ -138,7 +210,7 @@ $$
 
 export async function main(argv) {
   const { pos, flags } = parseArgs(argv);
-  const [cmd, ...args] = pos;
+  const [cmd, ...args] = pos.length || !flags.version ? pos : ['version'];
   const log = (s) => console.log(s);
 
   try {
@@ -193,26 +265,21 @@ export async function main(argv) {
       }
 
       case 'lint': {
-        const [ledgerArg, ...targets] = args;
-        if (!ledgerArg) throw new CliError('missing ledger path');
-        const names = existsSync(ledgerArg) ? [ledgerArg] : ledgerArg.split(',').map((x) => x.trim()).filter(Boolean);
-        const ledgers = names.map((n) => {
-          const l = load(n);
-          requireValid(n, l);
-          return [n, l];
-        });
-        if (!targets.length) throw new CliError('missing file or directory to check');
-        const exts = String(flags.ext || DEFAULT_EXT).split(',').map((x) => x.trim());
-        const files = collect(targets, exts);
-        if (!files.length) throw new CliError('no files to check');
-        const units = files.map((f) => ({ name: f, text: readFileSync(f, 'utf8') }));
-        const results = ledgers.map(([n, l]) => ({ ledger: n, ...check(l, units) }));
-        const ok = results.every((r) => r.ok);
-        if (flags.json) log(JSON.stringify(results.length === 1 ? results[0] : { ok, results }, null, 2));
-        else
-          for (const r of results) {
-            if (results.length > 1) log(`[${r.ledger}]`);
-            reportCheck(r, log);
+        if (flags.watch) return await watchLint(args, flags, log);
+        return runLint(args, flags, log) ? 0 : 1;
+      }
+
+      case 'fix': {
+        const { ledgers, units } = lintInputs(args, flags);
+        const runs = ledgers.map(([name, ledger]) => ({ name, ledger, result: check(ledger, units) }));
+        const ok = runs.every((r) => r.result.ok);
+        if (flags.json) {
+          const results = runs.map(({ name, ledger, result }) => ({ ledger: name, ...result, fixes: fixPlan(ledger, result) }));
+          log(JSON.stringify(results.length === 1 ? results[0] : { ok, results }, null, 2));
+        } else
+          for (const { name, ledger, result } of runs) {
+            if (runs.length > 1) log(`[${name}]`);
+            reportFix(ledger, result, log);
           }
         return ok ? 0 : 1;
       }

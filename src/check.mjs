@@ -42,6 +42,9 @@ export function maskComments(text, name = '') {
         else if (c !== '`' && text[j] === '\n') break;
         j++;
       }
+      // Unterminated: this quote is not a string (a regex like /"/, or an
+      // apostrophe in prose). Skipping to end of line would hide a comment after it.
+      if (text[j] !== c) { i++; continue; }
       i = j + 1; continue;
     }
     i++;

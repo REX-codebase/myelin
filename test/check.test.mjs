@@ -112,3 +112,11 @@ test('a ban does not fire on a comment that mentions it (C-style units)', () => 
   assert.deepEqual(live.violations.map((v) => v.id), ['B1']);
   assert.equal(live.violations[0].line, 2);
 });
+
+test('a quote in a regex literal does not hide a comment on the same line', () => {
+  const ledger = parse(HEAD.replace('status  test', 'comments skip\nstatus  test') + '\n' + String.raw`! B1 /Math\.random\(/   no random
+`);
+  assert.ok(ledger.ok, JSON.stringify(ledger.problems));
+  const r = check(ledger, [{ name: 'a.js', text: "const re = /\"/; /* Math.random() */\nconst q = /'/; // Math.random()\n" }]);
+  assert.ok(r.ok, JSON.stringify(r.violations));
+});

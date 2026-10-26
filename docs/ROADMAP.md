@@ -20,9 +20,9 @@ Ideas, not promises. Order is rough priority.
 ## Tooling
 
 - Editor syntax highlighting for `.myelin`.
-- A GitHub Action wrapper.
-- A watch mode for `lint`.
-- A `myelin fix` that suggests the snippet for each failing rule.
+- Done (unreleased): a GitHub Action wrapper (`action.yml`, see [HOSTS](HOSTS.md)).
+- Done (unreleased): a watch mode for `lint` (`--watch`).
+- Done (unreleased): `myelin fix` prints the fix message and snippet for each failing rule. It is read-only; applying snippets stays with the author.
 
 ## Distribution
 

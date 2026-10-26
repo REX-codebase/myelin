@@ -6,7 +6,8 @@ const REF = /\s*->\s*\$([\w-]+)\s*$/;
 // Parse a .myelin file into a ledger object. Never throws on bad input:
 // problems are collected in ledger.problems, and ledger.ok is false when any is an error.
 export function parse(text) {
-  const lines = String(text).replace(/\r\n?/g, '\n').split('\n');
+  // A BOM is what Windows editors write; it is not part of the version line.
+  const lines = String(text).replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').split('\n');
   const ledger = {
     version: null,
     header: {},

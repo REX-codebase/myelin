@@ -119,3 +119,12 @@ test('eval harness scores conditions per model', () => {
   assert.match(r.stdout, /modelA\s+myelin\s+1\s+1\s+100%/);
   assert.match(readFileSync(csv, 'utf8'), /modelA,baseline,run1\.js|"modelA","baseline","run1\.js"/);
 });
+
+test('--version prints the version and --ext without a value is a usage error', () => {
+  let r = run('--version');
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /^\d+\.\d+\.\d+/);
+  r = run('lint', 'zod', 'libs/zod/bench/good', '--ext');
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /--ext needs a value/);
+});
