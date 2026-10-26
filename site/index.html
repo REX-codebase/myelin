@@ -11,6 +11,13 @@
 <meta property="og:title" content="Myelin: rule ledgers for AI-written code">
 <meta property="og:description" content="Keep AI-written code on the current version of your libraries.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://rex-codebase.github.io/myelin/">
+<meta property="og:image" content="https://rex-codebase.github.io/myelin/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Myelin: rule ledgers for AI-written code">
+<meta name="twitter:image" content="https://rex-codebase.github.io/myelin/og.png">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
 :root{
@@ -95,6 +102,8 @@ section{padding:72px 0}
   .nav-links{gap:0}
   .nav-links a{padding:8px 6px;font-size:13.5px}
   .nav-links a.gh-text{display:none}
+  .nav-links a.nl{display:none}
+  .nav-links a.cta{padding:8px 12px}
 }
 
 /* hero */
@@ -133,7 +142,7 @@ section{padding:72px 0}
 .then code{color:var(--text);background:var(--surface-2);padding:2px 7px;border-radius:6px;font-size:.9em}
 @media (max-width:600px){
   .cmd{flex-direction:column;align-items:stretch;padding:14px}
-  .cmd code{align-self:auto}
+  .cmd code{align-self:auto;word-break:break-all;overflow-wrap:normal}
   .copy{width:100%;padding:11px 14px}
 }
 
@@ -149,6 +158,7 @@ section{padding:72px 0}
 .split{display:grid;gap:36px;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);align-items:center}
 @media (max-width:880px){.split{grid-template-columns:1fr;gap:28px}}
 .split .lede + .lede{margin-top:14px}
+.split h2 + .lede{margin-top:14px}
 .term{background:var(--code);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 40px 80px -48px var(--glow)}
 .term-bar{display:flex;align-items:center;gap:7px;padding:12px 16px;border-bottom:1px solid #1a2233}
 .term-bar span{width:11px;height:11px;border-radius:50%;background:#2a3348}
@@ -219,6 +229,67 @@ section{padding:72px 0}
 .foot a{color:var(--muted);text-decoration:none}
 .foot a:hover{color:var(--text);text-decoration:underline}
 .foot .fine{margin-top:14px;font-size:13px;max-width:52ch}
+
+/* ---- v2 additions ---- */
+.nav-links a.cta{background:var(--accent);color:var(--on-accent);font-weight:700;padding:8px 14px;margin-left:6px}
+.nav-links a.cta:hover{background:var(--accent);color:var(--on-accent);filter:brightness(1.08)}
+.hero .install{max-width:920px}
+@media (min-width:900px){.cmd code{white-space:nowrap;overflow-x:auto;font-size:13.5px;scrollbar-width:none}.cmd code::-webkit-scrollbar{display:none}}
+.facts{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 28px;list-style:none;margin:28px 0 0;padding:0;color:var(--muted);font-size:14px}
+.facts li{display:inline-flex;align-items:center;gap:8px}
+.facts li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.facts b{color:var(--text);font-weight:700}
+.hero{padding-bottom:24px}
+
+/* compare */
+.compare{border:1px solid var(--line);border-radius:18px;background:var(--surface);overflow:hidden}
+.cmp-head,.cmp-row{display:grid;grid-template-columns:150px minmax(0,1fr) 28px minmax(0,1fr) 44px;gap:0 16px;align-items:center;padding:14px 22px}
+.cmp-head{font:700 11.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--line)}
+.cmp-head .bad-h{color:var(--bad)}.cmp-head .ok-h{color:var(--ok)}
+.cmp-row{border-top:1px solid var(--line)}
+.cmp-head + .cmp-row{border-top:0}
+.cmp-row .lib{font-weight:700;font-size:14.5px}
+.cmp-row code{display:block;font-size:13px;padding:8px 12px;border-radius:9px;background:var(--code);border:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmp-row code.old{color:var(--bad);text-decoration:line-through;text-decoration-color:rgba(255,138,154,.45)}
+.cmp-row code.new{color:var(--ok)}
+.cmp-row .arrow{color:var(--muted);text-align:center;font-family:var(--mono)}
+.cmp-row .rid{font:600 12px/1 var(--mono);color:var(--muted);text-align:right}
+@media (max-width:820px){
+  .cmp-head{display:none}
+  .cmp-row{grid-template-columns:1fr;gap:8px;padding:16px 18px}
+  .cmp-row .arrow{display:none}
+  .cmp-row .rid{text-align:left}
+  .cmp-row code{white-space:pre-wrap;overflow-wrap:anywhere}
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .cmp-row code.old{color:#b4233b}:root:not([data-theme="dark"]) .cmp-row code.new{color:#0b7a3b}.cmp-head .bad-h{color:#b4233b}.cmp-head .ok-h{color:#0b7a3b}:root:not([data-theme="dark"]) .cmp-row code{background:#f1f5fb}}
+
+/* step pills */
+.step .pill{display:block;padding:9px 12px;border-radius:9px;background:var(--code);border:1px solid var(--line);color:#dbe7f6;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step .pill::before{content:"$ ";color:#5b6a86}
+.step{display:flex;flex-direction:column}
+.step .pill{margin-top:auto}
+.step p{margin-bottom:16px}
+
+/* libs */
+.libs a.add{border-style:dashed;justify-content:center;background:transparent}
+.libs a.add strong{color:var(--accent-ink)}
+.hint{margin-top:18px}
+
+/* faq two column */
+.faq-grid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.6fr);gap:40px;align-items:start}
+.faq-grid .head{position:sticky;top:96px;margin:0}
+.faq-grid .faq{max-width:none}
+.faq-grid .faq details:first-child{margin-top:0}
+@media (max-width:880px){.faq-grid{grid-template-columns:1fr;gap:20px}.faq-grid .head{position:static;margin-bottom:8px}}
+
+/* final CTA */
+.final{border-top:1px solid var(--line);position:relative;overflow:hidden;text-align:center}
+.final::before{content:"";position:absolute;left:50%;bottom:-260px;width:min(1000px,150vw);height:520px;transform:translateX(-50%);background:radial-gradient(closest-side,var(--glow),transparent);pointer-events:none;z-index:-1}
+.final h2{font-size:clamp(1.9rem,4.4vw,3rem);letter-spacing:-.03em;max-width:20ch;margin:0 auto 14px}
+.final .lede{margin:0 auto 30px}
+.final .cmds{display:grid;gap:12px;max-width:880px;margin:0 auto;text-align:left}
+.final .label{margin:6px 4px 0}
+.final-links{margin-top:26px;display:flex;flex-wrap:wrap;gap:10px 22px;justify-content:center;font-size:15px}
 </style>
 </head>
 <body>
@@ -232,13 +303,14 @@ section{padding:72px 0}
     </a>
     <nav aria-label="Primary">
       <div class="nav-links">
-        <a href="#install">Install</a>
-        <a href="#libraries">Libraries</a>
-        <a href="#evidence">Evidence</a>
+        <a class="nl" href="#libraries">Libraries</a>
+        <a class="nl" href="#evidence">Evidence</a>
+        <a class="nl" href="#faq">FAQ</a>
         <a class="gh" href="https://github.com/REX-codebase/myelin" aria-label="GitHub repository">
           <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.96 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
           <span class="gh-text">GitHub</span>
         </a>
+        <a class="cta" href="#install">Get Myelin</a>
       </div>
     </nav>
   </div>
@@ -294,6 +366,36 @@ section{padding:72px 0}
         <p class="then">Then run <code>myelin setup</code></p>
       </div>
     </div>
+
+    <ul class="facts" aria-label="At a glance">
+      <li><b>19</b> libraries</li>
+      <li><b>324</b> machine-checked bans</li>
+      <li><b>0</b> dependencies</li>
+      <li>No network calls at runtime</li>
+      <li>MIT licensed</li>
+    </ul>
+  </div>
+</section>
+
+<!-- COMPARE -->
+<section id="problem" aria-labelledby="problem-title">
+  <div class="wrap">
+    <div class="head">
+      <p class="kicker">The problem</p>
+      <h2 class="h2" id="problem-title">The code looks right. The library moved on.</h2>
+      <p class="lede">Models write what they saw most in training. Each row is a real rule from a shipped ledger: the call a model reaches for, and what the library expects now.</p>
+    </div>
+    <div class="compare" role="table" aria-label="Stale API versus current API">
+      <div class="cmp-head" role="row"><span role="columnheader">Library</span><span class="bad-h" role="columnheader">What your AI writes</span><span aria-hidden="true"></span><span class="ok-h" role="columnheader">What the library wants now</span><span role="columnheader" style="text-align:right">Rule</span></div>
+      <div class="cmp-row" role="row"><span class="lib" role="cell">three.js r186</span><code class="old" role="cell">const clock = new THREE.Clock();</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">const timer = new THREE.Timer();</code><span class="rid" role="cell">B5</span></div>
+      <div class="cmp-row" role="row"><span class="lib" role="cell">React 19</span><code class="old" role="cell">ReactDOM.render(&lt;App /&gt;, root);</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">createRoot(root).render(&lt;App /&gt;);</code><span class="rid" role="cell">B1</span></div>
+      <div class="cmp-row" role="row"><span class="lib" role="cell">Next.js 16</span><code class="old" role="cell">const t = cookies().get('token');</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">const t = (await cookies()).get('token');</code><span class="rid" role="cell">B1</span></div>
+      <div class="cmp-row" role="row"><span class="lib" role="cell">Tailwind 4</span><code class="old" role="cell">@tailwind base;</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">@import "tailwindcss";</code><span class="rid" role="cell">T1</span></div>
+      <div class="cmp-row" role="row"><span class="lib" role="cell">Zod 4</span><code class="old" role="cell">z.string().email()</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">z.email()</code><span class="rid" role="cell">B1</span></div>
+      <div class="cmp-row" role="row"><span class="lib" role="cell">Svelte 5</span><code class="old" role="cell">export let name;</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">let { name } = $props();</code><span class="rid" role="cell">B1</span></div>
+      <div class="cmp-row" role="row"><span class="lib" role="cell">Express 5</span><code class="old" role="cell">app.get('*', handler);</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">app.get('/*splat', handler);</code><span class="rid" role="cell">E9</span></div>
+      <div class="cmp-row" role="row"><span class="lib" role="cell">React Router 8</span><code class="old" role="cell">import { Link } from 'react-router-dom';</code><span class="arrow" aria-label="becomes">&rarr;</span><code class="new" role="cell">import { Link } from 'react-router';</code><span class="rid" role="cell">R1</span></div>
+    </div>
   </div>
 </section>
 
@@ -309,16 +411,19 @@ section{padding:72px 0}
         <span class="n">01</span>
         <h3>Install</h3>
         <p>One command. Put the <code>myelin</code> command on your machine.</p>
+        <code class="pill">curl -fsSL &hellip;/install.sh | sh</code>
       </li>
       <li class="step">
         <span class="n">02</span>
         <h3>Setup</h3>
         <p><code>myelin setup</code> detects the libraries in your project and wires their ledgers into <code>AGENTS.md</code> or <code>CLAUDE.md</code>.</p>
+        <code class="pill">myelin setup</code>
       </li>
       <li class="step">
         <span class="n">03</span>
         <h3>Ship</h3>
         <p>Your agent reads the rules before it writes. <code>myelin lint</code> checks the result and fails on stale code.</p>
+        <code class="pill">myelin lint react,tailwind src/</code>
       </li>
     </ol>
   </div>
@@ -391,8 +496,8 @@ section{padding:72px 0}
       <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/mongoose"><strong>Mongoose</strong><span>9.11 · 17 bans</span></a></li>
       <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/openai"><strong>OpenAI Node SDK</strong><span>7.43 · 16 bans</span></a></li>
       <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/vitest"><strong>Vitest</strong><span>5.0 · 17 bans</span></a></li>
+      <li><a class="add" href="https://github.com/REX-codebase/myelin/blob/main/docs/AUTHORING.md"><strong>Add yours &rarr;</strong><span>write a ledger</span></a></li>
     </ul>
-    <p class="hint">Missing yours? <a href="https://github.com/REX-codebase/myelin/blob/main/docs/AUTHORING.md">Write a ledger</a>. Every rule needs a source link and a bench file.</p>
   </div>
 </section>
 
@@ -430,9 +535,11 @@ section{padding:72px 0}
 <!-- FAQ -->
 <section id="faq" class="band" aria-labelledby="faq-title">
   <div class="wrap">
+    <div class="faq-grid">
     <div class="head">
       <p class="kicker">FAQ</p>
       <h2 class="h2" id="faq-title">Questions, answered plainly.</h2>
+      <p class="lede">Short answers about what Myelin installs, what it sends, and what it does not do.</p>
     </div>
     <div class="faq">
       <details>
@@ -458,6 +565,22 @@ section{padding:72px 0}
         <p>If you installed with npm, Homebrew or Scoop, use <code>npm uninstall -g myelin-ledger</code>, <code>brew uninstall myelin</code> or <code>scoop uninstall myelin</code>.</p>
       </details>
     </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final" id="get" aria-labelledby="final-title">
+  <div class="wrap">
+    <h2 id="final-title">Stop shipping last year's APIs.</h2>
+    <p class="lede">Install in one command, run <code>myelin setup</code>, and your agent starts from this year's rules.</p>
+    <div class="cmds">
+      <p class="label">macOS, Linux and WSL</p>
+      <div class="cmd"><code>curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh</code><button class="copy" type="button">Copy</button></div>
+      <p class="label">Windows PowerShell</p>
+      <div class="cmd"><code>irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1 | iex</code><button class="copy" type="button">Copy</button></div>
+    </div>
+    <p class="final-links"><a href="https://github.com/REX-codebase/myelin">Star on GitHub</a><a href="https://github.com/REX-codebase/myelin/blob/main/docs/SPEC.md">Read the spec</a><a href="https://github.com/REX-codebase/myelin/blob/main/CHANGELOG.md">Changelog</a></p>
   </div>
 </section>
 
