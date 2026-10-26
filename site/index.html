@@ -17,6 +17,20 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <script>document.documentElement.className='js'</script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.core.js" crossorigin>
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.webgpu.js" crossorigin>
+<link rel="modulepreload" href="scene.js">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.webgpu.js",
+    "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.webgpu.js",
+    "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.tsl.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+  }
+}
+</script>
 <style>
 :root{
   --bg:#08080A;--bg2:#0E0E11;--ink:#F4F4F2;--mute:#9A9AA3;--faint:#5F5F68;
@@ -168,15 +182,16 @@ html:not(.js) .rv{opacity:1;transform:none}
 .term .ln{display:block;min-height:1.8em}
 @media (max-width:640px){.term pre,.ledger pre{padding:20px 18px;font-size:12.5px;white-space:pre-wrap;overflow-wrap:anywhere}.term .ln{display:block}}
 
-/* ---------- libraries (light) ---------- */
-.libs{list-style:none;margin:56px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--lline)}
-.libs li{border-bottom:1px solid var(--lline)}
-.libs a{display:block;padding:22px 20px 22px 0;text-decoration:none;height:100%}
-.libs strong{display:block;font-weight:400;font-size:clamp(19px,1.9vw,26px);line-height:1.2;letter-spacing:-.012em;transition:color .2s}
-.libs span{display:block;margin-top:6px;font:400 12.5px/1.4 var(--mono);color:var(--lmute)}
-.libs a:hover strong{color:var(--lacc)}
-.libs .add strong{color:var(--lacc)}
-@media (max-width:980px){.libs{grid-template-columns:repeat(2,minmax(0,1fr))}.libs a{padding-right:12px}}
+/* ---------- libraries (glass over the arbor) ---------- */
+.libs{list-style:none;margin:48px 0 0;padding:0 26px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;background:rgba(7,8,13,.52);-webkit-backdrop-filter:blur(16px) saturate(1.3);backdrop-filter:blur(16px) saturate(1.3)}
+.libs li{border-bottom:1px solid var(--line)}
+.libs li:nth-last-child(-n+4){border-bottom:0}
+.libs a{display:block;padding:20px 20px 20px 0;text-decoration:none;height:100%}
+.libs strong{display:block;font-weight:400;font-size:clamp(18px,1.8vw,24px);line-height:1.2;letter-spacing:-.012em;transition:color .2s}
+.libs span{display:block;margin-top:6px;font:400 12.5px/1.4 var(--mono);color:var(--mute)}
+.libs a:hover strong,.libs a:focus-visible strong{color:var(--acc)}
+.libs .add strong{color:var(--acc)}
+@media (max-width:980px){.libs{grid-template-columns:repeat(2,minmax(0,1fr))}.libs li:nth-last-child(-n+4){border-bottom:1px solid var(--line)}.libs li:nth-last-child(-n+2){border-bottom:0}.libs a{padding-right:12px}}
 
 /* ---------- evidence ---------- */
 .nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:64px 0 0;padding:0;list-style:none;border-top:1px solid var(--line)}
@@ -226,9 +241,24 @@ html:not(.js) .rv{opacity:1;transform:none}
 .foot .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:28px 48px}
 .foot .brand{display:inline-block;color:var(--ink);font-size:13px}
 .foot p{margin-top:12px;max-width:34em;line-height:1.6}
+.foot p code{font-size:.9em;color:var(--ink)}
 .foot nav{display:flex;flex-wrap:wrap;gap:6px 24px}
 .foot nav a{text-decoration:none;padding:4px 0}
 .foot nav a:hover{color:var(--ink)}
+
+/* ---------- webgl film layer (scene.js) ---------- */
+#gl{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity 1.4s ease;background:var(--bg)}
+#gl canvas{display:block;width:100%;height:100%}
+html.gl #gl{opacity:1}
+.stage,.install .tail,.install .tail-fade{transition:opacity 1.2s ease}
+html.gl .stage,html.gl .install .tail,html.gl .install .tail-fade{opacity:0;visibility:hidden;transition:opacity 1.2s ease,visibility 0s 1.2s}
+html.gl .s:not(.light){background:transparent;text-shadow:0 0 16px rgba(3,4,10,.9),0 1px 3px rgba(3,4,10,.55)}
+html.gl .nums p,html.gl .honest{color:#B9B9C2}
+html.gl .card,html.gl .cmdbox,html.gl .btn,html.gl .copy{text-shadow:none}
+html.gl .hero::before,html.gl .hero::after{content:"";position:absolute;left:0;right:0;pointer-events:none;z-index:2}
+html.gl .hero::before{top:0;height:42vh;background:linear-gradient(180deg,rgba(3,4,10,.72),rgba(3,4,10,0))}
+html.gl .hero::after{bottom:0;height:36vh;background:linear-gradient(0deg,rgba(3,4,10,.78),rgba(3,4,10,0))}
+html.gl .install .cmdbox,html.gl .install .then,html.gl .install details pre{position:relative}
 
 @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
@@ -250,6 +280,7 @@ html:not(.js) .rv{opacity:1;transform:none}
 </head>
 <body>
 <a class="skip" href="#how">Skip to content</a>
+<div id="gl" aria-hidden="true"></div>
 
 <header class="nav" id="nav">
   <div class="wrap">
@@ -484,7 +515,7 @@ since r181. Initialise once, then call render() …</span></span></span></pre>
 </section>
 
 <!-- ============ LIBRARIES (light) ============ -->
-<section class="s light" id="libraries" aria-labelledby="libs-h">
+<section class="s" id="libraries" aria-labelledby="libs-h">
   <div class="wrap">
     <h2 class="h2 rv" id="libs-h">Nineteen libraries.<br>One release each.</h2>
     <p class="lede rv d1">Each ledger was researched against live documentation on 2026-10-26 and targets a named release. Every rule links to the migration guide or changelog it came from.</p>
@@ -576,7 +607,7 @@ since r181. Initialise once, then call render() …</span></span></span></pre>
   <div class="wrap">
     <div>
       <span class="brand">Myelin</span>
-      <p>Rule ledgers that keep AI-written code on current library versions. MIT licensed. The sheath above is white because myelin is white matter.</p>
+      <p>Rule ledgers that keep AI-written code on current library versions. MIT licensed. The sheath above is white because myelin is white matter. The 3D scene is written against Myelin's own three.js ledger and lints clean: <code>myelin lint three site/scene.js</code>.</p>
     </div>
     <nav aria-label="Footer">
       <a href="https://github.com/REX-codebase/myelin">GitHub</a>
@@ -599,6 +630,7 @@ since r181. Initialise once, then call render() …</span></span></span></pre>
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var status = document.getElementById('status');
+  function emit(name, detail) { try { window.dispatchEvent(new CustomEvent('myelin:' + name, { detail: detail || {} })); } catch (e) { /* no scene */ } }
   function announce(msg) { status.textContent = ''; setTimeout(function () { status.textContent = msg; }, 30); }
 
   /* ---- nav + hero parallax ---- */
@@ -663,7 +695,7 @@ since r181. Initialise once, then call render() …</span></span></span></pre>
   var pairs = document.getElementById('pairs');
   var items = $$('li', pairs);
   var ticks = document.getElementById('ticks');
-  var cur = 0, pTimer = null, pActive = false;
+  var cur = 0, pTimer = null, pActive = false, pairT = null;
   items.forEach(function (li, i) {
     var b = document.createElement('button');
     b.type = 'button';
@@ -680,6 +712,8 @@ since r181. Initialise once, then call render() …</span></span></span></pre>
     });
     void ticks.offsetWidth;
     tickBtns[i].classList.add('on');
+    if (pairT) { clearTimeout(pairT); pairT = null; }
+    if (pActive) { emit('pair', { stale: true }); pairT = setTimeout(function () { emit('pair', { stale: false }); }, 1500); }
     if (reduce) { tickBtns[i].classList.add('done'); }
     if (pTimer) { clearTimeout(pTimer); pTimer = null; }
     if (!reduce && pActive) { pTimer = setTimeout(function () { show((cur + 1) % items.length, false); }, 4800); }
@@ -714,7 +748,11 @@ since r181. Initialise once, then call render() …</span></span></span></pre>
           if (l.cmd) {
             for (var c = 1; c <= l.text.length && gen === g; c++) { l.sp.textContent = l.text.slice(0, c); await wait(20); }
             await wait(380);
-          } else { l.sp.textContent = l.text; await wait(l.text.trim() ? 190 : 60); }
+          } else {
+            l.sp.textContent = l.text;
+            if (l.sp.className === 'f') emit('fail'); else if (l.sp.className === 'p') emit('pass');
+            await wait(l.text.trim() ? 190 : 60);
+          }
         }
         await wait(6000);
       }
@@ -781,11 +819,13 @@ since r181. Initialise once, then call render() …</span></span></span></pre>
     var text = cmdText.textContent;
     copyText(text).then(function (ok) {
       copyBtn.textContent = ok ? 'Copied' : 'Select it';
+      if (ok) emit('copy');
       announce(ok ? 'Copied to clipboard' : 'Copy was blocked. Select the command and copy it.');
       setTimeout(function () { copyBtn.textContent = 'Copy'; }, 1800);
     });
   });
 })();
 </script>
+<script type="module" src="scene.js"></script>
 </body>
 </html>

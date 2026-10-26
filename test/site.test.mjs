@@ -1,0 +1,59 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { parse } from '../src/parse.mjs';
+import { check } from '../src/check.mjs';
+import { libPath } from '../src/libs.mjs';
+
+const read = (p) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), 'utf8');
+const scene = read('../site/scene.js');
+const page = read('../site/index.html');
+const ledger = parse(readFileSync(libPath('three'), 'utf8'));
+
+test('the landing page scene passes Myelin\'s own three.js ledger', () => {
+  assert.ok(ledger.ok, JSON.stringify(ledger.problems));
+  const r = check(ledger, [{ name: 'site/scene.js', text: scene }]);
+  assert.deepEqual(r.violations.map((v) => `${v.id} line ${v.line}`), []);
+});
+
+test('the import map pins the release the ledger targets', () => {
+  const pinned = /npm three@([\d.]+)/.exec(read('../libs/three/three.myelin'));
+  assert.ok(pinned, 'ledger has no "npm three@x.y.z" version fact');
+  const urls = [...page.matchAll(/cdn\.jsdelivr\.net\/npm\/three@([\d.]+)\//g)].map((m) => m[1]);
+  assert.ok(urls.length >= 4, 'expected the import map and preloads to name a three.js version');
+  assert.deepEqual([...new Set(urls)], [pinned[1]]);
+});
+
+test('the page keeps a working fallback when WebGL is unavailable', () => {
+  assert.match(page, /<div id="gl"/, 'canvas host is missing');
+  assert.match(page, /<script type="module" src="scene\.js">/);
+  assert.match(page, /class="stage"/, 'SVG hero fallback was removed');
+  assert.match(page, /html\.gl \.stage/, 'fallback is not swapped out once the scene is live');
+  assert.match(scene, /classList\.add\('gl'\)/, 'scene never marks itself live');
+  assert.match(scene, /catch\(\(err\)/, 'scene failures are not caught');
+});
+
+test('the scene respects reduced motion and data saver', () => {
+  assert.match(scene, /prefers-reduced-motion: reduce/);
+  assert.match(scene, /saveData/);
+});
+
+test('page events the scene listens for are emitted by the page', () => {
+  for (const name of ['pair', 'fail', 'pass', 'copy']) {
+    assert.match(scene, new RegExp(`'myelin:${name}'`), `scene does not listen for myelin:${name}`);
+    assert.match(page, new RegExp(`emit\\('${name}'`), `page never emits ${name}`);
+  }
+});
+
+test('every library link has a terminal in the arbor', () => {
+  const links = (page.match(/<ul class="libs[\s\S]*?<\/ul>/) || [''])[0].match(/<li/g) || [];
+  const branches = Number(/const N_BRANCH = (\d+)/.exec(scene)[1]);
+  assert.equal(branches, links.length, 'N_BRANCH must equal the number of library links, including "Add yours"');
+});
+
+test('pulse light cannot overflow into NaN', () => {
+  // An idle pulse sits at d = -999. exp(+150) is inf in float32 and inf * 0 is NaN,
+  // which blacks out every lit surface, so the trail exponent must be clamped.
+  assert.match(scene, /exp\(min\(x, 0\)\.div\(trailL\)\)/, 'trail exponent is not clamped to <= 0');
+});
