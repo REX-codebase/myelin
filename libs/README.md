@@ -28,6 +28,12 @@ libs/<id>/
 | `ai-sdk` | Vercel AI SDK | `ai` 7.0 | 2026-10-26 |
 | `tanstack-query` | TanStack Query | 5.104 | 2026-10-26 |
 | `prisma` | Prisma ORM | 7.10 (v8 is RC, not targeted) | 2026-10-26 |
+| `mongoose` | Mongoose | 9.11 | 2026-10-26 |
+| `openai` | OpenAI Node SDK | 7.43 | 2026-10-26 |
+| `angular` | Angular | 22.2 | 2026-10-26 |
+| `vitest` | Vitest | 5.0 | 2026-10-26 |
+| `drizzle` | Drizzle ORM | 0.45 + kit 0.31 (v1 is RC, not targeted) | 2026-10-26 |
+| `astro` | Astro | 7.4 | 2026-10-26 |
 
 ## Scope notes
 
@@ -35,6 +41,8 @@ libs/<id>/
 - **tanstack-query** B16 bans `fetchQuery`/`prefetchQuery` in favour of `queryClient.query()`, which arrived in 5.102. Drop it if you're pinned lower.
 - **svelte** K1-K10 target SvelteKit 3 and will fire on correct SvelteKit 2 code.
 - **react** bans `forwardRef` and `Context.Provider`, which still run in 19.x but are on their way out. Libraries that support React 18 may keep them.
+- **vitest** V17 flags `jest.*` globals; in a repo that still runs Jest alongside Vitest, keep it off Jest-only files (or import from `@jest/globals`, which exempts the file).
+- **drizzle** targets the npm `latest` (0.45). The docs site already describes the v1 RC; `relations()` and `db.query` are not banned because `defineRelations` is v1-only.
 
 ## Adding or updating a library
 

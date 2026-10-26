@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- **Agent A/B with Claude Haiku 5.5** (`eval/agent-ab/`): 18 agents, two three.js r186 scenes, three arms. Stale-API first drafts: no guidance 5/6, prose skill 0/6, Myelin 0/6; lint matched three.js runtime warnings on all 18 pages; blind visual scores within noise. Offline WebGPU render harness and scorer included.
+- README **Demo** section: two polished Myelin scenes (lighthouse, neon street), lint clean with zero console warnings.
+- The bonfire A/B is now credited to GLM 5.3.
+- **6 new library ledgers** (19 total), researched 2026-10-26: Angular 22.2, Astro 7.4, Drizzle ORM 0.45 (+ drizzle-kit 0.31; v1 RC not targeted), Mongoose 9.11, OpenAI Node SDK 7.43, Vitest 5.0. 93 new bans, each sourced in `SOURCES.md`; corpus is now 177 stale and 129 current files, 0 cross-library false positives over 2322 checks.
+- svelte B5 (`<slot>`) no longer fires on Astro components, where `<slot />` is current.
+- `myelin --version` prints the version; `--ext` with no value is a usage error instead of matching nothing.
+- New `myelin fix <ledger> <file|dir>...`: like `lint`, but prints each failing rule's fix message and its snippet once, not once per file. Read-only. Same exit codes; `--json`, `--ext` and comma-separated lib ids work as in `lint`.
+- New `lint --watch`: re-runs the check when a file changes. Debounced; built on per-directory `fs.watch`, so it works on Node 18 on Linux. Ctrl-C stops it.
+- New `action.yml` at the repo root: a composite GitHub Action that runs `lint` and fails the job on any violation. Inputs `libs` (ids, paths, or `detect`), `paths` and `ext`. Usage in docs/HOSTS.md.
+- Fixed: under `comments skip`, a quote inside a regex literal (`/"/`) or an apostrophe hid a comment later on the same line, so a banned name in that comment fired.
+- Fixed: a UTF-8 byte order mark at the start of a `.myelin` file made the ledger invalid ("first line must be myelin").
+- 59 tests (was 46).
+
 ## 0.2.1
 
 - New optional header key `comments skip`: blanks `//`, `/* */` and HTML comments in JS/TS/HTML/CSS-like files before checking, so a comment naming a banned API is not a violation. Off by default (the eslint ledger's rules target comments). The three ledger turns it on.

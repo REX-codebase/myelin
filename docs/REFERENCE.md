@@ -62,13 +62,14 @@ myelin init my-rules.myelin                             # start a new ledger
 |---|---|
 | `validate <ledger>` | Parse and report errors and warnings. |
 | `self <ledger or dir>...` | Validate, then run the ledger's snippets through its own rules. A ledger that fails its own gate is broken. |
-| `lint <ledger> <file or dir>...` | Check files. Bans apply per file; requirements apply across all files together. `--ext=js,ts` filters directories. |
+| `lint <ledger> <file or dir>...` | Check files. Bans apply per file; requirements apply across all files together. `--ext=js,ts` filters directories. `--watch` re-runs the check when a file changes (Ctrl-C to stop). |
+| `fix <ledger> <file or dir>...` | Like `lint`, but prints each failing rule once with its fix message and snippet. Read-only. |
 | `gate <ledger>` | Print L0 + L1 as plain text for a model. `--snippets=a,b` or `--all` adds copy-exact code. |
 | `header <ledger>` | Print only the short L0 header. |
 | `snippet <ledger> <id>` | Print one snippet. |
 | `init <path>` | Write a starter ledger. |
 
-Add `--json` to `validate`, `self`, and `lint` for machine-readable output. Exit codes: `0` clean, `1` rule failures or invalid ledger, `2` usage or file error.
+Add `--json` to `validate`, `self`, `lint`, and `fix` for machine-readable output. Exit codes: `0` clean, `1` rule failures or invalid ledger, `2` usage or file error.
 
 ## How it differs from a skill
 
@@ -80,7 +81,8 @@ Read [docs/WHY.md](docs/WHY.md) for an honest comparison, including where a skil
 
 - **Chat with no tools:** paste the output of `myelin gate <ledger> --all` into the prompt.
 - **Agent with a shell:** add [`integrations/AGENTS.md.snippet`](integrations/AGENTS.md.snippet) to your project, so the agent runs `gate` before coding and `lint` after.
-- **CI:** run `myelin lint` on generated files; it exits non-zero on any violation.
+- **CI:** run `myelin lint` on generated files; it exits non-zero on any violation. A composite GitHub Action is in [`action.yml`](../action.yml).
+- **Fixing failures:** `myelin fix` prints, for each failing rule, its message and the copy-exact snippet it points at. It does not edit files.
 
 Details and a CI workflow are in [docs/HOSTS.md](docs/HOSTS.md).
 

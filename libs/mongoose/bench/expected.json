@@ -1,0 +1,18 @@
+{
+  "bad/users-service.js": ["M1", "M9", "M10"],
+  "bad/posts.js": ["M6", "M7", "M8", "M12"],
+  "bad/orders-stats.js": ["M2", "M9"],
+  "bad/sessions.js": ["M11", "M15", "M16"],
+  "bad/connect.js": ["M4", "M5"],
+  "bad/bootstrap.js": ["M3", "M4"],
+  "bad/async-hooks.js": ["M12", "M13", "M14"],
+  "bad/inventory.js": ["M10", "M17"],
+  "bad/tasks.js": ["M1", "M8"],
+  "good/users-service.js": [],
+  "good/connect.js": [],
+  "good/orders.js": [],
+  "good/posts.js": [],
+  "good/accounts.js": [],
+  "good/sessions.js": [],
+  "good/reports.js": []
+}

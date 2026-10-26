@@ -1,0 +1,10 @@
+---
+import { getEntryBySlug, render } from 'astro:content';
+
+const entry = await getEntryBySlug('blog', Astro.params.slug);
+if (!entry) return Astro.redirect('/404');
+const { Content } = await render(entry);
+---
+
+<h1>{entry.data.title}</h1>
+<Content />

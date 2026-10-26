@@ -1,0 +1,167 @@
+myelin 1
+id      mongoose
+about   Mongoose 9 (9.11): bans the callbacks, removed query and document methods (remove, update, count, findOneAndRemove), removed connect options and next()-style hooks that models still write
+fires   mongoose | mongoose.connect | mongoose.model | mongoose schema | mongoose.Types.ObjectId
+comments skip
+status  Researched 2026-10-26 against mongoose 9.11.4 (npm latest, published 2026-10-23) and the official migration guides for 7, 8 and 9 plus the CHANGELOG. Removals were probed offline on the installed 9.11.4 package. Snippets are syntax-checked, not run against a MongoDB server.
+
+= version      mongoose 9.11.4 (npm latest)
+= verified     2026-10-26
+= node.min     20.19.0
+= driver       mongodb ~7.7 (bundled by mongoose)
+= imports      import mongoose from "mongoose"  (or import { Schema, model } from "mongoose")
+= queries      every query returns a promise: await it, or call .exec() with no callback. Callbacks are gone from queries, save, validate, populate and connect
+= counts       countDocuments(filter) is exact; estimatedDocumentCount() is a cheap estimate
+= updates      updateOne / updateMany / replaceOne; findOneAndUpdate takes returnDocument: 'after' | 'before' (9.2+)
+= deletes      doc.deleteOne(), Model.deleteOne(filter), Model.deleteMany(filter)
+= hooks        pre/post hooks are async functions or return a promise; pre hooks receive no next()
+= connect      await mongoose.connect(uri); no options for useNewUrlParser, useUnifiedTopology, useCreateIndex or useFindAndModify
+
+! M1 /\.(?:find|findOne|findById|updateOne|updateMany|deleteOne|deleteMany|countDocuments|estimatedDocumentCount|distinct|create|insertMany|replaceOne|findOneAndUpdate|findOneAndDelete|findOneAndReplace|findByIdAndUpdate|aggregate|bulkWrite)\([^;]{0,300}?,\s*(?:function\s*\w*\s*\(\s*(?:err|error)\b|\(\s*(?:err|error)\b[^)]*\)\s*=>)/   Mongoose 7 removed callbacks from queries and model methods. Await the call instead. -> $queries
+! M2 /\.(?:exec|save|validate|populate)\(\s*(?:function\s*\w*\s*\(\s*(?:err|error)\b|\(\s*(?:err|error)\b[^)]*\)\s*=>)/   exec(), save(), validate() and populate() no longer take callbacks (exec(cb) throws in 7+). Await the promise. -> $queries
+! M3 /\bmongoose\.(?:connect|createConnection)\([^;]{0,300}?,\s*(?:function\s*\w*\s*\(\s*(?:err|error)\b|\(\s*(?:err|error)\b[^)]*\)\s*=>)/   mongoose.connect() and createConnection() no longer take callbacks. await mongoose.connect(uri) inside try/catch. -> $connect
+! M4 /\b(?:useNewUrlParser|useUnifiedTopology|useCreateIndex|useFindAndModify)\b/   These connect and set options were removed in Mongoose 6 and are no longer supported. Delete them. -> $connect
+! M5 /\b(?:sslCA|sslCRL|sslCert|sslKey|sslPass|sslValidate|tlsCertificateFile)\s*:/   The ssl* TLS options were removed with the driver 6 upgrade (Mongoose 8). Use tlsCAFile, tlsCRLFile, tlsCertificateKeyFile, tlsCertificateKeyFilePassword, tlsAllowInvalidCertificates. -> $connect
+! M6 /\b(?:doc|document|\w+Doc)\.remove\(\s*\)|\b(?!Children\b)[A-Z]\w*\.remove\(/   Document.remove() and Model.remove() were removed in Mongoose 7. Use doc.deleteOne(), Model.deleteOne() or Model.deleteMany(). -> $delete
+! M7 /\.(?:pre|post)\(\s*['"]remove['"]/   Hooks named 'remove' never run now that doc.remove() is gone. Hook 'deleteOne' with { document: true, query: false }. -> $hooks
+! M8 /\.(?:findByIdAndRemove|findOneAndRemove)\(/   findOneAndRemove() and findByIdAndRemove() were removed in Mongoose 8. Use findOneAndDelete() or findByIdAndDelete(). -> $delete
+! M9 /\)\s*\.count\(|\b(?!Children\b)[A-Z]\w*\.count\(/   Model.count() and Query.count() were removed in Mongoose 8. Use countDocuments(filter) or estimatedDocumentCount(). -> $model
+! M10 /\b(?:doc|document|\w+Doc)\.update\(|\b(?!Children\b)[A-Z]\w*\.update\(/   Model.update(), Query.update() and Document.update() were removed in Mongoose 7. Use updateOne() or updateMany(). -> $update
+! M11 /(?<!\bnew\s+(?:mongoose\.)?)\bTypes\.ObjectId\(/   ObjectId is a class since Mongoose 7; calling it without new throws. Use new mongoose.Types.ObjectId(value). -> $objectid
+! M12 /\.pre\(\s*['"][^'"]+['"]\s*,[^;]{0,160}?(?:function\s*\w*\s*\(\s*next\b|\(\s*next\s*\)\s*=>|\bnext\s*=>)/   Pre hooks no longer receive next() in Mongoose 9. Make the hook async or return a promise. -> $hooks
+! M13 /\.(?:pre|post)\(\s*['"][^'"]+['"]\s*,\s*true\s*,/   The isAsync form pre(name, true, fn) was removed in Mongoose 9. Use an async function or return a promise. -> $hooks
+! M14 /\bpromiseOrCallback\b/   promiseOrCallback was removed in Mongoose 9. Write async code and return a promise.
+! M15 /\.(?:findOneAndUpdate|findOneAndReplace)\([^;]{0,400}?\b(?:new|returnOriginal)\s*:/   new and returnOriginal are deprecated on findOneAndUpdate and findOneAndReplace (9.2+). Use returnDocument: 'after' or 'before'. -> $findupdate
+! M16 /\.(?:findOneAndUpdate|findOneAndReplace|findOneAndDelete)\([^;]{0,400}?\brawResult\s*:/   rawResult was removed in Mongoose 8. Use includeResultMetadata: true (same result shape). -> $findupdate
+! M17 /\bnoListener\b/   The noListener option was removed with the connection changes in Mongoose 9 and is no longer supported. Delete it.
+
+~ P1 strictQuery defaults to false since Mongoose 7: filter keys that are not in the schema are kept, not stripped. Set mongoose.set('strictQuery', true) when you depend on stripping, and name it in the code.
+~ P2 doc.deleteOne() returns a Query since Mongoose 8. Awaiting it gives a DeleteResult, not the document. -> $delete
+~ P3 Use countDocuments(filter) for exact counts and estimatedDocumentCount() for cheap estimates. -> $model
+~ P4 Update pipelines (an array as the update) throw in Mongoose 9 unless { updatePipeline: true } is passed, or mongoose.set('updatePipeline', true) is set globally. -> $update
+~ P5 Mongoose 9 requires Node.js 20.19 or newer.
+~ P6 skipOriginalStackTraces is no longer needed in Mongoose 9. Remove it from schema and connection options.
+
+$ model
+import mongoose from 'mongoose';
+
+const userSchema = new mongoose.Schema(
+  {
+    email: { type: String, required: true, unique: true },
+    name: String,
+    active: { type: Boolean, default: true },
+  },
+  { timestamps: true },
+);
+
+export const User = mongoose.model('User', userSchema);
+
+export async function listActiveUsers(page = 1, pageSize = 20) {
+  return User.find({ active: true })
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * pageSize)
+    .limit(pageSize)
+    .lean();
+}
+
+export async function countActiveUsers() {
+  return User.countDocuments({ active: true });
+}
+$$
+
+$ connect
+import mongoose from 'mongoose';
+
+const uri = process.env.MONGODB_URI;
+if (!uri) throw new Error('MONGODB_URI is not set');
+
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error', err);
+});
+
+await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
+console.log('connected to', mongoose.connection.name);
+$$
+
+$ hooks
+import mongoose from 'mongoose';
+
+const postSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  slug: String,
+  deleted: { type: Boolean, default: false },
+});
+
+postSchema.pre('save', async function () {
+  if (this.isModified('title')) {
+    this.slug = this.title.toLowerCase().replace(/\s+/g, '-');
+  }
+});
+
+postSchema.pre('deleteOne', { document: true, query: false }, async function () {
+  console.log('deleting post', this._id);
+});
+
+export const Post = mongoose.model('Post', postSchema);
+$$
+
+$ delete
+import { Post } from './models/post.js';
+
+export async function removePost(id) {
+  const post = await Post.findById(id);
+  if (!post) return false;
+  await post.deleteOne();
+  return true;
+}
+
+export async function purgeDeleted(cutoff) {
+  const result = await Post.deleteMany({ deleted: true, updatedAt: { $lt: cutoff } });
+  return result.deletedCount;
+}
+$$
+
+$ objectid
+import mongoose from 'mongoose';
+
+export function toObjectId(hex) {
+  if (!mongoose.isValidObjectId(hex)) return null;
+  return new mongoose.Types.ObjectId(hex);
+}
+$$
+
+$ update
+import { User } from './models/user.js';
+
+export async function setDisplayName(id, name) {
+  return User.updateOne({ _id: id }, { $set: { displayName: name } });
+}
+
+export async function normalizeNames(ids) {
+  return User.updateMany(
+    { _id: { $in: ids } },
+    [{ $set: { displayName: { $trim: { input: '$name' } } } }],
+    { updatePipeline: true },
+  );
+}
+$$
+
+$ findupdate
+import { User } from './models/user.js';
+
+export async function touchUser(id, patch) {
+  return User.findOneAndUpdate({ _id: id }, { $set: patch }, { returnDocument: 'after' }).lean();
+}
+$$
+
+$ queries
+import { Order } from './models/order.js';
+
+export async function recentOrders(userId, limit = 10) {
+  return Order.find({ userId }).sort({ createdAt: -1 }).limit(limit).lean();
+}
+
+export async function findOrder(id) {
+  return Order.findById(id).exec();
+}
+$$

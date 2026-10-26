@@ -1,0 +1,5 @@
+You are an art director judging 18 real-time 3D renders (1280x720 PNGs) in the directory <judge-dir>. Files starting with L show the brief "lighthouse on a rocky headland in a storm at dusk: striped lighthouse with a sweeping beam, rough ocean with foam, wet rocks, heavy rain, dramatic clouds, lightning, bloom". Files starting with N show the brief "rainy cyberpunk street at night: building canyon with lit windows, neon signs in several colours, wet reflective road with puddles, rain, haze, street lamps, bloom".
+Look at EVERY image with your Read tool (one image per call). Do not read any other file. Score each image independently on a 1-10 scale for each of:
+- craft: lighting, colour, composition, materials; would a professional technical artist ship it (10 = portfolio/AAA quality, 5 = competent demo, 1 = broken)
+- brief: how completely it shows the brief's elements
+Then reply with ONLY a JSON object mapping file name to {"craft": n, "brief": n, "note": "<=12 words"}, for all 18 files, nothing else.

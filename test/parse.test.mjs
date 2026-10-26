@@ -121,3 +121,9 @@ test('tolerates CRLF line endings', () => {
   assert.ok(l.ok);
   assert.equal(l.rules[0].message, 'msg');
 });
+
+test('a UTF-8 byte order mark before the version line is ignored', () => {
+  const l = parse('﻿' + HEAD);
+  assert.ok(l.ok, JSON.stringify(l.problems));
+  assert.equal(l.version, 1);
+});

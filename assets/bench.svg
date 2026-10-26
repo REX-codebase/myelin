@@ -4,16 +4,16 @@
     @keyframes g{from{transform:scaleX(0)}to{transform:scaleX(1)}}
   </style>
   <rect x=".5" y=".5" width="1279" height="443" rx="12" fill="#0b0f19" stroke="#1d2638"/>
-  <text x="166.4" y="100" text-anchor="middle" style="font:700 46px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#e9eef7">13</text>
+  <text x="166.4" y="100" text-anchor="middle" style="font:700 46px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#e9eef7">19</text>
   <text x="166.4" y="130" text-anchor="middle" style="font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">libraries</text>
-  <text x="403.20000000000005" y="100" text-anchor="middle" style="font:700 46px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#e9eef7">231</text>
+  <text x="403.20000000000005" y="100" text-anchor="middle" style="font:700 46px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#e9eef7">324</text>
   <text x="403.20000000000005" y="130" text-anchor="middle" style="font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">verified bans</text>
-  <text x="640" y="100" text-anchor="middle" style="font:700 46px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#ff7a93">120/120</text>
+  <text x="640" y="100" text-anchor="middle" style="font:700 46px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#ff7a93">177/177</text>
   <text x="640" y="130" text-anchor="middle" style="font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">stale files caught</text>
-  <text x="876.8000000000001" y="100" text-anchor="middle" style="font:700 46px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#6ee7a0">88/88</text>
+  <text x="876.8000000000001" y="100" text-anchor="middle" style="font:700 46px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#6ee7a0">129/129</text>
   <text x="876.8000000000001" y="130" text-anchor="middle" style="font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">current files left clean</text>
   <text x="1113.6000000000001" y="100" text-anchor="middle" style="font:700 46px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#5ff4ff">0</text>
-  <text x="1113.6000000000001" y="130" text-anchor="middle" style="font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">false alarms in 1,056 cross-checks</text><line x1="48" y1="168" x2="1232" y2="168" stroke="#1d2638"/>
+  <text x="1113.6000000000001" y="130" text-anchor="middle" style="font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">false alarms in 2,322 cross-checks</text><line x1="48" y1="168" x2="1232" y2="168" stroke="#1d2638"/>
   <text x="48" y="204" text-anchor="start" style="font:600 12px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;letter-spacing:2.5px;fill:#55627a">IN THE WILD · OFFICIAL EXAMPLES, OLD RELEASE VS CURRENT</text>
   <text x="48" y="252" style="font:600 20px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#e9eef7">three.js</text>
   <text x="48" y="274" style="font:13px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#55627a">files flagged as stale</text>

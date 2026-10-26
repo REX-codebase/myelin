@@ -9,6 +9,7 @@
 
 <p align="center">
   <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
+  <a href="#demo">Demo</a> &nbsp;·&nbsp;
   <a href="#libraries">Libraries</a> &nbsp;·&nbsp;
   <a href="#evidence">Evidence</a> &nbsp;·&nbsp;
   <a href="#constraints">Constraints</a> &nbsp;·&nbsp;
@@ -17,7 +18,7 @@
 
 <p align="center">
   <img alt="zero dependencies" src="https://img.shields.io/badge/dependencies-0-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
-  <img alt="13 libraries" src="https://img.shields.io/badge/libraries-13-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
+  <img alt="19 libraries" src="https://img.shields.io/badge/libraries-19-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
   <img alt="node 18+" src="https://img.shields.io/badge/node-%E2%89%A518-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
   <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
 </p>
@@ -87,9 +88,24 @@ Full grammar in [docs/SPEC.md](docs/SPEC.md).
 
 <br>
 
+## Demo
+
+Two real-time three.js r186 WebGPU scenes, written end to end by Claude Haiku 5.5 with the Myelin gate and lint in the loop. Every iteration was linted; both final pages lint clean and render with zero three.js console warnings.
+
+<p align="center"><img src="assets/showcase.jpg" alt="A storm lighthouse at dusk and a rainy neon street, both written by Claude Haiku 5.5 with Myelin, lint clean" width="100%"></p>
+
+<p align="center"><sub>Each scene is the top-judged Myelin run from the <a href="eval/agent-ab/README.md">agent A/B</a>, then polished by Haiku 5.5 over up to six more screenshot rounds against an art-direction brief. Procedural only, one HTML file each: <a href="eval/agent-ab/showcase/lighthouse/index.html">lighthouse</a>, <a href="eval/agent-ab/showcase/neon/index.html">neon street</a>. Rendered on a software GPU.</sub></p>
+
+```bash
+node bin/myelin.mjs lint three eval/agent-ab/showcase/*/index.html
+# 21 bans, 0 requires, 2 unit(s) checked: clean
+```
+
+<br>
+
 ## Libraries
 
-Thirteen ledgers ship in the box, each pinned to a released version and researched against live docs on **2026-10-26**. Every rule links to the migration guide or changelog it came from in `libs/<id>/SOURCES.md`.
+Nineteen ledgers ship in the box, each pinned to a released version and researched against live docs on **2026-10-26**. Every rule links to the migration guide or changelog it came from in `libs/<id>/SOURCES.md`.
 
 | Library | Targets | Bans | Snippets |
 |---|---|--:|--:|
@@ -106,6 +122,12 @@ Thirteen ledgers ship in the box, each pinned to a released version and research
 | Vercel AI SDK | 7.0 | 20 | 5 |
 | TanStack Query | 5.104 | 16 | 7 |
 | Prisma ORM | 7.10 | 15 | 7 |
+| Angular | 22.2 | 16 | 7 |
+| Astro | 7.4 | 14 | 9 |
+| Drizzle ORM | 0.45 · kit 0.31 | 13 | 9 |
+| Mongoose | 9.11 | 17 | 8 |
+| OpenAI Node SDK | 7.43 | 16 | 6 |
+| Vitest | 5.0 | 17 | 8 |
 
 Missing yours? [Add a ledger](docs/AUTHORING.md). Every rule needs a source link and a bench file.
 
@@ -113,20 +135,21 @@ Missing yours? [Add a ledger](docs/AUTHORING.md). Every rule needs a source link
 
 ## Evidence
 
-Four tests, all reproducible from this repo. The first three measure one thing: does a ledger flag stale code and leave current code alone?
+Five tests, all reproducible from this repo. The first three ask: does a ledger flag stale code and leave current code alone? The last two ask: does a model given a ledger write less of it?
 
 <p align="center"><img src="assets/bench.svg" alt="Benchmark results" width="100%"></p>
 
 | Test | Result |
 |---|---|
-| **Labelled corpus**<br><sub>120 stale files, 88 current files</sub> | 100% of stale files caught. 0 false alarms on current files. |
-| **Cross-library sweep**<br><sub>every ledger over every other library's correct code</sub> | 1,056 checks, 0 false positives. |
+| **Labelled corpus**<br><sub>177 stale files, 129 current files</sub> | 100% of stale files caught. 0 false alarms on current files. |
+| **Cross-library sweep**<br><sub>every ledger over every other library's correct code</sub> | 2,322 checks, 0 false positives. |
 | **Official examples, untouched**<br><sub>upstream repos, old release vs current</sub> | three.js r150: 97.8% flagged. three.js r186: 0.4% flagged (1 of 230, an old API in a comment). Next.js 16.4.3's own examples: 19 genuine pre-16 patterns. |
-| **Agent A/B**<br><sub>bonfire scene, 2 agents per arm</sub> | Unguided: both used two removed APIs. Guided: neither did. |
+| **Agent A/B**<br><sub>bonfire scene, GLM 5.3, 2 agents per arm</sub> | Unguided: both used two removed APIs. Guided: neither did. |
+| **Agent A/B**<br><sub>lighthouse + neon street, Claude Haiku 5.5, 6 agents per arm</sub> | Unguided: 5 of 6 used a stale API. Prose skill and Myelin: 0 of 6 each. Lint matched three.js's runtime warnings on all 18 pages. |
 
 <p align="center"><img src="assets/bonfire-ab.png" alt="The same bonfire task, built by agents with no guidance, a prose skill, and the Myelin gate plus lint" width="100%"></p>
 
-<p align="center"><sub>Same task, three arms, two agents each (first run of each arm shown). No guidance: two lint failures and two runtime warnings. Prose skill and Myelin gate: both clean. Two agents per arm is a small sample, see <a href="eval/bonfire-ab/README.md">eval/bonfire-ab</a>.</sub></p>
+<p align="center"><sub>Same task, three arms, two GLM 5.3 agents each (first run of each arm shown). No guidance: two lint failures and two runtime warnings. Prose skill and Myelin gate: both clean. Two agents per arm is a small sample, see <a href="eval/bonfire-ab/README.md">eval/bonfire-ab</a>.</sub></p>
 
 Method, per-library tables and reproduction steps: **[BENCHMARKS.md](BENCHMARKS.md)**
 
@@ -142,7 +165,7 @@ Myelin is deliberately small. These are its edges, stated plainly.
 | **Clean is not correct** | A pass means no known-stale pattern was found. It does not mean the code runs. | Run the code. Snippet verification varies by library, see each ledger's `status` line. |
 | **Comments can trip it** | A banned token in a comment can fire a rule. | Ledgers set `comments skip` to blank out comments before matching. Only the three.js ledger does so far. |
 | **Version-pinned** | Every ledger targets one release and a research date. Libraries move on. | Check the `= version` line. Re-verify before trusting a ledger on a newer major. |
-| **Detection is proven, lift is not** | Benchmarks show rules catch stale code. Whether models *write less of it* is measured only by one small A/B, which is too small to separate a ledger from well-written prose. | Run [`eval/`](eval/README.md) against your own model and task. |
+| **Lift is measured on three.js only** | Across 24 agents and two model families, 7 of 8 unguided runs wrote a stale three.js API and 0 of 16 guided runs did. The other 18 ledgers have detection benchmarks but no agent runs yet. A well-written prose skill matched the gate on stale-API rate; the gate's edge is that the same file verifies the output. | Run [`eval/agent-ab/`](eval/agent-ab/README.md) against your own model and library. |
 | **Narrow by design** | The three.js ledger targets WebGPU + TSL, not WebGL-only projects. `unless` lifts a ban for a whole file, not a single match. No globs or severities yet. | See the [roadmap](docs/ROADMAP.md). |
 | **Output only** | A ledger can constrain what a model writes. It cannot grant permissions, run commands, or change instructions. Readers ignore any line that tries. | Load ledgers only from your own project or a source you trust. |
 

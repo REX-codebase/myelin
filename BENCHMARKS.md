@@ -1,7 +1,7 @@
 # Benchmarks
 
 Three tests, all reproducible from this repo. They measure one thing: **does a ledger flag stale library code, and leave current code alone?**
-They do not measure whether a model writes better code when it is given a ledger. That needs model runs; the harness for it is in [eval/](eval/README.md), and no model results are claimed here yet.
+Tests 4 and 5 add agent runs: does a model given a ledger write less stale code? 24 agents across two model families (GLM 5.3, Claude Haiku 5.5) and three three.js scenes.
 
 ## 1. Labelled corpus
 
@@ -14,9 +14,14 @@ npm run bench
 | lib | bans | bad files | caught | good files | clean | rule recall | precision |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | ai-sdk | 20 | 8 | 100.0% | 6 | 100.0% | 100.0% | 100.0% |
+| angular | 16 | 10 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
+| astro | 14 | 9 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
+| drizzle | 13 | 10 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | eslint | 19 | 8 | 100.0% | 6 | 100.0% | 100.0% | 100.0% |
 | express | 14 | 7 | 100.0% | 5 | 100.0% | 100.0% | 100.0% |
+| mongoose | 17 | 9 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | nextjs | 20 | 12 | 100.0% | 8 | 100.0% | 100.0% | 100.0% |
+| openai | 16 | 10 | 100.0% | 6 | 100.0% | 100.0% | 100.0% |
 | prisma | 15 | 7 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | react | 20 | 10 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | react-router | 17 | 10 | 100.0% | 6 | 100.0% | 100.0% | 100.0% |
@@ -24,9 +29,10 @@ npm run bench
 | tailwind | 10 | 9 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | tanstack-query | 16 | 9 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | three | 21 | 11 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
+| vitest | 17 | 9 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | vue | 20 | 10 | 100.0% | 8 | 100.0% | 100.0% | 100.0% |
 | zod | 17 | 8 | 100.0% | 6 | 100.0% | 100.0% | 100.0% |
-| **TOTAL** | **231** | **120** | **100.0%** | **88** | **100.0%** | **100.0%** | **100.0%** |
+| **TOTAL** | **324** | **177** | **100.0%** | **129** | **100.0%** | **100.0%** | **100.0%** |
 
 - **caught**: stale files with at least one rule firing. **clean**: current files with no rule firing.
 - **rule recall / precision**: per-rule, against `expected.json`. A rule that fires where it shouldn't, or stays quiet where it should fire, counts against these.
@@ -40,7 +46,7 @@ Every ledger is run over every **other** library's current (`good/`) files. A le
 node bin/myelin.mjs bench --cross
 ```
 
-Result: **13 ledgers x other libs' good files: 1056 checks, 0 cross-library false positive(s)**
+Result: **19 ledgers x other libs' good files: 2322 checks, 0 cross-library false positive(s)**
 
 This test found real problems during development (Next.js's `params.x` rule firing on React Router and SvelteKit loaders, ESLint's `plugins: [` rule firing on Vite configs, Svelte's `<slot>` rule firing on Vue). Each was fixed in the rule, not the corpus.
 
@@ -69,10 +75,24 @@ In other words: even official examples lag behind the library. That is the code 
 
 ![run 1 of each arm](eval/bonfire-ab/screenshots/trio.jpg)
 
-Six agents, same task, three arms of two: no guidance, the r186 rules as prose (`SKILL.md`), and the Myelin gate plus mandatory lint. Both unguided agents used `THREE.Clock` and `PCFSoftShadowMap` (lint B5, B6), and three.js printed exactly those two warnings at runtime. All four guided agents were clean and warning-free; all six rendered. Prose and gate tied at this sample size; Myelin's edge is that the check is enforced by a tool, not by the model's reading. Details, outputs and screenshots: [`eval/bonfire-ab/`](eval/bonfire-ab/README.md).
+Six GLM 5.3 agents, same task, three arms of two: no guidance, the r186 rules as prose (`SKILL.md`), and the Myelin gate plus mandatory lint. Both unguided agents used `THREE.Clock` and `PCFSoftShadowMap` (lint B5, B6), and three.js printed exactly those two warnings at runtime. All four guided agents were clean and warning-free; all six rendered. Prose and gate tied at this sample size; Myelin's edge is that the check is enforced by a tool, not by the model's reading. Details, outputs and screenshots: [`eval/bonfire-ab/`](eval/bonfire-ab/README.md).
+
+## 5. Agent A/B: lighthouse and neon street, Claude Haiku 5.5 (three.js r186)
+
+18 Haiku 5.5 agents, two scenes, three arms of three: no guidance, the r186 rules as prose (`SKILL.md`), and the Myelin gate plus mandatory lint. Same guidance files as test 4. Each agent saved its first draft before any check, then polished from screenshots that never showed the console.
+
+| Arm | Drafts with a stale r186 API | three.js deprecation warnings | Blind visual score (craft / brief, 1-10) |
+|---|---|---|---|
+| No guidance | **5 / 6** | 9 | 6.67 / 7.00 |
+| Prose skill | 0 / 6 | 0 | 6.22 / 6.11 |
+| Myelin gate + lint | 0 / 6 | 0 | 6.17 / 6.94 |
+
+Lint and three.js agreed on all 18 pages: every runtime deprecation warning matched a lint finding, and no clean page printed one. Visual scores (three blind judges) differ by about half a point, within noise. With test 4: **7 of 8 unguided runs wrote a stale API; 0 of 16 guided runs did.** Prose and gate tied on stale-API rate; the gate's ledger is also the check that verified it. Details, all 18 screenshots and outputs: [`eval/agent-ab/`](eval/agent-ab/README.md).
+
+![neon street, all nine runs](eval/agent-ab/screenshots/neon-grid.jpg)
 
 ## What would make these numbers stronger
 
-- Model runs: same task, each model, with and without `myelin gate`, scored by `eval/run-eval.mjs`. Needs API keys; contributions welcome.
+- More model runs: other libraries than three.js, larger models, and more runs per arm. `eval/agent-ab/` has the harness; `eval/run-eval.mjs` scores API-driven runs.
 - More wild corpora: React, Svelte and Tailwind example repos pinned at old and current tags.
 - Comment stripping before matching (on the [roadmap](docs/ROADMAP.md)) would remove the one three.js false positive.

@@ -1,0 +1,51 @@
+# Composite GitHub Action: checks files against Myelin ledgers and fails the job on any violation.
+# Runs the myelin CLI in this repository with the runner's Node (GitHub-hosted runners include it).
+name: Myelin lint
+description: Check generated or hand-written code against Myelin rule ledgers. Fails the job on any violation.
+
+inputs:
+  libs:
+    description: >-
+      Comma-separated bundled lib ids (e.g. "three,react"), paths to .myelin files, or "detect"
+      to pick the bundled libs that match the project's package.json.
+    required: true
+  paths:
+    description: Space-separated files or directories to check, relative to the workspace.
+    required: false
+    default: "."
+  ext:
+    description: >-
+      Comma-separated extensions to check inside directories, e.g. "js,ts". Empty uses the
+      CLI default (js,mjs,cjs,jsx,ts,tsx,py,html,wgsl,glsl).
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Run myelin lint
+      shell: bash
+      # Inputs travel through env, never through ${{ }} inside the script, so a value
+      # cannot inject shell syntax.
+      env:
+        MYELIN_HOME: ${{ github.action_path }}
+        MYELIN_LIBS: ${{ inputs.libs }}
+        MYELIN_PATHS: ${{ inputs.paths }}
+        MYELIN_EXT: ${{ inputs.ext }}
+      run: |
+        set -euf
+        cli="$MYELIN_HOME/bin/myelin.mjs"
+        libs="$MYELIN_LIBS"
+        if [ "$libs" = "detect" ]; then
+          libs=$(node "$cli" detect . --json | node -e 'let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => process.stdout.write(JSON.parse(s).map((x) => x.id).join(",")))')
+          if [ -z "$libs" ]; then
+            echo "myelin: no bundled libs match this project; nothing to check"
+            exit 0
+          fi
+          echo "myelin: detected $libs"
+        fi
+        ext=""
+        if [ -n "$MYELIN_EXT" ]; then ext="--ext=$MYELIN_EXT"; fi
+        # $MYELIN_PATHS and $ext are deliberately unquoted: they split into arguments.
+        # set -f above keeps the shell from globbing them.
+        node "$cli" lint "$libs" $MYELIN_PATHS $ext

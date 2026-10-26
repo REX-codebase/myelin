@@ -1,0 +1,19 @@
+{
+  "bad/drizzle.config.ts": ["D1", "D2", "D3"],
+  "bad/package.json": ["D4", "D5"],
+  "bad/schema.ts": ["D6"],
+  "bad/memberships.ts": ["D7"],
+  "bad/types.ts": ["D8"],
+  "bad/upsert.ts": ["D9"],
+  "bad/queries.ts": ["D10"],
+  "bad/validators.ts": ["D11"],
+  "bad/db.ts": ["D12"],
+  "bad/migrate.ts": ["D13"],
+  "good/drizzle.config.ts": [],
+  "good/db.ts": [],
+  "good/schema.ts": [],
+  "good/queries.ts": [],
+  "good/migrate.ts": [],
+  "good/package.json": [],
+  "good/validators.ts": []
+}

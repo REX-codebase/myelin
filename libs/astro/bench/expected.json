@@ -1,0 +1,18 @@
+{
+  "bad/posts.astro": ["A1"],
+  "bad/Layout.astro": ["A10"],
+  "bad/content-config-legacy.ts": ["A2", "A7"],
+  "bad/collection-no-loader.ts": ["A3"],
+  "bad/blog-index.astro": ["A4", "A5"],
+  "bad/blog-post.astro": ["A6"],
+  "bad/astro.config.mjs": ["A8", "A11", "A12"],
+  "bad/tailwind-integration.mjs": ["A9"],
+  "bad/actions.ts": ["A13", "A14"],
+  "good/content.config.ts": [],
+  "good/blog-slug.astro": [],
+  "good/Layout.astro": [],
+  "good/astro.config.mjs": [],
+  "good/products.astro": [],
+  "good/actions.ts": [],
+  "good/middleware.ts": []
+}

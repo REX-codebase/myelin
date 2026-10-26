@@ -1,0 +1,162 @@
+myelin 1
+id      angular
+about   Angular 22 (@angular/core 22.2): bans APIs deprecated or removed in 18 to 22 (*ngIf, HttpClientModule, withFetch, provideRoutes, ComponentFactoryResolver, platform-browser-dynamic, @angular/animations, Hammer, moduleId) that models still write
+fires   angular | @angular | ngmodule | bootstrapApplication | provideRouter | HttpClient | ngIf | ngFor | @Component
+comments skip
+status  Researched 2026-10-26 against @angular/core 22.2.3 (npm latest). Sourced from the angular/angular CHANGELOG and the adev docs source on GitHub (angular.dev was unreachable from the research sandbox). Regex-level checks; bench corpus passes; snippets not compiled or run.
+
+= version     @angular/core 22.2.3, @angular/cli 22.2.4 (npm latest, 2026-10-14 / 2026-10-22)
+= verified    2026-10-26
+= typescript  TypeScript 6 is required from 22.0; older versions are no longer supported
+= templates   @if / @for (track) / @switch are the control flow; *ngIf / *ngFor / *ngSwitch are deprecated since 20.0
+= components  standalone by default since 19.0; OnPush by default since 22.0 (ChangeDetectionStrategy.Eager keeps the old behaviour)
+= reactivity  input() / input.required() / output() / model() / viewChild() are the signal APIs; the decorators remain supported
+= bootstrap   bootstrapApplication(App, appConfig) with provideRouter(routes) and provideHttpClient(...) in appConfig
+= zone        zoneless by default since 21.0; zone.js and provideZoneChangeDetection are opt-in
+= http        fetch is the default backend since 22.0; HttpClientModule deprecated since 18.0; JSONP deprecated since 22.1
+
+! A1 /\*ng(?:If|For(?:Of)?|Switch(?:Case|Default)?)\b/   *ngIf / *ngFor / *ngSwitch are deprecated since Angular 20. Use @if / @for (with track) / @switch blocks. -> $control
+! A2 /\bHttpClient(?:Module|XsrfModule)\b/   HttpClientModule and HttpClientXsrfModule are deprecated. Use provideHttpClient(...) in appConfig providers, with functional interceptors registered through withInterceptors(...). -> $http
+! A3 /\bwithFetch\s*\(/   withFetch() is deprecated in 22.0 and redundant: fetch is the default HttpClient backend. Remove it. -> $config
+! A4 /\breportProgress\s*:/   The reportProgress option is deprecated in 22.0. Use reportUploadProgress and reportDownloadProgress instead. -> $service
+! A5 /\bwithJsonpSupport\s*\(|\bHttpClientJsonpModule\b|\b[hH]ttp\w*\.jsonp\s*(?:<[^>]*>)?\(/   JSONP support is deprecated since 22.1 (HttpClient.jsonp, withJsonpSupport, HttpClientJsonpModule). Use a standard request, or CORS.
+! A6 /\bprovideRoutes\s*\(/   provideRoutes() was removed in 22.0. Register routes with provideRouter(routes) or the ROUTES multi token, and guard them with functions in canActivate. -> $guard
+! A7 /\bComponentFactoryResolver\b|\bComponentFactory\b/   ComponentFactoryResolver and ComponentFactory were removed in 22.0. Pass the component class to ViewContainerRef.createComponent(Cmp) directly.
+! A8 /\bcreateNgModuleRef\b/   createNgModuleRef was removed in 22.0. Use createNgModule instead.
+! A9 /\.checkNoChanges\s*\(/   ChangeDetectorRef.checkNoChanges was removed in 22.0. In tests call fixture.detectChanges() instead.
+! A10 /\bHammerModule\b|\bHAMMER_GESTURE_CONFIG\b|\bHammerGestureConfig\b|['"]hammerjs['"]/   Hammer.js integration was deprecated in 20.0 and removed in 22.0. Use pointer events or your own gesture code.
+! A11 /@angular\/platform-browser-dynamic\b|\bplatformBrowserDynamic\s*\(/   @angular/platform-browser-dynamic is deprecated since 20.0. Bootstrap with bootstrapApplication from @angular/platform-browser. -> $main
+! A12 /from\s+['"]@angular\/animations(?:\/[\w\/-]+)?['"]/   The @angular/animations package is deprecated since 20.2. Use CSS transitions and animations, or the animate.enter / animate.leave bindings.
+! A13 /\banimations\s*:\s*\[\s*trigger\s*\(/   The animations field on @Component is deprecated since 20.2 (it depends on @angular/animations). Use CSS transitions instead.
+! A14 /\bprovideExperimentalZonelessChangeDetection\b/   provideExperimentalZonelessChangeDetection was renamed in 20.0. Zoneless is the default from 21.0, so the provider is not needed. -> $config
+! A15 /\bmoduleId\s*:\s*module\.id\b/   moduleId was removed from @Component metadata in 21.0. Delete the line; Angular resolves templates relative to the component. -> $signals
+! A16 /\binterpolation\s*:\s*\[/   The interpolation option on @Component was removed in 21.0 (it was deprecated in 18.0). Only the default {{ }} delimiters are supported. -> $signals
+
+~ P1 Bootstrap new apps with bootstrapApplication(App, appConfig). The docs say the team recommends it over bootstrapModule for all new code. -> $main
+~ P2 Put routing, HTTP and interceptors in an ApplicationConfig providers array: provideRouter(routes), provideHttpClient(withInterceptors([...])). Avoid RouterModule.forRoot and NgModule imports in new code. -> $config
+~ P3 Use the signal APIs in new code: input() / input.required(), output(), model(), viewChild() / viewChildren(). The @Input, @Output and @ViewChild decorators are still supported, so do not rewrite working code only for this. -> $signals
+~ P4 For a new singleton service, use @Service() with inject(). Keep @Injectable() when you need constructor DI, useClass / useValue / useExisting, or a non-root scope. -> $service
+~ P5 Write route guards and resolvers as functions (CanActivateFn, ResolveFn) that call inject(). Redirect by returning a UrlTree, not false followed by navigate. -> $guard
+~ P6 Use functional interceptors (withInterceptors) rather than class-based HTTP_INTERCEPTORS with withInterceptorsFromDi(). The docs recommend them for predictable ordering. -> $http
+~ P7 Use @if / @for / @switch in new templates. Only use @for with a track expression. -> $control
+~ P8 Components are standalone by default since 19.0. Omit standalone: true; use standalone: false only for a component that is still declared in an NgModule.
+~ P9 Components are OnPush by default in 22.0. Omit changeDetection unless you need ChangeDetectionStrategy.Eager to keep the old behaviour.
+~ P10 Apps on Angular 21 and later run zoneless by default. Do not add zone.js to polyfills or provideZoneChangeDetection() to a new app. -> $config
+
+$ main
+import { bootstrapApplication } from '@angular/platform-browser';
+import { App } from './app/app';
+import { appConfig } from './app/app.config';
+
+bootstrapApplication(App, appConfig).catch((err) => console.error(err));
+$$
+
+$ config
+import { ApplicationConfig } from '@angular/core';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
+import { routes } from './app.routes';
+import { authInterceptor } from './auth.interceptor';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideRouter(routes),
+    provideHttpClient(withInterceptors([authInterceptor])),
+  ],
+};
+$$
+
+$ http
+import { HttpInterceptorFn } from '@angular/common/http';
+
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const token = localStorage.getItem('token');
+  return next(token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req);
+};
+$$
+
+$ guard
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from './auth.service';
+
+export const authGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  return auth.isLoggedIn() ? true : router.parseUrl('/login');
+};
+$$
+
+$ control
+@if (user(); as u) {
+  <p>Signed in as {{ u.name }}</p>
+} @else {
+  <p>Please sign in.</p>
+}
+
+@for (todo of todos(); track todo.id) {
+  <li [class.done]="todo.done">{{ todo.title }}</li>
+} @empty {
+  <li>Nothing to do.</li>
+}
+
+@switch (status()) {
+  @case ('loading') { <p>Loading...</p> }
+  @case ('error') { <p>Could not load the list.</p> }
+  @default { <p>Ready.</p> }
+}
+$$
+
+$ signals
+import { Component, ElementRef, input, model, output, viewChild } from '@angular/core';
+
+@Component({
+  selector: 'app-counter',
+  template: `
+    <p>{{ label() }}</p>
+    <button #btn (click)="onClick()">{{ value() }}</button>
+  `,
+})
+export class Counter {
+  label = input.required<string>();
+  increment = input(1);
+  value = model(0);
+  reset = output<void>();
+  button = viewChild<ElementRef<HTMLButtonElement>>('btn');
+
+  onClick() {
+    this.value.update((v) => v + this.increment());
+  }
+
+  clear() {
+    this.value.set(0);
+    this.reset.emit();
+  }
+}
+$$
+
+$ service
+import { inject, Service } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+
+export interface Todo {
+  id: number;
+  title: string;
+  done: boolean;
+}
+
+@Service()
+export class TodoStore {
+  private readonly http = inject(HttpClient);
+
+  load() {
+    return this.http.get<Todo[]>('/api/todos');
+  }
+
+  upload(file: File) {
+    const body = new FormData();
+    body.append('file', file);
+    return this.http.post('/api/todos/import', body, { reportUploadProgress: true, observe: 'events' });
+  }
+}
+$$

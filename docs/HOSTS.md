@@ -33,6 +33,21 @@ Reject generated code that breaks a ledger. This GitHub Actions job assumes the 
 
 `lint` exits `1` on any violation, so the job fails.
 
+### GitHub Action
+
+The repository root has a composite action, [`action.yml`](../action.yml). It runs `lint` with the runner's Node and fails the job on any violation:
+
+```yaml
+- uses: actions/checkout@v4
+- uses: REX-codebase/myelin@main     # pin a tag or commit once released
+  with:
+    libs: detect                     # or: three,react  or  .myelin/rules.myelin
+    paths: src                       # space-separated; default "."
+    ext: js,ts                       # optional; default is the CLI's list
+```
+
+`libs: detect` reads the project's `package.json` and checks the bundled libs that match. Use `paths` to limit the scan to generated code.
+
 ## 5. Building a host
 
 A minimal discovery loop:

@@ -1,0 +1,155 @@
+myelin 1
+id      vitest
+about   Vitest 5 (vitest@5.0.5): bans config keys that were removed or moved in 4.x and 5.x (workspace files, poolOptions, environmentMatchGlobs, string browser providers), plus the vi.fn generic form, un-awaited async assertions, done() callbacks, and Jest globals in test files
+fires   vitest | vi.fn | vi.mock | vi.spyOn | vitest.config | vitest.workspace | defineWorkspace | defineProject | test.projects | browser mode | jest | jest.fn | jest.mock
+comments skip
+status  Researched 2026-10-26. Config keys and runtime behaviour checked against the published vitest@5.0.5 and vitest@4.1.12 packages (type definitions and runtime deprecation/throw messages). The vitest.dev migration guide was not reachable from the sandbox, so guide wording is not quoted. Snippets executed with vitest 5.0.5 in a scratch project.
+
+= version     vitest 5.0.5
+= verified    2026-10-26
+= node        ^22.12.0 || ^24.0.0 || >=26.0.0
+= vite        ^6.4.0 || ^7.0.0 || ^8.0.0
+= imports     tests: import { describe, expect, it, vi } from "vitest"; config: import { defineConfig, defineProject } from "vitest/config"
+= projects    one config file, test.projects = [defineProject({ test: { name, include, environment } })]; top-level test.maxWorkers, test.isolate, test.fileParallelism
+= browser     provider is a factory: playwright() from "@vitest/browser-playwright" (also webdriverio() and preview())
+
+! V1 /\bdefineWorkspace\b/   defineWorkspace() is not exported in Vitest 5. Declare each project with defineProject() inside test.projects. -> $projects
+! V2 /\bvitest\.workspace\b/   vitest.workspace files are not read in Vitest 5. Put the projects in vitest.config.ts under test.projects. -> $projects
+! V3 /\bworkspace\s*:\s*\[/   test.workspace was removed in Vitest 4 and now throws. Use test.projects. -> $projects
+! V4 /\bpoolOptions\s*:/   test.poolOptions was removed in Vitest 4 (the runtime warns). Its keys are top-level now: maxWorkers, isolate, fileParallelism. -> $pool
+! V5 /\benvironmentMatchGlobs\b/   environmentMatchGlobs is not a Vitest 4 or 5 option. Give each project its own environment in test.projects. -> $projects
+! V6 /\bprovider\s*:\s*['"](?:playwright|webdriverio|preview)['"]/   browser.provider takes a factory, not a string. Import playwright() from @vitest/browser-playwright. -> $browser
+! V7 /\bbrowser\s*:\s*\{[^{}]*\b(?:api|isolate|fileParallelism)\s*:/   browser.api, browser.isolate and browser.fileParallelism are deprecated. Use test.api, top-level isolate and top-level fileParallelism. -> $browser
+! V8 /\bcache\s*:\s*\{[^{}]*\bdir\s*:/   cache.dir has no effect in Vitest 5. Set Vite's cacheDir instead.
+! V9 /(?<!\bserver\.)\bdeps\.inline\b|(?<!\bserver\s*:\s*\{\s*)\bdeps\s*:\s*\{[^{}]*\binline\s*:/   deps.inline is not a top-level option. Inlining goes under server.deps.inline. -> $deps
+! V10 /\boptimizer\s*:\s*\{[^{}]*\bweb\s*:/   deps.optimizer.web is deprecated. Use deps.optimizer.client (or deps.optimizer.ssr for node). -> $deps
+! V11 /\breporters?\s*:\s*\[?\s*['"]basic['"]/   'basic' is not a built-in reporter in Vitest 4 or 5. Use 'default' or 'verbose'.
+! V12 /\bvi\.fn\s*<\s*\[|\bvi\.fn\s*<[^<>(){}\[\]]*,[^<>(){}\[\]]*>/   vi.fn takes one function type, not an args tuple and a return type. Write vi.fn<(...args: A) => R>(). -> $fn
+! V13 /^(?![ \t]*(?:await|return)\b)[ \t]*(?:expect\.poll\(|expect(?:\.soft)?\([^\n]*\)\.(?:resolves|rejects)\b)/m   Async assertions (.resolves, .rejects, expect.poll) must be awaited. Vitest 5 fails the test when one is not. -> $async
+! V14 /\b(?:it|test)(?:\.\w+)?\s*\(\s*(?:'[^'\n]*'|"[^"\n]*"|`[^`\n]*`)\s*,\s*(?:async\s*)?(?:function\s*)?\(\s*done\s*\)|\b(?:it|test)(?:\.\w+)?\s*\(\s*(?:'[^'\n]*'|"[^"\n]*"|`[^`\n]*`)\s*,\s*done\s*=>/   done() callbacks throw in Vitest 5. Return a promise or make the test async. -> $async
+! V15 /\}\s*,\s*\{\s*(?:timeout|retry|repeats|concurrent|sequential|skip|only|todo|fails)\s*:[^{}]*\}\s*\)/   The options object as the third argument of it/test was removed in Vitest 4. Pass options as the second argument: it("name", { timeout: 10_000 }, async () => {}). -> $options
+! V16 /\btest\.scoped\s*\(/   test.scoped() is deprecated in Vitest 5. Use test.override().
+! V17 /\bjest\.(?:fn|mock|unmock|doMock|spyOn|mocked|requireActual|requireMock|useFakeTimers|useRealTimers|advanceTimersByTime|runAllTimers|resetAllMocks|clearAllMocks|restoreAllMocks)\s*\(/ unless /from\s+['"](?:jest|@jest\/globals)['"]|require\(\s*['"]@jest\/globals['"]\s*\)|\bjest\.config\b/   Vitest does not provide a jest global. Import { vi } from "vitest" and use vi.fn, vi.mock and vi.spyOn. -> $mock
+
+~ P1 Import defineConfig and defineProject from "vitest/config" in config files.
+~ P2 vitest 5 clears mock call history before each test by default (clearMocks defaults to true); do not expect call counts to carry across tests.
+~ P3 Use vi.spyOn for partial mocks of a real object, and vi.fn<(...args: A) => R>() for standalone typed mocks.
+~ P4 Browser-mode locators match text exactly by default in vitest 5 (browser.locators.exact defaults to true); pass exact: false for substring matches.
+
+$ projects
+import { defineConfig, defineProject } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    projects: [
+      defineProject({
+        test: {
+          name: "unit",
+          include: ["src/**/*.test.ts"],
+          environment: "node",
+        },
+      }),
+      defineProject({
+        test: {
+          name: "dom",
+          include: ["src/**/*.dom.test.ts"],
+          environment: "jsdom",
+        },
+      }),
+    ],
+  },
+});
+$$
+
+$ pool
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    maxWorkers: 2,
+    isolate: true,
+    fileParallelism: true,
+  },
+});
+$$
+
+$ browser
+import { defineConfig } from "vitest/config";
+import { playwright } from "@vitest/browser-playwright";
+
+export default defineConfig({
+  test: {
+    browser: {
+      enabled: true,
+      provider: playwright(),
+      instances: [{ browser: "chromium" }],
+    },
+  },
+});
+$$
+
+$ deps
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    server: {
+      deps: {
+        inline: [/@my-org\//],
+      },
+    },
+    deps: {
+      optimizer: {
+        client: { enabled: true },
+      },
+    },
+  },
+});
+$$
+
+$ async
+import { expect, it } from "vitest";
+
+async function fetchUser(id: number) {
+  if (id < 0) throw new Error("not found");
+  return { id };
+}
+
+it("resolves and rejects", async () => {
+  await expect(fetchUser(1)).resolves.toEqual({ id: 1 });
+  await expect(fetchUser(-1)).rejects.toThrow("not found");
+});
+$$
+
+$ fn
+import { expect, it, vi } from "vitest";
+
+const sendEmail = vi.fn<(to: string) => Promise<boolean>>(async () => true);
+
+it("sends one welcome email", async () => {
+  expect(await sendEmail("a@example.com")).toBe(true);
+  expect(sendEmail).toHaveBeenCalledWith("a@example.com");
+});
+$$
+
+$ mock
+import { expect, it, vi } from "vitest";
+
+const clock = { now: () => 0 };
+
+it("spies on the clock", () => {
+  const spy = vi.spyOn(clock, "now").mockReturnValue(1_700_000_000_000);
+  expect(clock.now()).toBe(1_700_000_000_000);
+  expect(spy).toHaveBeenCalledTimes(1);
+  spy.mockRestore();
+});
+$$
+
+$ options
+import { expect, it } from "vitest";
+
+it("finishes a slow job", { timeout: 10_000 }, async () => {
+  const result = await Promise.resolve(42);
+  expect(result).toBe(42);
+});
+$$

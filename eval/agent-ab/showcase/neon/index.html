@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rain Street</title>
+<style>
+  html,body{margin:0;height:100%;background:#1a0c24;overflow:hidden}
+  canvas{display:block;width:100vw;height:100vh}
+  #cap{position:fixed;left:16px;bottom:12px;font:12px/1.4 system-ui,sans-serif;color:rgba(220,210,255,.55);letter-spacing:.04em;pointer-events:none}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.webgpu.js",
+    "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.webgpu.js",
+    "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.tsl.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="cap">RAIN STREET &middot; three.js r186 &middot; WebGPU</div>
+<script type="module">
+import * as THREE from 'three/webgpu';
+import { Fn, float, vec2, vec3, vec4, color, uv, time, screenUV, floor, fract, sin, dot, mix, smoothstep, step, mod, exp, texture, positionLocal, positionWorld, pass } from 'three/tsl';
+import { bloom } from 'three/addons/tsl/display/BloomNode.js';
+
+/* ---------- procedural TSL helpers ---------- */
+const hash2 = Fn( ( [ p ] ) => fract( sin( dot( p, vec2( 127.1, 311.7 ) ) ).mul( 43758.5453 ) ) );
+
+const vnoise = Fn( ( [ p ] ) => {
+  const i = floor( p );
+  const f = fract( p );
+  const u = f.mul( f ).mul( float( 3 ).sub( f.mul( 2 ) ) );
+  const a = hash2( i );
+  const b = hash2( i.add( vec2( 1, 0 ) ) );
+  const c = hash2( i.add( vec2( 0, 1 ) ) );
+  const d = hash2( i.add( vec2( 1, 1 ) ) );
+  return mix( mix( a, b, u.x ), mix( c, d, u.x ), u.y );
+} );
+
+const fbm = Fn( ( [ p ] ) =>
+  vnoise( p ).mul( 0.5 ).add( vnoise( p.mul( 2.03 ) ).mul( 0.3 ) ).add( vnoise( p.mul( 4.7 ) ).mul( 0.2 ) )
+);
+
+const flicker = ( speed, k ) => sin( time.mul( speed ).add( k ) ).mul( 0.04 ).add( 0.96 );
+const dropout = ( k ) => float( 1 ).sub( step( 0.93, fract( time.mul( 0.45 ).add( k * 0.31 ) ) ).mul( 0.8 ) );
+
+// window cells on a facade: returns inside-window mask, lit flag, flicker and warm/cool tint
+function winNodes( hc, yc, seed ) {
+  const st = vec2( hc.div( 1.2 ), yc.div( 1.05 ) );
+  const cell = floor( st );
+  const f = fract( st );
+  const inside = step( 0.18, f.x ).mul( step( f.x, 0.82 ) ).mul( step( 0.24, f.y ) ).mul( step( f.y, 0.86 ) );
+  const key = cell.add( vec2( seed, seed * 0.37 ) );
+  const r1 = hash2( key );
+  const r2 = hash2( key.add( vec2( 17.3, 5.1 ) ) );
+  const r3 = hash2( key.add( vec2( 3.7, 41.2 ) ) );
+  const r4 = hash2( cell.add( vec2( floor( time.mul( 3.0 ) ), seed ) ) );
+  const lit = step( 0.7, r1 );                                  // ~30% of windows lit
+  const flick = mix( float( 1 ), step( 0.35, r4 ), step( 0.93, r3 ) ); // a few stutter
+  let tint = mix( color( 0xffb347 ), color( 0x46e6ff ), step( 0.2, r2 ) );
+  tint = mix( tint, color( 0xff3d8f ), step( 0.4, r2 ) );
+  tint = mix( tint, color( 0x8f63ff ), step( 0.6, r2 ) );
+  tint = mix( tint, color( 0xfff0d8 ), step( 0.85, r2 ) );
+  return { inside, lit, flick, tint };
+}
+
+function facadeMat( b ) {
+  const m = new THREE.MeshStandardNodeMaterial();
+  const hc = positionLocal.x.add( positionLocal.z );
+  const yc = positionLocal.y.add( b.H / 2 );
+  const w = winNodes( hc, yc, b.seed );
+  const grime = vnoise( vec2( hc.mul( 2.3 ), yc.mul( 1.6 ) ) ).mul( 0.4 ).add( 0.6 );
+  m.colorNode = mix( color( 0x18162c ).mul( grime ), color( 0x0a0d1c ), w.inside );
+  m.roughnessNode = mix( float( 0.82 ), float( 0.16 ), w.inside );
+  m.metalnessNode = mix( float( 0.04 ), float( 0.3 ), w.inside );
+  // storefront band with mullions at street level
+  const shopMask = step( yc, float( 3.3 ) );
+  const mull = float( 0.55 ).add( step( 0.12, fract( hc.mul( 0.42 ) ) ).mul( 0.45 ) );
+  const shop = color( b.shop ).mul( shopMask ).mul( mull ).mul( 0.2 );
+  const lit = w.inside.mul( w.lit ).mul( w.flick ).mul( w.tint ).mul( 2.6 );
+  m.emissiveNode = lit.add( shop );
+  return m;
+}
+
+/* ---------- canvas-drawn neon lettering and glow sprites (procedural textures) ---------- */
+const css = ( n ) => '#' + n.toString( 16 ).padStart( 6, '0' );
+function mkCanvas( w, h ) { const c = document.createElement( 'canvas' ); c.width = w; c.height = h; return c; }
+function toTex( c ) { const t = new THREE.CanvasTexture( c ); t.colorSpace = THREE.SRGBColorSpace; return t; }
+
+function bladeTexture( word, hex, aspect ) {
+  const W = 256, H = Math.round( W * aspect );
+  const c = mkCanvas( W, H ); const x = c.getContext( '2d' );
+  x.fillStyle = '#08070f'; x.fillRect( 0, 0, W, H );
+  const L = word.split( '' );
+  const lh = H / ( L.length + 0.9 );
+  const fs = Math.min( lh * 0.95, W * 0.62 );
+  x.font = `900 ${fs}px Arial, Helvetica, sans-serif`;
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.shadowColor = css( hex ); x.shadowBlur = 36; x.fillStyle = css( hex );
+  L.forEach( ( ch, i ) => x.fillText( ch, W / 2, lh * ( i + 0.6 ) ) );
+  x.shadowBlur = 12; x.fillStyle = '#ffffff';
+  L.forEach( ( ch, i ) => x.fillText( ch, W / 2, lh * ( i + 0.6 ) ) );
+  return toTex( c );
+}
+
+function gantryTexture() {
+  const W = 1024, H = 256;
+  const c = mkCanvas( W, H ); const x = c.getContext( '2d' );
+  x.fillStyle = '#07060d'; x.fillRect( 0, 0, W, H );
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.font = '900 120px Arial, Helvetica, sans-serif';
+  x.shadowColor = css( 0xff2d8a ); x.shadowBlur = 40; x.fillStyle = css( 0xff2d8a );
+  x.fillText( 'NOIR HOTEL', W / 2, 112 );
+  x.shadowBlur = 14; x.fillStyle = '#ffffff'; x.fillText( 'NOIR HOTEL', W / 2, 112 );
+  x.font = '700 42px Arial, Helvetica, sans-serif';
+  x.shadowColor = css( 0x2ae8ff ); x.shadowBlur = 24; x.fillStyle = css( 0x2ae8ff );
+  x.fillText( 'SAKE  ·  BAR  ·  LOUNGE  ·  24H', W / 2, 205 );
+  return toTex( c );
+}
+
+function haloTexture() {
+  const c = mkCanvas( 128, 128 ); const x = c.getContext( '2d' );
+  const g = x.createRadialGradient( 64, 64, 0, 64, 64, 64 );
+  g.addColorStop( 0, '#ffffff' ); g.addColorStop( 0.35, '#6a6a6a' ); g.addColorStop( 1, '#000000' );
+  x.fillStyle = g; x.fillRect( 0, 0, 128, 128 );
+  return toTex( c );
+}
+const haloTex = haloTexture();
+
+/* ---------- renderer / scene ---------- */
+const renderer = new THREE.WebGPURenderer( { antialias: true, outputBufferType: THREE.HalfFloatType } );
+renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
+renderer.setSize( window.innerWidth, window.innerHeight );
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.AgXToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+document.body.appendChild( renderer.domElement );
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color( 0x1a0c24 );
+scene.fog = new THREE.FogExp2( 0x1a0c24, 0.028 );
+
+const camera = new THREE.PerspectiveCamera( 52, window.innerWidth / window.innerHeight, 0.1, 180 );
+camera.position.set( 0, 1.8, 20 );
+
+const timer = new THREE.Timer();
+timer.connect( document );
+
+scene.add( new THREE.HemisphereLight( 0x3a3a7a, 0x06040a, 0.7 ) );
+
+// cold moon: the only shadow caster, soft building shadows across the wet road
+const moon = new THREE.DirectionalLight( 0x9fb4ff, 1.6 );
+moon.position.set( -14, 26, 12 );
+moon.target.position.set( 0, 0, -20 );
+moon.castShadow = true;
+moon.shadow.mapSize.set( 2048, 2048 );
+moon.shadow.radius = 4;
+moon.shadow.camera.left = -22;
+moon.shadow.camera.right = 22;
+moon.shadow.camera.top = 22;
+moon.shadow.camera.bottom = -22;
+moon.shadow.camera.near = 1;
+moon.shadow.camera.far = 90;
+moon.shadow.camera.updateProjectionMatrix();
+scene.add( moon, moon.target );
+
+/* ---------- seeded generation: one street tile (40 units long), repeated along z ---------- */
+function rng( s ) {
+  return () => {
+    s |= 0; s = s + 0x6D2B79F5 | 0;
+    let t = Math.imul( s ^ s >>> 15, 1 | s );
+    t = t + Math.imul( t ^ t >>> 7, 61 | t ) ^ t;
+    return ( ( t ^ t >>> 14 ) >>> 0 ) / 4294967296;
+  };
+}
+const R = rng( 20260 );
+const pick = ( arr ) => arr[ Math.floor( R() * arr.length ) ];
+const T_LEN = 40, HALF = 20, WALK_IN = 7.5;
+const NEON = [ 0xff2d8a, 0x2ae8ff, 0xffa630, 0x9d5cff ];   // magenta, cyan, amber, violet
+const WORDS = [ 'RAMEN', 'BAR', 'HOTEL', 'SAKE', 'ARCADE', 'NEO', 'KARAOKE', 'LOUNGE', 'MOTEL', 'NOODLE', 'CLUB', 'DINER', '24H', 'SHOP' ];
+
+// buildings: flush along each side, tile edges exact so the tiles join seamlessly
+const buildings = [];
+for ( const side of [ - 1, 1 ] ) {
+  let z = - HALF;
+  while ( z < HALF - 0.01 ) {
+    const rem = HALF - z;
+    let wz = Math.min( 5.5 + R() * 5.5, rem );
+    if ( rem - wz < 3 ) wz = rem;
+    const H = 10 + Math.pow( R(), 1.4 ) * 48;
+    const wx = 6.5 + R() * 3.5;
+    buildings.push( {
+      side, zc: z + wz / 2, wz, wx, H,
+      seed: Math.floor( R() * 1000 ) + 1,
+      shop: pick( NEON ),
+    } );
+    z += wz;
+  }
+}
+for ( const b of buildings ) {
+  b.geo = new THREE.BoxGeometry( b.wx, b.H, b.wz );
+  b.mat = facadeMat( b );
+  b.x = b.side * ( WALK_IN + b.wx / 2 );
+}
+
+// metal decor (AC units, balconies, railings, ledges, fins), drawn as one instanced mesh per tile
+const decor = [];
+const addDecor = ( x, y, z, sx, sy, sz ) => decor.push( { x, y, z, sx, sy, sz } );
+for ( const b of buildings ) {
+  const s = b.side;
+  const floors = Math.floor( ( b.H - 3 ) / 3.2 );
+  for ( let k = 0; k < floors; k ++ ) {
+    const y = 4.2 + k * 3.2;
+    const zr = b.zc + ( R() - 0.5 ) * ( b.wz - 1.6 );
+    const r = R();
+    if ( r < 0.09 ) {                           // balcony with railing
+      addDecor( s * ( WALK_IN - 0.45 ), y, zr, 0.9, 0.12, 2.2 );
+      addDecor( s * ( WALK_IN - 0.9 ), y + 0.33, zr, 0.05, 0.6, 2.2 );
+    } else if ( r < 0.24 ) {                    // AC unit on the street face
+      addDecor( s * ( WALK_IN - 0.12 ), y, zr, 0.8, 0.6, 1.0 );
+    }
+    if ( R() < 0.2 ) addDecor( s * ( WALK_IN - 0.25 ), y + 1.5, b.zc, 0.5, 0.18, b.wz );  // ledge
+  }
+  addDecor( s * ( WALK_IN - 0.12 ), b.H / 2, b.zc - b.wz / 2 + 0.2, 0.3, b.H, 0.3 );     // fins
+  addDecor( s * ( WALK_IN - 0.12 ), b.H / 2, b.zc + b.wz / 2 - 0.2, 0.3, b.H, 0.3 );
+}
+const unitBox = new THREE.BoxGeometry( 1, 1, 1 );
+const decorMat = new THREE.MeshStandardNodeMaterial( { color: 0x23232d, roughness: 0.55, metalness: 0.5 } );
+
+// neon tube strips on the storefront line
+const tubeMats = NEON.map( ( hex, k ) => {
+  const m = new THREE.MeshBasicNodeMaterial();
+  m.colorNode = color( hex ).mul( flicker( 0.7 + k * 0.23, k ).mul( 5.0 ) );
+  return m;
+} );
+const strips = [];
+for ( const b of buildings ) {
+  if ( R() < 0.45 ) {
+    const len = b.wz * 0.55;
+    strips.push( {
+      x: b.side * ( WALK_IN - 0.05 ), z: b.zc + ( R() - 0.5 ) * b.wz * 0.3, len,
+      geo: new THREE.BoxGeometry( 0.08, 0.08, len ), mat: pick( tubeMats ),
+    } );
+  }
+}
+
+// blade signs: vertical stacked lettering, glowing, protruding into the walkway
+const bladeGeo = new THREE.PlaneGeometry( 1.2, 1 );
+const blades = [];
+for ( const side of [ - 1, 1 ] ) {
+  for ( let i = 0; i < 4; i ++ ) {
+    const hgt = 2.6 + R() * 1.2;
+    const hex = pick( NEON ); const k = blades.length;
+    const word = pick( WORDS );
+    const mat = new THREE.MeshBasicNodeMaterial( { side: THREE.DoubleSide } );
+    mat.colorNode = texture( bladeTexture( word, hex, hgt / 1.2 ) ).rgb.mul( dropout( k ) ).mul( 1.9 );
+    blades.push( {
+      side, hex, k,
+      x: side * ( WALK_IN - 0.65 ), y: 3.6 + R() * 4.5, z: - HALF + ( i + 0.5 ) * 10 + ( R() - 0.5 ) * 3,
+      h: hgt, mat,
+    } );
+  }
+}
+
+// glow halos (lit haze around light sources, additive)
+const haloMatCache = {};
+function haloMat( hex, strength, k ) {
+  const key = hex + ':' + strength;
+  if ( haloMatCache[ key ] ) return haloMatCache[ key ];
+  const m = new THREE.MeshBasicNodeMaterial( { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending } );
+  m.colorNode = color( hex );
+  m.opacityNode = texture( haloTex ).r.mul( strength ).mul( flicker( 0.6 + k * 0.2, k ) );
+  return haloMatCache[ key ] = m;
+}
+
+// volumetric-looking haze: noise-driven additive slabs in the street colours
+function hazeMat( hex, seed ) {
+  const m = new THREE.MeshBasicNodeMaterial( { transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending } );
+  const u = uv();
+  const n = fbm( u.mul( vec2( 4.0, 2.0 ) ).add( vec2( time.mul( 0.03 ), time.mul( - 0.01 ) ) ).add( vec2( seed, seed * 1.7 ) ) );
+  const fade = u.x.mul( float( 1 ).sub( u.x ) ).mul( u.y.mul( float( 1 ).sub( u.y ) ) ).mul( 16 );
+  m.colorNode = color( hex );
+  m.opacityNode = smoothstep( 0.42, 0.8, n ).mul( fade ).mul( 0.07 );
+  return m;
+}
+
+// gantry hero sign across the street
+const gantryMat = new THREE.MeshBasicNodeMaterial( { side: THREE.DoubleSide } );
+gantryMat.colorNode = texture( gantryTexture() ).rgb.mul( dropout( 7 ) ).mul( 2.2 );
+const frameMat = new THREE.MeshStandardNodeMaterial( { color: 0x101018, roughness: 0.5, metalness: 0.6 } );
+
+const walkMat = new THREE.MeshStandardNodeMaterial( { color: 0x2b2a36, roughness: 0.7 } );
+const walkGeo = new THREE.BoxGeometry( 2.5, 0.25, T_LEN );
+const poleMat = new THREE.MeshStandardNodeMaterial( { color: 0x101018, roughness: 0.6, metalness: 0.5 } );
+const poleGeo = new THREE.CylinderGeometry( 0.07, 0.09, 6, 8 );
+const armGeo = new THREE.BoxGeometry( 0.5, 0.06, 0.06 );
+const headGeo = new THREE.SphereGeometry( 0.3, 12, 8 );
+const lampMat = new THREE.MeshBasicNodeMaterial();
+lampMat.colorNode = color( 0xffb36b ).mul( 6 );
+const postGeo = new THREE.BoxGeometry( 0.3, 7.2, 0.3 );
+const bannerGeo = new THREE.PlaneGeometry( 12.5, 3.4 );
+const gantryFrameGeo = new THREE.BoxGeometry( 12.8, 3.8, 0.25 );
+const bladeGeoFixed = bladeGeo;
+
+// road: wet asphalt; puddles are near mirror-smooth and catch neon as long vertical streaks
+const roadMat = new THREE.MeshStandardNodeMaterial();
+const wx = positionWorld.x;
+const wz = positionWorld.z;
+const wetN = vnoise( vec2( wx, wz ).mul( vec2( 0.45, 0.22 ) ) ).mul( 0.65 )
+  .add( vnoise( vec2( wx, wz ).mul( vec2( 1.7, 1.1 ) ) ).mul( 0.35 ) );
+const puddle = smoothstep( 0.5, 0.62, wetN );
+const asphaltN = vnoise( vec2( wx, wz ).mul( 9.0 ) );
+
+// lights that reflect in the road: each is a long streak, repeated every tile (periodic in z)
+const ROAD_LIGHTS = [];
+for ( const b of blades ) ROAD_LIGHTS.push( { x: b.side * 5.6, z: b.z, len: 3.4, w: 0.3, hex: b.hex, k: 1.15 } );
+for ( const side of [ - 1, 1 ] ) ROAD_LIGHTS.push( { x: side * 4.3, z: side === - 1 ? - 8 : 8, len: 3.4, w: 0.28, hex: 0xffb36b, k: 1.1 } );
+ROAD_LIGHTS.push( { x: 0, z: - 17, len: 2.5, w: 2.2, hex: 0xff2d8a, k: 0.3 } );
+for ( let i = 0; i < 12; i ++ ) {
+  ROAD_LIGHTS.push( { x: ( R() < 0.5 ? - 1 : 1 ) * ( 5.3 + R() * 1.4 ), z: - HALF + R() * T_LEN, len: 2.0, w: 0.25, hex: pick( NEON ), k: 0.5 } );
+}
+function streakTerm( L ) {
+  const dz = mod( wz.add( HALF - L.z ), T_LEN ).sub( HALF );
+  const dx = wx.sub( L.x );
+  const g = exp( dz.mul( dz ).mul( - 1 / ( L.len * L.len ) ) ).mul( exp( dx.mul( dx ).mul( - 1 / ( L.w * L.w ) ) ) );
+  return color( L.hex ).mul( g.mul( L.k ) );
+}
+let streakSum = vec3( 0, 0, 0 );
+for ( const L of ROAD_LIGHTS ) streakSum = streakSum.add( streakTerm( L ) );
+const streakBreak = vnoise( vec2( wz.mul( 2.3 ), wx.mul( 0.7 ) ) ).mul( 0.6 ).add( 0.4 );
+
+roadMat.colorNode = mix( color( 0x1d1d27 ).mul( asphaltN.mul( 0.5 ).add( 0.75 ) ), color( 0x040409 ), puddle );
+roadMat.roughnessNode = mix( float( 0.58 ).add( asphaltN.mul( 0.15 ) ), float( 0.03 ), puddle );
+roadMat.metalnessNode = float( 0.0 );
+roadMat.emissiveNode = streakSum.mul( mix( float( 0.55 ), float( 1.0 ), puddle ) ).mul( streakBreak );
+const roadGeo = new THREE.PlaneGeometry( 10, T_LEN );
+
+/* ---------- instantiate tiles: identical copies, so the loop wraps seamlessly ---------- */
+const dummy = new THREE.Object3D();
+function instantiate( z0 ) {
+  const g = new THREE.Group();
+  g.position.z = z0;
+  scene.add( g );
+
+  const road = new THREE.Mesh( roadGeo, roadMat );
+  road.rotation.x = - Math.PI / 2;
+  road.receiveShadow = true;
+  g.add( road );
+
+  for ( const side of [ - 1, 1 ] ) {
+    const walk = new THREE.Mesh( walkGeo, walkMat );
+    walk.position.set( side * 6.25, 0.125, 0 );
+    walk.receiveShadow = true;
+    g.add( walk );
+  }
+
+  for ( const b of buildings ) {
+    const m = new THREE.Mesh( b.geo, b.mat );
+    m.position.set( b.x, b.H / 2, b.zc );
+    m.castShadow = true;
+    m.receiveShadow = true;
+    g.add( m );
+  }
+
+  const im = new THREE.InstancedMesh( unitBox, decorMat, decor.length );
+  decor.forEach( ( d, i ) => {
+    dummy.position.set( d.x, d.y, d.z );
+    dummy.scale.set( d.sx, d.sy, d.sz );
+    dummy.rotation.set( 0, 0, 0 );
+    dummy.updateMatrix();
+    im.setMatrixAt( i, dummy.matrix );
+  } );
+  im.instanceMatrix.needsUpdate = true;
+  im.castShadow = true;
+  im.receiveShadow = true;
+  g.add( im );
+
+  for ( const s of strips ) {
+    const m = new THREE.Mesh( s.geo, s.mat );
+    m.position.set( s.x, 3.4, s.z );
+    g.add( m );
+  }
+
+  for ( const b of blades ) {
+    const m = new THREE.Mesh( bladeGeoFixed, b.mat );
+    m.scale.set( 1, b.h, 1 );
+    m.position.set( b.x, b.y, b.z );
+    g.add( m );
+    const halo = new THREE.Mesh( new THREE.PlaneGeometry( 4.0, b.h * 1.8 ), haloMat( b.hex, 0.45, b.k ) );
+    halo.position.set( b.x + ( - b.side ) * 0.3, b.y, b.z - 0.2 );
+    g.add( halo );
+    if ( b.k === 0 || b.k === 4 ) {           // one lit blade sign per side per tile
+      const pl = new THREE.PointLight( b.hex, 30, 10, 2 );
+      pl.position.set( b.side * ( WALK_IN - 0.9 ), b.y, b.z );
+      g.add( pl );
+    }
+  }
+
+  for ( const side of [ - 1, 1 ] ) {
+    const z = side === - 1 ? - 8 : 8;
+    const pole = new THREE.Mesh( poleGeo, poleMat );
+    pole.position.set( side * 5.2, 3, z );
+    pole.castShadow = true;
+    g.add( pole );
+    const arm = new THREE.Mesh( armGeo, poleMat );
+    arm.position.set( side * 4.95, 6.0, z );
+    g.add( arm );
+    const head = new THREE.Mesh( headGeo, lampMat );
+    head.position.set( side * 4.7, 5.95, z );
+    g.add( head );
+    const halo = new THREE.Mesh( new THREE.PlaneGeometry( 3.4, 3.4 ), haloMat( 0xffb36b, 0.7, 2 ) );
+    halo.position.set( side * 4.7, 5.95, z - 0.2 );
+    g.add( halo );
+    const pl = new THREE.PointLight( 0xffb36b, 55, 20, 2 );
+    pl.position.set( side * 4.6, 5.7, z );
+    g.add( pl );
+  }
+
+  // gantry sign over the street
+  for ( const x of [ - 5.9, 5.9 ] ) {
+    const post = new THREE.Mesh( postGeo, frameMat );
+    post.position.set( x, 3.6, - 17 );
+    post.castShadow = true;
+    g.add( post );
+  }
+  const frame = new THREE.Mesh( gantryFrameGeo, frameMat );
+  frame.position.set( 0, 8.7, - 17.3 );
+  g.add( frame );
+  const banner = new THREE.Mesh( bannerGeo, gantryMat );
+  banner.position.set( 0, 8.7, - 17.1 );
+  g.add( banner );
+  const gHalo = new THREE.Mesh( new THREE.PlaneGeometry( 16, 7 ), haloMat( 0xff2d8a, 0.22, 3 ) );
+  gHalo.position.set( 0, 8.7, - 17.4 );
+  g.add( gHalo );
+
+  // haze slabs, lit by the signs' colours, fading into the fog
+  const hz1 = new THREE.Mesh( new THREE.PlaneGeometry( 40, 16 ), hazeMat( 0x7a4dff, 1.3 ) );
+  hz1.position.set( 0, 7, - 12 );
+  g.add( hz1 );
+  const hz2 = new THREE.Mesh( new THREE.PlaneGeometry( 40, 18 ), hazeMat( 0x1fc8e0, 4.1 ) );
+  hz2.position.set( 0, 8, - 28 );
+  g.add( hz2 );
+  const hz3 = new THREE.Mesh( new THREE.PlaneGeometry( 40, 9 ), hazeMat( 0xff7a3a, 7.7 ) );
+  hz3.position.set( 0, 3.5, - 36 );
+  g.add( hz3 );
+}
+for ( const z of [ 40, 0, - 40, - 80 ] ) instantiate( z );
+
+/* ---------- rain: instanced streaks around the camera ---------- */
+const RAIN = 3000;
+const rainMat = new THREE.MeshBasicNodeMaterial( { transparent: true, depthWrite: false } );
+rainMat.colorNode = color( 0xa8c4ff ).mul( 0.9 );
+rainMat.opacity = 0.2;
+const rain = new THREE.InstancedMesh( new THREE.BoxGeometry( 0.016, 0.9, 0.016 ), rainMat, RAIN );
+rain.frustumCulled = false;
+scene.add( rain );
+
+const ox = new Float32Array( RAIN ), oy = new Float32Array( RAIN ), oz = new Float32Array( RAIN ), sp = new Float32Array( RAIN );
+function respawn( i, initial ) {
+  ox[ i ] = ( Math.random() - 0.5 ) * 26;
+  oy[ i ] = initial ? Math.random() * 26 : 26;
+  oz[ i ] = 10 - Math.random() * 36;
+  sp[ i ] = 13 + Math.random() * 7;
+}
+for ( let i = 0; i < RAIN; i ++ ) respawn( i, true );
+
+const rainDummy = new THREE.Object3D();
+rainDummy.rotation.set( 0, 0, - 0.1 );
+function updateRain( dt, cx, cz ) {
+  for ( let i = 0; i < RAIN; i ++ ) {
+    oy[ i ] -= sp[ i ] * dt;
+    if ( oy[ i ] < 0 ) respawn( i, false );
+    rainDummy.position.set( cx + ox[ i ], oy[ i ] + 0.45, cz + oz[ i ] );
+    rainDummy.updateMatrix();
+    rain.setMatrixAt( i, rainDummy.matrix );
+  }
+  rain.instanceMatrix.needsUpdate = true;
+}
+
+/* ---------- post: bloom on the neon, filmic grade, vignette ---------- */
+const renderPipeline = new THREE.RenderPipeline( renderer );
+const scenePass = pass( scene, camera );
+const scenePassColor = scenePass.getTextureNode( 'output' );
+const bloomPass = bloom( scenePassColor, 0.8, 0.35, 0.65 );
+const base = scenePassColor.add( bloomPass );
+const rgb = base.rgb;
+const lum = dot( rgb, vec3( 0.2126, 0.7152, 0.0722 ) );
+const lift = vec3( - 0.004, 0.018, 0.035 ).mul( float( 1 ).sub( smoothstep( 0.0, 0.45, lum ) ) );     // teal shadows
+const tone = mix( vec3( 0.94, 1.0, 1.05 ), vec3( 1.06, 0.97, 0.98 ), smoothstep( 0.3, 0.9, lum ) );  // magenta/amber highlights
+const uvc = screenUV.sub( 0.5 );
+const vig = float( 1 ).sub( dot( uvc, uvc ).mul( 0.55 ) );
+renderPipeline.outputNode = vec4( rgb.mul( tone ).add( lift ).mul( vig ), 1.0 );
+
+/* ---------- camera dolly and loop ---------- */
+const SPEED = 1.6;   // units per second
+const PERIOD = 40;   // tile length
+
+window.addEventListener( 'resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize( window.innerWidth, window.innerHeight );
+} );
+
+renderer.setAnimationLoop( () => {
+  timer.update();
+  const dt = Math.min( timer.getDelta(), 0.05 );
+  const t = timer.getElapsed();
+
+  const camZ = 20 - ( ( t * SPEED ) % PERIOD );
+  const sway = Math.sin( t * 0.09 ) * 0.6;
+  camera.position.set( sway, 1.8 + Math.sin( t * 0.6 ) * 0.03, camZ );
+  camera.lookAt( sway * 0.3, 2.4, camZ - 22 );
+
+  updateRain( dt, camera.position.x, camZ );
+  renderPipeline.render();
+} );
+</script>
+</body>
+</html>

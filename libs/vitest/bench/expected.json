@@ -1,0 +1,18 @@
+{
+  "bad/workspace.ts": ["V1"],
+  "bad/setup-workspace.mjs": ["V2"],
+  "bad/vitest.config.ts": ["V3", "V5"],
+  "bad/pool-legacy.config.ts": ["V4", "V8", "V9", "V10", "V11"],
+  "bad/browser.config.ts": ["V6", "V7"],
+  "bad/vi-generics.test.ts": ["V12"],
+  "bad/jest-style.test.ts": ["V17"],
+  "bad/async-tests.test.ts": ["V13", "V14"],
+  "bad/options.test.ts": ["V15", "V16"],
+  "good/vitest.config.ts": [],
+  "good/pool.config.ts": [],
+  "good/browser.config.ts": [],
+  "good/async.test.ts": [],
+  "good/mocks.test.ts": [],
+  "good/options.test.ts": [],
+  "good/hooks.test.ts": []
+}

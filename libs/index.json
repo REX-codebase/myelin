@@ -11,5 +11,11 @@
   "ai-sdk": { "name": "Vercel AI SDK", "packages": ["ai", "@ai-sdk/*"] },
   "vue": { "name": "Vue + Nuxt", "packages": ["vue", "nuxt"] },
   "tanstack-query": { "name": "TanStack Query", "packages": ["@tanstack/react-query", "@tanstack/vue-query", "@tanstack/svelte-query", "@tanstack/solid-query", "react-query"] },
-  "prisma": { "name": "Prisma ORM", "packages": ["prisma", "@prisma/client"] }
+  "prisma": { "name": "Prisma ORM", "packages": ["prisma", "@prisma/client"] },
+  "mongoose": { "name": "Mongoose", "packages": ["mongoose"] },
+  "openai": { "name": "OpenAI Node SDK", "packages": ["openai"] },
+  "angular": { "name": "Angular", "packages": ["@angular/core", "@angular/common", "@angular/router", "@angular/forms", "@angular/cli"] },
+  "vitest": { "name": "Vitest", "packages": ["vitest", "@vitest/*"] },
+  "drizzle": { "name": "Drizzle ORM", "packages": ["drizzle-orm", "drizzle-kit"] },
+  "astro": { "name": "Astro", "packages": ["astro", "@astrojs/*"] }
 }

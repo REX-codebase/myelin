@@ -19,7 +19,7 @@ status  Researched 2026-10-26 against svelte 5.57.2 and @sveltejs/kit 3.1.0 docs
 ! B2 /^\s*\$:/m   $: reactive statements are legacy. Use $derived(...) for values (most cases) or $effect(() => ...) for side effects. -> $counter
 ! B3 /\son:[a-z]+/   on: directives are deprecated. Use event attributes (onclick={handler}) and call event.preventDefault() inside the handler instead of |modifiers. -> $events
 ! B4 /\bcreateEventDispatcher\b/   createEventDispatcher is deprecated. Accept callback props (let { onsave } = $props(); onsave?.(value)). -> $events
-! B5 /<slot\b/ unless /customElement|<script\s+setup|\bfrom\s+['"]vue['"]|\bv-(?:if|for|bind|model|slot|on)\b/   <slot> is deprecated outside custom elements. Take a children (or named) snippet prop and write {@render children?.()}. -> $card
+! B5 /<slot\b/ unless /customElement|\bAstro\.(?:props|slots|params|url|request|locals)\b|\bfrom\s+['"]astro[:/'"]|<script\s+setup|\bfrom\s+['"]vue['"]|\bv-(?:if|for|bind|model|slot|on)\b/   <slot> is deprecated outside custom elements. Take a children (or named) snippet prop and write {@render children?.()}. -> $card
 ! B6 /\sslot="|<svelte:fragment\b|\slet:[a-zA-Z]/   slot="", <svelte:fragment> and let: are slot-era syntax. Pass {#snippet name(args)}...{/snippet} inside the component tags. -> $card
 ! B7 /new\s+[A-Z]\w*\(\s*\{\s*target\b|\.\$(?:destroy|set|on)\(/   Components are functions, not classes. Use mount(App, { target, props }) and unmount(app); update props through a $state object. -> $mount
 ! B8 /\$\$(?:props|restProps|slots)\b/   $$props / $$restProps / $$slots are legacy. Use let { a, b, ...rest } = $props() (or let props = $props()) and check snippet props directly.

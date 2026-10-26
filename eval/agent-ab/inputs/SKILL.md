@@ -1,0 +1,260 @@
+---
+name: threejs-r186
+description: Use when writing three.js code. Explains what changed up to r186.
+---
+
+# three.js r186 guide
+
+Three.js r186 is current (October 2026). Write code for WebGPURenderer and TSL.
+
+## Key facts
+
+- version: three.js r186 (npm three@0.186.1, released 2026-09-08; r187 is in development and NOT released, so do not use its changes yet)
+- verified: 2026-10-26
+- imports: import * as THREE from 'three/webgpu'; TSL from 'three/tsl'; addons from 'three/addons/...'; post effects from 'three/addons/tsl/display/<Name>Node.js'
+- importmap: "three": ".../build/three.webgpu.js", "three/webgpu": same, "three/tsl": ".../build/three.tsl.js", "three/addons/": ".../examples/jsm/"
+- renderer: new THREE.WebGPURenderer(); renderer.setAnimationLoop(fn) auto-initialises; call await renderer.init() before any render/compute outside the loop
+- post: new THREE.RenderPipeline(renderer); pass(scene, camera); renderPipeline.outputNode = ...; renderPipeline.render() replaces renderer.render()
+- effects: bloom BloomNode.js | traa TRAANode.js | ao GTAONode.js | ssao SSAONode.js | ssr SSRNode.js | dof DepthOfFieldNode.js | fxaa FXAANode.js | smaa SMAANode.js | film FilmNode.js | gaussianBlur GaussianBlurNode.js
+- time: THREE.Timer (core since r179): timer.connect(document); timer.update() each frame; getDelta() / getElapsed(). TSL: time, deltaTime
+- color: renderer.outputColorSpace = THREE.SRGBColorSpace (default); texture.colorSpace = THREE.SRGBColorSpace for color maps
+
+## What changed (avoid these older patterns)
+
+- PostProcessing was renamed RenderPipeline in r183 (old name is a deprecated alias). Use new THREE.RenderPipeline(renderer) and renderPipeline.render().
+- EffectComposer and its passes only work with WebGLRenderer. On WebGPURenderer use RenderPipeline + pass() + effect nodes from 'three/addons/tsl/display/' (bloom, traa, ao, ssr, fxaa, smaa, dof...).
+- ShaderMaterial/RawShaderMaterial (raw GLSL) only work with WebGLRenderer. Write the shader in TSL on a *NodeMaterial (colorNode, positionNode, normalNode, fragmentNode...).
+- onBeforeCompile shader patching is not supported by WebGPURenderer. Override node inputs with TSL instead (material.colorNode = texture(map).mul(detail)).
+- THREE.Clock is deprecated since r183. Use THREE.Timer: timer.connect(document); call timer.update() once per frame, then timer.getDelta() / timer.getElapsed().
+- PCFSoftShadowMap was removed in r186 (both renderers warn and fall back). Use THREE.PCFShadowMap, which is soft now (tune light.shadow.radius).
+- The encoding API was replaced in r152 and removed in r162: renderer.outputColorSpace / texture.colorSpace with THREE.SRGBColorSpace / THREE.LinearSRGBColorSpace; ColorManagement is enabled by default.
+- Legacy lighting switches were removed (physicallyCorrectLights in r160, useLegacyLights in r165). Physically based light units are the only mode; delete the line and retune intensities.
+- The *BufferGeometry aliases are gone (deprecated r145, removed r154). Use BoxGeometry, SphereGeometry, PlaneGeometry, ... (they already return BufferGeometry).
+- Geometry and Face3 were removed (r125); THREE.Math is THREE.MathUtils. Build a BufferGeometry with setAttribute('position', new THREE.Float32BufferAttribute(array, 3)).
+- Removed builds: examples/js (r148), build/three.js and three.min.js (r161), and the shipped *.min.js files (r186; unpkg/cdnjs links 404). Use ES modules with an import map.
+- Import addons through the documented 'three/addons/' path (maps to examples/jsm/), e.g. 'three/addons/controls/OrbitControls.js'.
+- Pre-r171 WebGPU import paths no longer exist. Import WebGPURenderer and node materials from 'three/webgpu' and TSL from 'three/tsl'.
+- This ledger targets the WebGPU path: use new THREE.WebGPURenderer() from 'three/webgpu' (falls back to WebGL 2 automatically). WebGLRenderer is not removed; if the project must stay WebGL-only, this ledger does not apply.
+- Renamed TSL functions: tslFn -> Fn (r168); timerLocal/timerGlobal/timerDelta -> time / deltaTime (r170); directionToColor -> packNormalToRGB, colorToDirection -> unpackRGBToNormal (r185).
+- The *Async renderer methods are deprecated since r181. Initialise once (setAnimationLoop or await renderer.init()), then call render(), clear(), hasFeature(), initTexture().
+- WebGPURenderer's colorBufferType option was renamed outputBufferType in r182 (getOutputBufferType()).
+- RGBELoader was renamed HDRLoader in r180 (old name is a deprecated alias): import { HDRLoader } from 'three/addons/loaders/HDRLoader.js'.
+- WebGLCubeRenderTarget cannot be used with WebGPURenderer since r183. Use THREE.CubeRenderTarget from 'three/webgpu'.
+- TRAAPassNode/traaPass() became TRAANode/traa(color, depth, velocity, camera) in r179; the scene pass needs an MRT with velocity.
+- GTAONode distanceExponent/distanceFallOff are deprecated in r186 and have no effect (new distance model). Tune radius, scale and thickness instead; use only the AO .r channel.
+
+## Preferences
+
+- Use *NodeMaterial classes (MeshStandardNodeMaterial, MeshPhysicalNodeMaterial, ...) whenever you assign node slots; plain MeshStandardMaterial still renders under WebGPURenderer but has no colorNode/positionNode.
+- With a RenderPipeline, render through renderPipeline.render() in the loop, not renderer.render(scene, camera). Set renderPipeline.needsUpdate = true after swapping outputNode.
+- Tone mapping and output color space are applied once at the end of RenderPipeline. For FXAA or LUT grading set renderPipeline.outputColorTransform = false and insert renderOutput() yourself.
+- SSR: add reflections additively (scenePassColor.add(ssrPass.rgb)), not blendColor (changed r183). GTAO: use only the .r channel and feed it via scenePass.contextNode = builtinAOContext(aoPass.getTextureNode().sample(screenUV).r). -> $ao
+- Shadows on WebGPURenderer improved in r183: start with no shadow.bias (or a much smaller one) before adding any.
+- For skinned/morphed meshes, read untransformed vertices with positionGeometry in positionNode (r185); positionLocal no longer re-applies skinning there.
+- TransformControls: add controls.getHelper() to the scene, not the controls object (r169).
+- Do not assume r187 changes (CubeUVReflectionMapping removal, iridescenceThicknessMinimum/Maximum, struct storage .element(0)) until r187 is released.
+
+## Example code
+
+### importmap
+
+```html
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.webgpu.js",
+    "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.webgpu.js",
+    "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.tsl.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="./main.js"></script>
+```
+
+### boot
+
+```js
+import * as THREE from 'three/webgpu';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 200 );
+camera.position.set( 4, 3, 6 );
+
+const renderer = new THREE.WebGPURenderer( { antialias: true, outputBufferType: THREE.HalfFloatType } );
+renderer.setPixelRatio( window.devicePixelRatio );
+renderer.setSize( window.innerWidth, window.innerHeight );
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.appendChild( renderer.domElement );
+
+const controls = new OrbitControls( camera, renderer.domElement );
+controls.enableDamping = true;
+
+const timer = new THREE.Timer();
+timer.connect( document );
+
+const mesh = new THREE.Mesh( new THREE.BoxGeometry( 1, 1, 1 ), new THREE.MeshStandardNodeMaterial( { color: 0x4488ff } ) );
+scene.add( mesh );
+scene.add( new THREE.HemisphereLight( 0xffffff, 0x444444, 2 ) );
+
+window.addEventListener( 'resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize( window.innerWidth, window.innerHeight );
+} );
+
+renderer.setAnimationLoop( () => {
+  timer.update();
+  mesh.rotation.y += timer.getDelta() * 0.5;
+  controls.update();
+  renderer.render( scene, camera );
+} );
+```
+
+### tslmat
+
+```js
+import * as THREE from 'three/webgpu';
+import { Fn, texture, uv, time, sin, positionLocal, normalLocal, color, mix } from 'three/tsl';
+
+export function makeWavyMaterial( colorMap, detailMap ) {
+  const material = new THREE.MeshStandardNodeMaterial( { roughness: 0.6 } );
+  const detail = texture( detailMap, uv().mul( 10 ) );
+  material.colorNode = texture( colorMap ).mul( detail );
+
+  const wave = Fn( ( [ amp ] ) => sin( time.mul( 2 ).add( positionLocal.y.mul( 4 ) ) ).mul( amp ) );
+  material.positionNode = positionLocal.add( normalLocal.mul( wave( 0.05 ) ) );
+  material.emissiveNode = mix( color( 0x000000 ), color( 0x223355 ), sin( time ).mul( 0.5 ).add( 0.5 ) );
+  return material;
+}
+
+export function makeWavyMesh( colorMap, detailMap ) {
+  return new THREE.Mesh( new THREE.SphereGeometry( 1, 64, 32 ), makeWavyMaterial( colorMap, detailMap ) );
+}
+```
+
+### bloom
+
+```js
+import * as THREE from 'three/webgpu';
+import { pass } from 'three/tsl';
+import { bloom } from 'three/addons/tsl/display/BloomNode.js';
+
+export function createBloomPipeline( renderer, scene, camera ) {
+  const renderPipeline = new THREE.RenderPipeline( renderer );
+  const scenePass = pass( scene, camera );
+  const scenePassColor = scenePass.getTextureNode( 'output' );
+  const bloomPass = bloom( scenePassColor, 1.0, 0.4, 0.85 );
+  renderPipeline.outputNode = scenePassColor.add( bloomPass );
+  return { renderPipeline, bloomPass };
+}
+
+// in the loop: renderPipeline.render();
+```
+
+### traa
+
+```js
+import * as THREE from 'three/webgpu';
+import { pass, mrt, output, velocity } from 'three/tsl';
+import { traa } from 'three/addons/tsl/display/TRAANode.js';
+
+export function createTRAAPipeline( renderer, scene, camera ) {
+  const renderPipeline = new THREE.RenderPipeline( renderer );
+  const scenePass = pass( scene, camera );
+  scenePass.setMRT( mrt( { output: output, velocity: velocity } ) );
+  const color = scenePass.getTextureNode( 'output' );
+  const depth = scenePass.getTextureNode( 'depth' );
+  const vel = scenePass.getTextureNode( 'velocity' );
+  renderPipeline.outputNode = traa( color, depth, vel, camera );
+  return renderPipeline;
+}
+```
+
+### ao
+
+```js
+import * as THREE from 'three/webgpu';
+import { pass, mrt, sample, screenUV, normalView, velocity, packNormalToRGB, unpackRGBToNormal, builtinAOContext } from 'three/tsl';
+import { ao } from 'three/addons/tsl/display/GTAONode.js';
+import { traa } from 'three/addons/tsl/display/TRAANode.js';
+
+export function createAOPipeline( renderer, scene, camera ) {
+  const renderPipeline = new THREE.RenderPipeline( renderer );
+
+  const prePass = pass( scene, camera );
+  prePass.transparent = false;
+  prePass.setMRT( mrt( { output: packNormalToRGB( normalView ), velocity: velocity } ) );
+  prePass.getTexture( 'output' ).type = THREE.UnsignedByteType;
+  const prePassNormal = sample( ( uv ) => unpackRGBToNormal( prePass.getTextureNode().sample( uv ) ) );
+  const prePassDepth = prePass.getTextureNode( 'depth' );
+  const prePassVelocity = prePass.getTextureNode( 'velocity' );
+
+  const aoPass = ao( prePassDepth, prePassNormal, camera );
+  aoPass.resolutionScale = 0.5;
+
+  const scenePass = pass( scene, camera );
+  scenePass.contextNode = builtinAOContext( aoPass.getTextureNode().sample( screenUV ).r );
+
+  renderPipeline.outputNode = traa( scenePass, prePassDepth, prePassVelocity, camera );
+  return { renderPipeline, aoPass };
+}
+```
+
+### shadows
+
+```js
+import * as THREE from 'three/webgpu';
+
+export function enableSoftShadows( renderer, scene ) {
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+
+  const sun = new THREE.DirectionalLight( 0xffffff, 3 );
+  sun.position.set( 8, 12, 6 );
+  sun.castShadow = true;
+  sun.shadow.mapSize.set( 2048, 2048 );
+  sun.shadow.radius = 4;
+  sun.shadow.camera.left = - 15;
+  sun.shadow.camera.right = 15;
+  sun.shadow.camera.top = 15;
+  sun.shadow.camera.bottom = - 15;
+  scene.add( sun );
+  return sun;
+}
+```
+
+### color
+
+```js
+import * as THREE from 'three/webgpu';
+
+export function loadColorTexture( url ) {
+  const map = new THREE.TextureLoader().load( url );
+  map.colorSpace = THREE.SRGBColorSpace;
+  return map;
+}
+
+export function configureOutput( renderer ) {
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.AgXToneMapping;
+  renderer.toneMappingExposure = 1.0;
+}
+```
+
+### env
+
+```js
+import * as THREE from 'three/webgpu';
+import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
+
+export async function loadEnvironment( scene, url ) {
+  const hdr = await new HDRLoader().loadAsync( url );
+  hdr.mapping = THREE.EquirectangularReflectionMapping;
+  scene.environment = hdr;
+  scene.background = hdr;
+  return hdr;
+}
+```
+

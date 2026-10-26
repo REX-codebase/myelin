@@ -1,0 +1,141 @@
+myelin 1
+id      drizzle
+about   Drizzle ORM 0.45 + drizzle-kit 0.31 (stable npm line): bans 0.20-era drizzle-kit config and :pg commands, deprecated pgTable/primaryKey/InferModel/onConflict forms, and imports that only exist in the v1 release candidate
+fires   drizzle | drizzle-orm | drizzle-kit | pgTable | drizzle.config
+comments skip
+status  Researched 2026-10-26 against drizzle-orm 0.45.4 and drizzle-kit 0.31.11 (npm latest; v1 is 1.0.0-rc.5 on the rc tag and not targeted). Rules checked against shipped .d.ts/bin and the official upgrade docs. Regex-level checks; snippets not executed or type-checked.
+
+= version      drizzle-orm 0.45.4 + drizzle-kit 0.31.11 (npm dist-tag latest); drizzle-orm 1.0.0-rc.5 is the rc tag and not targeted (its breaking changes are not banned here)
+= verified     2026-10-26
+= install      drizzle-orm with pg (node-postgres) or postgres (postgres.js); drizzle-kit as a dev dependency
+= client       drizzle(process.env.DATABASE_URL) | drizzle({ client: pool }) | drizzle({ connection: { connectionString } }) for node-postgres; drizzle({ client: postgres(url) }) for postgres.js
+= config       drizzle.config.ts: defineConfig({ dialect: "postgresql", schema, out, dbCredentials: { url } }); no driver key for Postgres
+= kit cli      drizzle-kit generate | migrate | push | pull | check | up | studio | drop (no dialect suffix; there is no introspect command)
+= schema       pgTable(name, columns, (t) => [ index(...).on(t.col), ... ]); table-level primaryKey({ columns: [...] }); column-level .primaryKey() and .unique() are fine
+= migrate      import { migrate } from "drizzle-orm/node-postgres/migrator" (or postgres-js/migrator); migrationsFolder is required
+= zod          drizzle-zod (createInsertSchema / createSelectSchema); drizzle-orm has no zod subpath in 0.45
+= relations    relations() + db.query is the current 0.45 API (not banned); defineRelations exists only in v1
+
+! D1 /\bdriver\s*:\s*['"](?:pg|postgres|node-postgres)['"]/   drizzle-kit has no pg driver key; drizzle-kit uses the installed pg or postgres driver by itself. Remove driver (valid values are aws-data-api, d1-http, expo, pglite, durable-sqlite). -> $config
+! D2 /\bdialect\s*:\s*['"]pg['"]/   drizzle-kit dialect is "postgresql" (the others are mysql, sqlite, turso, singlestore, gel). -> $config
+! D3 /\bdbCredentials\s*:\s*\{[^{}]*?\b(?:connectionString|uri)\s*:/   dbCredentials takes url (or host/port/user/password/database for Postgres) since drizzle-kit 0.21; connectionString and uri were folded into url. -> $config
+! D4 /\bdrizzle-kit\s+(?:generate|push|check|up|introspect):(?:pg|mysql|sqlite)\b/   Dialect-suffixed commands are gone. Run drizzle-kit generate, push, check or up. In 0.31 the :pg forms only print a deprecation notice and do nothing. -> $scripts
+! D5 /\bdrizzle-kit\s+introspect(?![:\w-])/   drizzle-kit has no introspect command. Use drizzle-kit pull to read the database schema. -> $scripts
+! D6 /\bpgTable\s*\(\s*['"][^'"\n]*['"]\s*,\s*(?:\{(?:[^{}]|\{[^{}]*\})*\}|\w+)\s*,\s*\(\s*\w*\s*\)\s*=>\s*\(\s*\{/   pgTable's third argument must be an array, and the object form ((t) => ({ ... })) is deprecated in 0.45. Return an array: (t) => [index("name").on(t.col)]. -> $schema
+! D7 /(?<![.\w$])primaryKey\(\s*(?![{)\s])/   Table-level primaryKey takes one object: primaryKey({ columns: [t.a, t.b] }). The positional primaryKey(t.a, t.b) form is deprecated. Column .primaryKey() is unaffected. -> $schema
+! D8 /\bInferModel\b/   InferModel is deprecated. Use InferSelectModel<typeof table> and InferInsertModel<typeof table>, or table.$inferSelect and table.$inferInsert. -> $infer
+! D9 /\bonConflictDoUpdate\(\s*\{(?:[^{}]|\{[^{}]*\})*?\bwhere\s*:/   onConflictDoUpdate's where is deprecated. Use targetWhere (which conflicts count) or setWhere (which rows the update touches). -> $upsert
+! D10 /(?<![.\w$])placeholder\(\s*['"]/   Top-level placeholder() is deprecated. Use sql.placeholder("name") inside the query. -> $placeholder
+! D11 /['"]drizzle-orm\/(?:zod|valibot|typebox|typebox-legacy|arktype|effect-schema)['"]/   These drizzle-orm validator subpaths exist only in the v1 release candidate, not the stable 0.45 line. Use drizzle-zod (createInsertSchema, createSelectSchema). -> $zod
+! D12 /\bimport\s*\{[^}]*\bdrizzle\b[^}]*\}\s*from\s*['"]drizzle-orm\/pg-core['"]/   drizzle-orm/pg-core only has schema builders. Import drizzle from the driver entry, e.g. drizzle-orm/node-postgres or drizzle-orm/postgres-js. -> $client
+! D13 /\bimport\s*\{[^}]*\bmigrate\b[^}]*\}\s*from\s*['"]drizzle-orm\/(?:node-postgres|postgres-js)['"]/   migrate is not exported from the driver entry. Import it from the migrator subpath: drizzle-orm/node-postgres/migrator or drizzle-orm/postgres-js/migrator. -> $migrate
+
+~ D14 Build the client with the object form drizzle({ client: pool }) as the docs do. The positional drizzle(pool) still type-checks in 0.45, so this is style, not a ban.
+~ D15 serial() is still valid and not deprecated in 0.45. For new Postgres tables, integer().generatedAlwaysAsIdentity() is the SQL-standard alternative; both appear in the official docs.
+
+$ config
+import { defineConfig } from "drizzle-kit";
+
+export default defineConfig({
+  dialect: "postgresql",
+  schema: "./src/db/schema.ts",
+  out: "./drizzle",
+  dbCredentials: {
+    url: process.env.DATABASE_URL!,
+  },
+});
+$$
+
+$ client
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+export const db = drizzle({ client: pool });
+$$
+
+$ schema
+import { index, integer, pgTable, primaryKey, text } from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id: integer().generatedAlwaysAsIdentity().primaryKey(),
+  email: text().notNull().unique(),
+  orgId: integer().notNull(),
+}, (t) => [
+  index("users_org_idx").on(t.orgId),
+]);
+
+export const memberships = pgTable("memberships", {
+  userId: integer().notNull().references(() => users.id),
+  orgId: integer().notNull(),
+}, (t) => [
+  primaryKey({ columns: [t.userId, t.orgId] }),
+]);
+$$
+
+$ infer
+import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { users } from "./schema";
+
+export type User = InferSelectModel<typeof users>;
+export type NewUser = InferInsertModel<typeof users>;
+$$
+
+$ upsert
+import { eq } from "drizzle-orm";
+import { db } from "./db";
+import { users } from "./schema";
+
+await db
+  .insert(users)
+  .values({ email: "ada@example.com", orgId: 1 })
+  .onConflictDoUpdate({
+    target: users.email,
+    set: { orgId: 2 },
+    setWhere: eq(users.orgId, 1),
+  });
+$$
+
+$ placeholder
+import { eq, sql } from "drizzle-orm";
+import { db } from "./db";
+import { users } from "./schema";
+
+export const userByEmail = db
+  .select()
+  .from(users)
+  .where(eq(users.email, sql.placeholder("email")))
+  .prepare("user_by_email");
+$$
+
+$ migrate
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const db = drizzle({ client: pool });
+
+await migrate(db, { migrationsFolder: "./drizzle" });
+await pool.end();
+$$
+
+$ zod
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { users } from "./schema";
+
+export const insertUserSchema = createInsertSchema(users);
+export const selectUserSchema = createSelectSchema(users);
+$$
+
+$ scripts
+{
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:pull": "drizzle-kit pull"
+  }
+}
+$$

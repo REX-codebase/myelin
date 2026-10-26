@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lighthouse in the Storm</title>
+<style>
+:root { --bg: #070b12; --ink: rgba(226, 232, 240, 0.55); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #070b12; --ink: rgba(226, 232, 240, 0.55); }
+}
+:root[data-theme="dark"] { --bg: #070b12; --ink: rgba(226, 232, 240, 0.55); }
+html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+canvas { display: block; }
+#cap {
+  position: fixed; left: 16px; bottom: 14px; max-width: calc(100% - 32px);
+  font: 12px/1.4 system-ui, -apple-system, sans-serif; letter-spacing: 0.04em;
+  color: var(--ink); pointer-events: none; user-select: none;
+}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.webgpu.js",
+    "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.webgpu.js",
+    "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.tsl.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="cap">Lighthouse on the headland, storm at dusk. Procedural three.js r186, WebGPU.</div>
+<script type="module">
+import * as THREE from 'three/webgpu';
+import {
+  Fn, float, vec2, vec3, vec4, color, uniform, time, positionLocal, positionWorld,
+  normalWorld, normalize, mix, smoothstep, fract, floor, sin, cos, exp, dot, clamp, length, abs,
+  mod, step, instanceIndex, cameraPosition, cameraViewMatrix, pass, uv, screenUV
+} from 'three/tsl';
+import { bloom } from 'three/addons/tsl/display/BloomNode.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ---------------- GPU noise (TSL) ---------------- */
+
+const h21 = Fn(([p]) => fract(sin(dot(p, vec2(127.1, 311.7))).mul(43758.5453)));
+
+const vnoise = Fn(([p]) => {
+  const i = floor(p);
+  const f = fract(p);
+  const u = f.mul(f).mul(float(3).sub(f.mul(2)));
+  const a = h21(i);
+  const b = h21(i.add(vec2(1, 0)));
+  const c = h21(i.add(vec2(0, 1)));
+  const d = h21(i.add(vec2(1, 1)));
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+});
+
+const fbm = Fn(([p]) =>
+  vnoise(p).mul(0.5)
+    .add(vnoise(p.mul(2.03)).mul(0.25))
+    .add(vnoise(p.mul(4.01)).mul(0.125))
+    .add(vnoise(p.mul(8.02)).mul(0.0625))
+);
+
+// Layered cloud density with a domain warp for billowy, storm-like shapes.
+const cloudField = Fn(([q]) => {
+  const w = fbm(q.mul(0.6).add(vec2(3.1, 1.7)));
+  return fbm(q.add(vec2(w.mul(1.7), w.mul(-1.1))));
+});
+
+const rnd = Fn(([s]) => fract(sin(s.mul(12.9898)).mul(43758.5453)));
+
+// Sea: a sum of directional swells with a slowly drifting phase warp (wave groups)
+// and a crest-sharpening phase term. Used for displacement, normals, foam and colour.
+const WAVES = [
+  // dirX, dirZ, wavenumber, amplitude, speed
+  [0.92, 0.39, 0.30, 0.50, 0.9],
+  [0.55, 0.83, 0.48, 0.34, 1.3],
+  [-0.35, 0.94, 0.75, 0.22, 1.8],
+  [0.86, -0.51, 1.1, 0.09, 2.4],
+  [-0.62, 0.78, 1.4, 0.05, 3.1],
+  [0.25, 0.97, 1.5, 0.025, 3.9]
+];
+const seaH = Fn(([p]) => {
+  const warp = vnoise(p.mul(0.06).add(vec2(time.mul(0.02), 0.0))).sub(0.5).mul(3.0);
+  let h = float(0);
+  for (const [dx, dz, k, a, s] of WAVES) {
+    const ph = p.x.mul(dx * k).add(p.y.mul(dz * k)).add(time.mul(s)).add(warp);
+    h = h.add(sin(ph.add(sin(ph).mul(0.35))).mul(a));
+  }
+  return h;
+});
+
+// Foam follows crest height, broken up by noise and streaked along the wind.
+// Near the headland it becomes shore spray.
+const seaFoam = Fn(([p]) => {
+  const h = seaH(p);
+  const breakup = vnoise(p.mul(vec2(0.7, 1.6)).add(vec2(time.mul(0.12), 0.0))).sub(0.5);
+  const crest = smoothstep(0.36, 0.7, h.add(breakup.mul(0.7)));
+  const d = length(p).sub(10.5);
+  const shore = float(1).sub(smoothstep(0.0, 3.5, d))
+    .mul(smoothstep(0.45, 0.7, vnoise(p.mul(2.4).add(vec2(time.mul(0.3), 0.0)))));
+  return clamp(crest.mul(0.8).add(shore.mul(0.9)), 0, 1);
+});
+
+const flashU = uniform(0);
+const BEAM_L = 80;
+const RAIN_COUNT = 6000;
+const RAIN_W = 90;
+const RAIN_H = 40;
+const BASE_Y = 5.5;     // headland plateau height under the tower
+const LANTERN_Y = 17.3;
+
+/* ---------------- renderer, scene, camera ---------------- */
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x2e3644, 0.012);
+
+const camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 1200);
+// Low camera looking up; the lighthouse sits about a third in from the left.
+camera.position.set(-14, 6, 40);
+
+const renderer = new THREE.WebGPURenderer({ antialias: true, outputBufferType: THREE.HalfFloatType });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.AgXToneMapping;
+renderer.toneMappingExposure = 0.9;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(11, 14, 0);
+controls.enableDamping = true;
+controls.minDistance = 16;
+controls.maxDistance = 70;
+controls.maxPolarAngle = Math.PI * 0.48;
+controls.update();
+
+const timer = new THREE.Timer();
+timer.connect(document);
+
+/* ---------------- sky dome: storm clouds, dusk glow, lightning ---------------- */
+
+const skyMat = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide, depthWrite: false });
+skyMat.fog = false;
+skyMat.colorNode = Fn(() => {
+  const d = normalize(positionWorld);
+  const h = clamp(d.y, 0.0, 1.0);
+  const hor = color(0x8a6a5c);
+  const mid = color(0x2c3548);
+  const zen = color(0x10151f);
+  const base = mix(mix(hor, mid, smoothstep(0.0, 0.2, h)), zen, smoothstep(0.2, 0.85, h));
+
+  // Warm glow where the sun goes down, behind the lighthouse (+x, -z).
+  const sunXZ = normalize(vec2(0.74, -0.67));
+  const toward = clamp(dot(normalize(d.xz.add(vec2(0.0001, 0.0))), sunXZ), 0, 1);
+  const glow = toward.pow(4.0).mul(exp(h.mul(-7.0)));
+
+  // Two cloud layers: a heavy deck and thin wisps above it.
+  const q = d.xz.div(d.y.add(0.05)).mul(0.9).add(vec2(time.mul(0.02), 0.0));
+  const cloudN = cloudField(q);
+  const cover = smoothstep(0.36, 0.7, cloudN).mul(smoothstep(0.0, 0.12, d.y));
+  const thin = smoothstep(0.55, 0.8, vnoise(q.mul(4.0).add(vec2(time.mul(0.05), 0.0))))
+    .mul(0.18).mul(smoothstep(0.0, 0.3, d.y));
+  const dens = clamp(cover.add(thin), 0, 1);
+
+  // Glow breaks through the gaps in the clouds.
+  const transmit = float(1).sub(dens.mul(0.85));
+  const warm = color(0xff8e52).mul(glow.mul(2.2)).mul(transmit);
+
+  // Cloud tops are dark slate and lit by the glow along their edges.
+  const cloudDark = color(0x07090e);
+  const cloudLit = mix(color(0x2e3442), color(0xb5604a), clamp(glow.mul(1.5), 0, 1));
+  const cloudCol = mix(cloudDark, cloudLit, clamp(smoothstep(0.5, 0.85, cloudN).mul(0.6).add(glow.mul(1.5)), 0, 1));
+
+  const sky = mix(base.add(warm), cloudCol, dens);
+  // Lightning lights the cloud deck from inside.
+  const bolt = vec3(0.6, 0.7, 1.0).mul(flashU).mul(dens.mul(1.4).add(0.3));
+  return sky.add(bolt);
+})();
+const sky = new THREE.Mesh(new THREE.SphereGeometry(400, 48, 24), skyMat);
+scene.add(sky);
+
+/* ---------------- sea ---------------- */
+
+const oceanMat = new THREE.MeshStandardNodeMaterial({ metalness: 0 });
+oceanMat.positionNode = Fn(() => positionLocal.add(vec3(0, seaH(positionLocal.xz), 0)))();
+oceanMat.normalNode = Fn(() => {
+  const p = positionWorld.xz;
+  const e = 0.3;
+  const dx = seaH(p.add(vec2(e, 0))).sub(seaH(p.sub(vec2(e, 0))));
+  const dz = seaH(p.add(vec2(0, e))).sub(seaH(p.sub(vec2(0, e))));
+  const n = normalize(vec3(dx.mul(-1 / (2 * e)), 1.0, dz.mul(-1 / (2 * e))));
+  return normalize(cameraViewMatrix.mul(vec4(n, 0.0)).xyz);
+})();
+oceanMat.colorNode = Fn(() => {
+  const p = positionWorld.xz;
+  const h = seaH(p);
+  const deep = color(0x010a10);
+  const mid = color(0x0a2330);
+  const base = mix(deep, mid, smoothstep(-0.6, 0.8, h));
+  // Light scattering through the crests.
+  const sss = smoothstep(0.45, 0.9, h).mul(0.3);
+  const lit = base.add(color(0x1d5a5a).mul(sss));
+  const foam = seaFoam(p);
+  return mix(lit, color(0xc4cfd6), foam.mul(0.6));
+})();
+oceanMat.roughnessNode = Fn(() => mix(float(0.16), float(0.7), seaFoam(positionWorld.xz)))();
+// Fresnel sky reflection at grazing angles (the sea reflects the dusk sky).
+oceanMat.emissiveNode = Fn(() => {
+  const V = normalize(cameraPosition.sub(positionWorld));
+  const fres = float(1).sub(clamp(dot(normalWorld, V), 0, 1)).pow(4.0);
+  return color(0x5b7388).mul(fres).mul(0.22);
+})();
+const seaGeo = new THREE.PlaneGeometry(600, 600, 400, 400);
+seaGeo.rotateX(-Math.PI / 2);
+const sea = new THREE.Mesh(seaGeo, oceanMat);
+scene.add(sea);
+
+/* ---------------- rock: procedural, wet, lichen-streaked, spray at the waterline ---------------- */
+
+const rockMat = new THREE.MeshStandardNodeMaterial({ metalness: 0 });
+rockMat.colorNode = Fn(() => {
+  const p = positionWorld;
+  const n = vnoise(p.xz.mul(1.3).add(p.y.mul(0.7)));
+  const strata = vnoise(vec2(p.y.mul(2.2), p.x.add(p.z).mul(0.4)));
+  const stone = mix(color(0x2f3136), color(0x5d5850), n.mul(0.65).add(strata.mul(0.35)));
+  const lichen = smoothstep(0.6, 0.9, vnoise(p.xz.mul(3.5)))
+    .mul(smoothstep(0.55, 0.95, normalWorld.y)).mul(0.4);
+  let col = mix(stone, color(0x6f7a55), lichen);
+  // Dark wet band at the waterline, then white spray where the sea breaks.
+  const waterline = smoothstep(1.6, 0.2, p.y);
+  col = mix(col, color(0x0e1116), waterline.mul(0.7));
+  const spray = smoothstep(0.6, 0.95, vnoise(p.xz.mul(5.0).add(p.y.mul(3.0))))
+    .mul(smoothstep(2.2, 0.4, abs(p.y.sub(0.8))));
+  return mix(col, color(0xc8d0d6), spray.mul(0.55));
+})();
+rockMat.roughnessNode = Fn(() => {
+  const n2 = vnoise(positionWorld.xz.mul(4.3));
+  const base = mix(float(0.92), float(0.7), n2);
+  // Wet flat tops catch the lamp and sky as low-roughness highlights.
+  const wetTop = smoothstep(0.55, 0.95, normalWorld.y).mul(0.6);
+  return mix(base, float(0.3), wetTop);
+})();
+
+// Headland: a heightfield with a jagged outline, a flat plateau for the tower,
+// and a steep cliff falling below the waterline.
+function jsHash(x, y) {
+  const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+  return s - Math.floor(s);
+}
+function jsNoise(x, y) {
+  const ix = Math.floor(x), iy = Math.floor(y);
+  const fx = x - ix, fy = y - iy;
+  const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+  const a = jsHash(ix, iy), b = jsHash(ix + 1, iy), c = jsHash(ix, iy + 1), d = jsHash(ix + 1, iy + 1);
+  return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+}
+function jsFbm(x, y) {
+  let s = 0, a = 0.5, f = 1;
+  for (let i = 0; i < 5; i++) { s += a * jsNoise(x * f, y * f); f *= 2.03; a *= 0.5; }
+  return s;
+}
+function headH(x, z) {
+  const r = Math.hypot(x, z);
+  const th = Math.atan2(z, x);
+  const cx = Math.cos(th), sz = Math.sin(th);
+  // Jagged outline radius, varying with angle.
+  const R = 9.0 + (jsFbm(cx * 1.4 + 7, sz * 1.4 + 3) - 0.5) * 8.5 + (jsNoise(cx * 4.2 + 1, sz * 4.2 + 9) - 0.5) * 4.0;
+  // Plateau with gentle relief, flat under the tower.
+  const relief = (jsFbm(x * 0.22 + 11, z * 0.22 - 3) - 0.5) * 2.2 * smoothstep2(3.5, 9.0, r);
+  const top = BASE_Y + relief;
+  // Cliff: falls from the plateau edge to well below the sea.
+  const f = Math.min(1, Math.max(0, (r - R) / 5.5));
+  const fs = f * f * (3 - 2 * f);
+  const rough = (jsFbm(r * 2.1 + cx * 3, th * 3.0) - 0.5) * 6.0 * 4 * fs * (1 - fs);
+  const ridge = (1 - Math.abs(jsNoise(th * 5.0 + 4, r * 0.6) * 2 - 1)) * 2.6 * (1 - fs);
+  return top * (1 - fs) - 7 * fs + rough + ridge;
+}
+function smoothstep2(a, b, x) {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
+const headlandGeo = new THREE.PlaneGeometry(70, 70, 280, 280);
+headlandGeo.rotateX(-Math.PI / 2);
+{
+  const pos = headlandGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    pos.setY(i, headH(pos.getX(i), pos.getZ(i)));
+  }
+  headlandGeo.computeVertexNormals();
+}
+const headland = new THREE.Mesh(headlandGeo, rockMat);
+headland.castShadow = true;
+headland.receiveShadow = true;
+scene.add(headland);
+
+function makeBoulder(seed, size, sy, x, y, z) {
+  const geo = new THREE.IcosahedronGeometry(1, 4);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const vx = pos.getX(i), vy = pos.getY(i), vz = pos.getZ(i);
+    const n = jsFbm(vx * 1.6 + seed + vz * 0.7, vy * 1.6 + vz * 1.2 - seed);
+    const s = size * (0.7 + n * 0.6);
+    pos.setXYZ(i, vx * s, vy * s * sy, vz * s);
+  }
+  geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, rockMat);
+  m.position.set(x, y, z);
+  m.rotation.y = seed;
+  m.castShadow = true;
+  m.receiveShadow = true;
+  scene.add(m);
+}
+// Boulders breaking the sea at the foot of the cliff.
+for (let i = 0; i < 14; i++) {
+  const a = (i / 14) * Math.PI * 2 + jsHash(i, 3) * 0.4;
+  const r = 13.0 + jsHash(i, 9) * 4;
+  makeBoulder(i * 1.7, 0.9 + jsHash(i, 5) * 1.4, 0.55 + jsHash(i, 2) * 0.3,
+    Math.cos(a) * r, -0.9 + jsHash(i, 7) * 0.6, Math.sin(a) * r);
+}
+for (let i = 0; i < 3; i++) {
+  const a = 0.9 + i * 1.3;
+  makeBoulder(40 + i * 3.1, 3.0 + i * 0.6, 0.7, Math.cos(a) * (21 + i * 4), -2.0, Math.sin(a) * (21 + i * 4));
+}
+
+/* ---------------- lighthouse ---------------- */
+
+const lighthouse = new THREE.Group();
+lighthouse.position.set(0, BASE_Y, 0);
+scene.add(lighthouse);
+
+const towerMat = new THREE.MeshStandardNodeMaterial({ roughness: 0.6, metalness: 0 });
+towerMat.colorNode = Fn(() => {
+  const band = step(0.5, fract(positionLocal.y.mul(0.18)));
+  const grime = vnoise(positionLocal.xz.mul(3.0).add(positionLocal.y.mul(1.7)));
+  const paint = mix(color(0xe8e4dc), color(0xa8201a), band);
+  return mix(paint, color(0x4b463f), smoothstep(0.7, 1.0, grime).mul(0.35));
+})();
+const profile = [[2.9, 0], [2.55, 1.5], [2.2, 5], [1.95, 9], [1.75, 12.5], [1.6, 15], [1.55, 15.4]];
+const tower = new THREE.Mesh(
+  new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), 64), towerMat);
+tower.castShadow = true;
+tower.receiveShadow = true;
+lighthouse.add(tower);
+
+const ironMat = new THREE.MeshStandardNodeMaterial({ color: 0x2a2d33, roughness: 0.55, metalness: 0.7 });
+const gallery = new THREE.Mesh(new THREE.CylinderGeometry(2.35, 2.35, 0.4, 64), ironMat);
+gallery.position.y = 15.6;
+gallery.castShadow = true;
+lighthouse.add(gallery);
+
+const rail = new THREE.Mesh(new THREE.TorusGeometry(2.3, 0.05, 8, 64), ironMat);
+rail.rotation.x = Math.PI / 2;
+rail.position.y = 16.0;
+lighthouse.add(rail);
+
+const glassMat = new THREE.MeshBasicNodeMaterial({
+  transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide
+});
+glassMat.colorNode = color(0xffdca6);
+const glass = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 2.6, 48, 1, true), glassMat);
+glass.position.y = LANTERN_Y;
+lighthouse.add(glass);
+
+for (let i = 0; i < 8; i++) {
+  const a = (i / 8) * Math.PI * 2;
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.09, 2.6, 0.09), ironMat);
+  bar.position.set(Math.cos(a) * 1.52, LANTERN_Y, Math.sin(a) * 1.52);
+  bar.rotation.y = -a;
+  lighthouse.add(bar);
+}
+
+const roof = new THREE.Mesh(new THREE.ConeGeometry(1.95, 1.3, 48), ironMat);
+roof.position.y = LANTERN_Y + 1.95;
+roof.castShadow = true;
+lighthouse.add(roof);
+
+const finial = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 12), ironMat);
+finial.position.y = LANTERN_Y + 3.4;
+lighthouse.add(finial);
+
+const lampMat = new THREE.MeshBasicNodeMaterial();
+lampMat.colorNode = color(0xffd9a0).mul(14);
+const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.7, 32, 16), lampMat);
+lamp.position.y = LANTERN_Y;
+lighthouse.add(lamp);
+
+const lampLight = new THREE.PointLight(0xffd9a0, 900, 0, 2);
+lampLight.position.y = LANTERN_Y;
+lighthouse.add(lampLight);
+
+// Halo: a camera-facing disc with a soft radial falloff around the lamp.
+const haloMat = new THREE.MeshBasicNodeMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+});
+haloMat.fog = false;
+haloMat.colorNode = color(0xffcf8a);
+haloMat.opacityNode = Fn(() => {
+  const r = clamp(length(uv().sub(0.5)).mul(2.0), 0, 1);
+  const inv = float(1).sub(r);
+  return inv.pow(3.0).mul(1.1).add(inv.pow(1.1).mul(0.3));
+})();
+const halo = new THREE.Mesh(new THREE.PlaneGeometry(28, 28), haloMat);
+halo.position.set(0, BASE_Y + LANTERN_Y, 0);
+scene.add(halo);
+
+// Beam: a tapered additive cone that widens with distance, faded by view angle and noise.
+const beamMat = new THREE.MeshBasicNodeMaterial({
+  transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+});
+beamMat.colorNode = color(0xffe2b0);
+beamMat.opacityNode = Fn(() => {
+  const t = positionLocal.x.div(BEAM_L);
+  const view = normalize(cameraPosition.sub(positionWorld));
+  const edge = abs(dot(normalWorld, view)).pow(2.0);
+  const streak = vnoise(vec2(positionLocal.x.mul(0.12).sub(time.mul(1.4)), positionLocal.y.mul(2.5)));
+  return float(1).sub(t).pow(1.3).mul(edge).mul(streak.mul(0.6).add(0.6)).mul(1.5);
+})();
+
+// Mist: a wider, fainter cone with drifting noise, giving the beam its volume in the rain.
+const mistMat = new THREE.MeshBasicNodeMaterial({
+  transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+});
+mistMat.colorNode = color(0xc4d0e0);
+mistMat.opacityNode = Fn(() => {
+  const t = positionLocal.x.div(BEAM_L);
+  const view = normalize(cameraPosition.sub(positionWorld));
+  const edge = abs(dot(normalWorld, view)).pow(1.5);
+  const n = fbm(vec2(positionLocal.x.mul(0.07).sub(time.mul(0.5)), positionLocal.z.mul(0.6).add(positionLocal.y.mul(0.6))));
+  return float(1).sub(t).pow(1.6).mul(edge).mul(n.mul(1.2).add(0.2)).mul(0.05);
+})();
+
+const beamPivot = new THREE.Group();
+beamPivot.position.y = LANTERN_Y;
+lighthouse.add(beamPivot);
+
+const beamWide = new THREE.CylinderGeometry(16, 0.8, BEAM_L, 48, 1, true);
+beamWide.rotateZ(-Math.PI / 2);
+beamWide.translate(BEAM_L / 2, 0, 0);
+const beamCore = new THREE.CylinderGeometry(2.6, 0.35, BEAM_L, 32, 1, true);
+beamCore.rotateZ(-Math.PI / 2);
+beamCore.translate(BEAM_L / 2, 0, 0);
+const beamMist = new THREE.CylinderGeometry(26, 2.5, BEAM_L * 0.9, 48, 1, true);
+beamMist.rotateZ(-Math.PI / 2);
+beamMist.translate(BEAM_L * 0.45, 0, 0);
+beamPivot.add(new THREE.Mesh(beamMist, mistMat));
+beamPivot.add(new THREE.Mesh(beamWide, beamMat));
+beamPivot.add(new THREE.Mesh(beamCore, beamMat));
+
+/* ---------------- rain: instanced streaks, animated entirely in the vertex stage ---------------- */
+
+const rainGeo = new THREE.BoxGeometry(0.018, 0.9, 0.018);
+rainGeo.rotateZ(0.12);
+const rainMat = new THREE.MeshBasicNodeMaterial({ transparent: true, opacity: 0.14, depthWrite: false });
+rainMat.colorNode = color(0xb8c8dc);
+rainMat.positionNode = Fn(() => {
+  const id = float(instanceIndex);
+  const x = rnd(id).sub(0.5).mul(RAIN_W);
+  const z = rnd(id.add(17.3)).sub(0.5).mul(RAIN_W);
+  const speed = rnd(id.add(9.1)).mul(0.6).add(0.9).mul(16);
+  const y = mod(rnd(id.add(3.7)).mul(RAIN_H).sub(time.mul(speed)), RAIN_H).sub(2);
+  return positionLocal.add(vec3(x, y, z));
+})();
+const rain = new THREE.InstancedMesh(rainGeo, rainMat, RAIN_COUNT);
+rain.frustumCulled = false;
+scene.add(rain);
+
+/* ---------------- lights ---------------- */
+
+scene.add(new THREE.HemisphereLight(0x4a5a78, 0x1b1a18, 1.0));
+
+// Cool moonlight from the left: the key light.
+const moon = new THREE.DirectionalLight(0x9db4da, 2.2);
+moon.position.set(-30, 14, 10);
+moon.castShadow = true;
+moon.shadow.mapSize.set(2048, 2048);
+moon.shadow.radius = 4;
+moon.shadow.camera.left = -22;
+moon.shadow.camera.right = 22;
+moon.shadow.camera.top = 22;
+moon.shadow.camera.bottom = -22;
+moon.shadow.camera.near = 1;
+moon.shadow.camera.far = 140;
+scene.add(moon);
+
+// Warm dusk rim light from the setting sun behind the lighthouse.
+const dusk = new THREE.DirectionalLight(0xffa470, 1.6);
+dusk.position.set(30, 7, -22);
+scene.add(dusk);
+
+const bolt = new THREE.PointLight(0xbcd0ff, 0, 0, 2);
+bolt.position.set(-40, 60, -60);
+scene.add(bolt);
+
+/* ---------------- post: bloom, vignette and colour grade ---------------- */
+
+const pipeline = new THREE.RenderPipeline(renderer);
+const scenePass = pass(scene, camera);
+const sceneColor = scenePass.getTextureNode('output');
+const bloomNode = bloom(sceneColor, 0.8, 0.5, 0.9);
+const lit = sceneColor.add(bloomNode).rgb;
+const off = screenUV.sub(0.5);
+const vignette = clamp(float(1.0).sub(dot(off, off).mul(1.1)), 0.0, 1.0).pow(1.3);
+const lum = dot(lit, vec3(0.2126, 0.7152, 0.0722));
+const satured = mix(vec3(lum), lit, 1.08);
+// Warm highlights, cool shadows.
+const tint = mix(vec3(0.94, 0.98, 1.08), vec3(1.07, 1.0, 0.92), smoothstep(0.15, 0.9, lum));
+pipeline.outputNode = vec4(satured.mul(tint).mul(mix(float(0.55), float(1.0), vignette)), 1.0);
+
+/* ---------------- loop ---------------- */
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+let nextFlash = 4;
+let flashVal = 0;
+
+renderer.setAnimationLoop(() => {
+  timer.update();
+  const dt = Math.min(timer.getDelta(), 0.1);
+  const t = timer.getElapsed();
+
+  if (t > nextFlash) {
+    flashVal = 1;
+    nextFlash = t + 6 + Math.random() * 11;
+  }
+  flashVal = Math.max(0, flashVal - dt * 2.2);
+  flashU.value = flashVal;
+  bolt.intensity = flashVal * 5000;
+
+  beamPivot.rotation.y = t * 0.55;
+  halo.quaternion.copy(camera.quaternion);
+  controls.update();
+  pipeline.render();
+});
+</script>
+</body>
+</html>
