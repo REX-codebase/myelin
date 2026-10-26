@@ -14,5 +14,6 @@
   "prisma": { "name": "Prisma ORM", "packages": ["prisma", "@prisma/client"] },
   "mongoose": { "name": "Mongoose", "packages": ["mongoose"] },
   "openai": { "name": "OpenAI Node SDK", "packages": ["openai"] },
-  "angular": { "name": "Angular", "packages": ["@angular/core", "@angular/common", "@angular/router", "@angular/forms", "@angular/cli"] }
+  "angular": { "name": "Angular", "packages": ["@angular/core", "@angular/common", "@angular/router", "@angular/forms", "@angular/cli"] },
+  "vitest": { "name": "Vitest", "packages": ["vitest", "@vitest/*"] }
 }

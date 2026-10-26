@@ -31,6 +31,7 @@ libs/<id>/
 | `mongoose` | Mongoose | 9.11 | 2026-10-26 |
 | `openai` | OpenAI Node SDK | 7.43 | 2026-10-26 |
 | `angular` | Angular | 22.2 | 2026-10-26 |
+| `vitest` | Vitest | 5.0 | 2026-10-26 |
 
 ## Scope notes
 
@@ -38,6 +39,7 @@ libs/<id>/
 - **tanstack-query** B16 bans `fetchQuery`/`prefetchQuery` in favour of `queryClient.query()`, which arrived in 5.102. Drop it if you're pinned lower.
 - **svelte** K1-K10 target SvelteKit 3 and will fire on correct SvelteKit 2 code.
 - **react** bans `forwardRef` and `Context.Provider`, which still run in 19.x but are on their way out. Libraries that support React 18 may keep them.
+- **vitest** V17 flags `jest.*` globals; in a repo that still runs Jest alongside Vitest, keep it off Jest-only files (or import from `@jest/globals`, which exempts the file).
 
 ## Adding or updating a library
 
