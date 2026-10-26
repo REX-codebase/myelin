@@ -1,0 +1,14 @@
+{
+  "bad/users-api.js": ["E2", "E3", "E4", "E1"],
+  "bad/spa-fallback.js": ["E9", "E7"],
+  "bad/files-router.js": ["E10", "E11", "E9"],
+  "bad/auth-routes.js": ["E5", "E6"],
+  "bad/i18n-middleware.js": ["E8", "E14", "E12"],
+  "bad/param-loader.js": ["E13", "E4", "E10"],
+  "bad/admin.js": ["E9", "E3", "E4"],
+  "good/server.js": [],
+  "good/users.js": [],
+  "good/spa.js": [],
+  "good/files.js": [],
+  "good/param.js": []
+}

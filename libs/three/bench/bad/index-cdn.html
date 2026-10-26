@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Spinning pyramid</title>
+  <style>body { margin: 0; }</style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera( 60, innerWidth / innerHeight, 0.1, 100 );
+    camera.position.set( 0, 1, 4 );
+
+    const renderer = new THREE.WebGLRenderer( { antialias: true } );
+    renderer.setSize( innerWidth, innerHeight );
+    document.body.appendChild( renderer.domElement );
+    const controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+    const geometry = new THREE.Geometry();
+    geometry.vertices.push(
+      new THREE.Vector3( - 1, 0, - 1 ), new THREE.Vector3( 1, 0, - 1 ),
+      new THREE.Vector3( 0, 0, 1 ), new THREE.Vector3( 0, 1.5, 0 )
+    );
+    geometry.faces.push(
+      new THREE.Face3( 0, 1, 3 ), new THREE.Face3( 1, 2, 3 ),
+      new THREE.Face3( 2, 0, 3 ), new THREE.Face3( 0, 2, 1 )
+    );
+    geometry.computeFaceNormals();
+
+    const pyramid = new THREE.Mesh( geometry, new THREE.MeshNormalMaterial() );
+    scene.add( pyramid );
+
+    function animate() {
+      requestAnimationFrame( animate );
+      pyramid.rotation.y += THREE.Math.degToRad( 1 );
+      renderer.render( scene, camera );
+    }
+    animate();
+  </script>
+</body>
+</html>

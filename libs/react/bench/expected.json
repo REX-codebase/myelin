@@ -1,0 +1,19 @@
+{
+  "bad/index.jsx": ["B1", "B2"],
+  "bad/TextInput.tsx": ["B14", "B18", "B19"],
+  "bad/ThemeProvider.jsx": ["B7", "B8", "B15"],
+  "bad/LegacyForm.jsx": ["B9", "B10"],
+  "bad/SignupForm.jsx": ["B3", "B13"],
+  "bad/Counter.test.jsx": ["B6", "B12"],
+  "bad/entry.client.tsx": ["B4"],
+  "bad/index.html": ["B5", "B16"],
+  "bad/Gallery.tsx": ["B11", "B20"],
+  "bad/server.jsx": ["B17"],
+  "good/main.jsx": [],
+  "good/TextInput.tsx": [],
+  "good/ThemeContext.jsx": [],
+  "good/ProfileForm.jsx": [],
+  "good/Counter.test.jsx": [],
+  "good/ClassFocus.jsx": [],
+  "good/Stopwatch.tsx": []
+}

@@ -1,0 +1,20 @@
+{
+  "bad/postfx-bloom.js": ["B2", "B12", "B14"],
+  "bad/color-legacy.js": ["B7", "B8", "B9"],
+  "bad/clock-loop.js": ["B5", "B6", "B16"],
+  "bad/shader-glow.js": ["B3"],
+  "bad/onbeforecompile.js": ["B4"],
+  "bad/webgpu-2024.js": ["B1", "B13", "B15"],
+  "bad/index-cdn.html": ["B10", "B11", "B14"],
+  "bad/traa-ssr.js": ["B1", "B15", "B20"],
+  "bad/hdr-env.js": ["B17", "B18", "B19"],
+  "bad/gtao-old.js": ["B5", "B21"],
+  "bad/merge-geometry.js": ["B9", "B10"],
+  "good/basic-scene.html": [],
+  "good/bloom.js": [],
+  "good/traa.js": [],
+  "good/ao.js": [],
+  "good/ssr.js": [],
+  "good/tsl-material.js": [],
+  "good/shadows-env.js": []
+}

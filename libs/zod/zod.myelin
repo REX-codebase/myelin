@@ -1,0 +1,114 @@
+myelin 1
+id      zod
+about   Zod 4 (zod@4.6): bans Zod 3 APIs (method string formats, message/errorMap params, .format/.flatten, .merge, nativeEnum) models learned from older releases
+fires   zod | z.object | z.string | z.infer | schema validation | safeParse
+status  Researched 2026-10-26 against zod 4.6.7 docs (zod.dev/v4/changelog, zod.dev/api). Regex-level checks. Snippets not executed or type-checked.
+
+= version     zod 4.6.7
+= verified    2026-10-26
+= imports     import * as z from "zod"  (Zod Mini: "zod/mini")
+= formats     top-level: z.email() z.uuid() z.guid() z.url() z.emoji() z.base64() z.base64url() z.nanoid() z.cuid() z.cuid2() z.ulid() z.ipv4() z.ipv6() z.cidrv4() z.cidrv6() z.iso.date() z.iso.time() z.iso.datetime() z.iso.duration() z.int()
+= errors      one `error` param (string or (issue) => string | undefined); global: z.config({ customError }); format: z.treeifyError / z.flattenError / z.prettifyError
+= objects     z.object (strips), z.strictObject, z.looseObject; combine with .extend(Other.shape) or { ...A.shape, ...B.shape }
+
+! B1 /z\.string\(\)(?:\s*\.\w+\([^()]*\))*\s*\.(?:email|uuid|guid|url|emoji|base64|base64url|nanoid|cuid|cuid2|ulid|ipv4|ipv6|cidrv4|cidrv6|datetime|date|time|duration)\(/   String format methods are deprecated in Zod 4. Use the top-level schema: z.email(), z.uuid(), z.url(), z.iso.datetime(), ... -> $user
+! B2 /z\.string\(\)(?:\s*\.\w+\([^()]*\))*\s*\.(?:ip|cidr)\(/   z.string().ip() / .cidr() were removed. Use z.ipv4() / z.ipv6() (or z.cidrv4() / z.cidrv6()), combined with z.union([...]) if both are allowed.
+! B3 /[,(]\s*\{\s*message\s*:/   The `message` param is deprecated in Zod 4. Pass { error: "..." } (or a plain string) instead. -> $user
+! B4 /\b(?:invalid_type_error|required_error)\b/   invalid_type_error / required_error were removed. Use error: (issue) => issue.input === undefined ? "Required" : "Not a string". -> $errors
+! B5 /\berrorMap\b/   errorMap was renamed to error, and may return a plain string (or undefined to defer). Global maps go through z.config({ customError }). -> $errors
+! B6 /\.flatten\(\)|\b(?:err|error|e|zodError)\.format\(\)/   ZodError .format() and .flatten() are deprecated. Use z.treeifyError(err), z.flattenError(err) or z.prettifyError(err). -> $errors
+! B7 /\b(?:err|error|e|zodError)\.errors\b/   ZodError.errors was removed in Zod 4. Read err.issues. -> $errors
+! B8 /\.(?:strict|passthrough|strip)\(\)|\.nonstrict\(/   .strict()/.passthrough()/.strip() are legacy (.nonstrict() removed). Use z.strictObject({...}) / z.looseObject({...}) / z.object({...}). -> $user
+! B9 /\b\w*Schema\.merge\(|\.merge\(\s*(?:z\.object\(|\w*Schema\b)/   ZodObject.merge() is deprecated. Use A.extend(B.shape) or z.object({ ...A.shape, ...B.shape }). -> $extend
+! B10 /\bz\.nativeEnum\(/   z.nativeEnum() is deprecated. z.enum() accepts TypeScript enums and enum-like objects directly. -> $enum
+! B11 /\.deepPartial\(/   .deepPartial() was removed in Zod 4 with no direct replacement. Use .partial() per level, or define the partial shape explicitly.
+! B12 /\bz\.promise\(/   z.promise() is deprecated. Await the value, then parse it.
+! B13 /\bz\s*\.function\(\)\s*\.(?:args|returns)\(/   z.function() is no longer a schema with .args()/.returns(). Use z.function({ input: [...], output }).implement(fn) (or .implementAsync). -> $fn
+! B14 /z\.record\(\s*z\.\w+\(\)\s*\)/   Single-argument z.record() was removed. Pass key and value schemas: z.record(z.string(), valueSchema).
+! B15 /\.Enum\.|\.Values\./   ZodEnum .Enum and .Values were removed. Use Schema.enum.Member (the canonical enum-like object). -> $enum
+! B16 /\bctx\.path\b/   ctx.path is not available in refinements in Zod 4. Set path on the issue you add instead.
+! B17 /\._def\b|\bz\.ZodTypeAny\b|\bZodEffects\b/   Zod 4 internals changed: ._def moved to ._zod.def, ZodEffects is gone (refinements live on the schema, .transform returns ZodPipe), and z.ZodType replaces z.ZodTypeAny.
+
+~ P1 Import with `import * as z from "zod"` as the docs do.
+~ P2 Prefer safeParse/safeParseAsync and branch on result.success over try/catch around parse.
+~ P3 Use z.int() for integers; z.number() no longer accepts Infinity, and .int() only accepts safe integers.
+~ P4 Zod 4 .default() short-circuits on undefined and must match the OUTPUT type; use .prefault() for the Zod 3 pre-parse behaviour.
+
+$ user
+import * as z from "zod";
+
+export const User = z.object({
+  id: z.uuid(),
+  email: z.email({ error: "Enter a valid email" }),
+  website: z.url().optional(),
+  name: z.string().min(2, { error: "Name is too short" }),
+  createdAt: z.iso.datetime(),
+});
+
+export const StrictUser = z.strictObject({
+  id: z.uuid(),
+  email: z.email(),
+});
+
+export type User = z.infer<typeof User>;
+$$
+
+$ errors
+import * as z from "zod";
+
+const Age = z.number({
+  error: (issue) => (issue.input === undefined ? "Age is required" : "Age must be a number"),
+});
+
+const Signup = z.object({ email: z.email(), age: Age });
+
+export function validate(input: unknown) {
+  const result = Signup.safeParse(input);
+  if (!result.success) {
+    return {
+      ok: false as const,
+      issues: result.error.issues,
+      fields: z.flattenError(result.error).fieldErrors,
+      tree: z.treeifyError(result.error),
+      summary: z.prettifyError(result.error),
+    };
+  }
+  return { ok: true as const, data: result.data };
+}
+$$
+
+$ extend
+import * as z from "zod";
+
+const Base = z.object({ id: z.uuid(), createdAt: z.iso.datetime() });
+const Profile = z.object({ displayName: z.string(), bio: z.string().max(280) });
+
+export const Account = Base.extend(Profile.shape);
+export const AccountFast = z.object({ ...Base.shape, ...Profile.shape });
+$$
+
+$ enum
+import * as z from "zod";
+
+export enum Role {
+  Admin = "admin",
+  Member = "member",
+}
+
+export const RoleSchema = z.enum(Role);
+export const Plan = z.enum(["free", "pro", "team"]);
+
+export const isAdmin = (r: Role) => r === RoleSchema.enum.Admin;
+export const PaidPlan = Plan.exclude(["free"]);
+$$
+
+$ fn
+import * as z from "zod";
+
+export const greet = z
+  .function({
+    input: [z.object({ name: z.string(), age: z.int() })],
+    output: z.string(),
+  })
+  .implement((input) => `Hello ${input.name}, you are ${input.age}.`);
+$$

@@ -1,0 +1,18 @@
+{
+  "bad/App.jsx": ["R1", "R2", "R6", "R7"],
+  "bad/Nav.jsx": ["R3", "R4", "R8"],
+  "bad/ProtectedRoute.jsx": ["R3", "R5"],
+  "bad/routes/team.tsx": ["R9", "R12"],
+  "bad/main.jsx": ["R1", "R10", "R11"],
+  "bad/routes/post.tsx": ["R9", "R14"],
+  "bad/SaveButton.jsx": ["R14", "R15"],
+  "bad/routes/dashboard.tsx": ["R13"],
+  "bad/entry.server.tsx": ["R12", "R17"],
+  "bad/vite.config.ts": ["R16"],
+  "good/main.jsx": [],
+  "good/App.jsx": [],
+  "good/routes/project.tsx": [],
+  "good/routes/dashboard.tsx": [],
+  "good/Settings.jsx": [],
+  "good/Project.test.tsx": []
+}

@@ -1,0 +1,229 @@
+[
+  {
+    "lib": "three",
+    "label": "three.js r150 examples (2023)",
+    "dir": "three-r150/examples",
+    "exts": [
+      "html"
+    ],
+    "kind": "old",
+    "files": 408,
+    "flagged": 399,
+    "rate": 0.9779411764705882,
+    "perRule": {
+      "B5": 79,
+      "B14": 378,
+      "B7": 135,
+      "B18": 27,
+      "B2": 31,
+      "B3": 54,
+      "B8": 7,
+      "B19": 3,
+      "B6": 7,
+      "B4": 3,
+      "B12": 1,
+      "B13": 33,
+      "B15": 8
+    },
+    "flaggedFiles": 399
+  },
+  {
+    "lib": "three",
+    "label": "three.js r186 WebGPU examples",
+    "dir": "three-r186/examples",
+    "exts": [
+      "html"
+    ],
+    "kind": "new",
+    "files": 230,
+    "flagged": 1,
+    "rate": 0.004347826086956522,
+    "perRule": {
+      "B15": 1
+    },
+    "flaggedFiles": [
+      {
+        "file": "three-r186/examples/webgpu_tsl_compute_attractors_particles.html",
+        "ids": [
+          "B15"
+        ]
+      }
+    ]
+  },
+  {
+    "lib": "nextjs",
+    "label": "Next.js 14.2 App Router examples",
+    "dir": "next-14/examples",
+    "exts": [
+      "js",
+      "jsx",
+      "ts",
+      "tsx"
+    ],
+    "kind": "old",
+    "files": 252,
+    "flagged": 32,
+    "rate": 0.12698412698412698,
+    "perRule": {
+      "B3": 12,
+      "B4": 19,
+      "B16": 3,
+      "B13": 2,
+      "B1": 11
+    },
+    "flaggedFiles": 32
+  },
+  {
+    "lib": "nextjs",
+    "label": "Next.js 16.4.3 App Router examples",
+    "dir": "next-16/examples",
+    "exts": [
+      "js",
+      "jsx",
+      "ts",
+      "tsx"
+    ],
+    "kind": "new",
+    "files": 401,
+    "flagged": 20,
+    "rate": 0.04987531172069826,
+    "perRule": {
+      "B13": 2,
+      "B4": 12,
+      "B3": 8,
+      "B1": 4,
+      "B17": 1,
+      "B16": 1
+    },
+    "flaggedFiles": [
+      {
+        "file": "next-16/examples/cms-contentful/app/api/revalidate/route.ts",
+        "ids": [
+          "B13"
+        ]
+      },
+      {
+        "file": "next-16/examples/cms-payload/app/(site)/[slug]/page.tsx",
+        "ids": [
+          "B4"
+        ]
+      },
+      {
+        "file": "next-16/examples/cms-sanity/app/(blog)/more-stories.tsx",
+        "ids": [
+          "B4"
+        ]
+      },
+      {
+        "file": "next-16/examples/cms-wordpress/src/app/[[...slug]]/page.tsx",
+        "ids": [
+          "B3",
+          "B4"
+        ]
+      },
+      {
+        "file": "next-16/examples/cms-wordpress/src/app/api/exit-preview/route.ts",
+        "ids": [
+          "B1"
+        ]
+      },
+      {
+        "file": "next-16/examples/cms-wordpress/src/app/api/preview/route.ts",
+        "ids": [
+          "B1"
+        ]
+      },
+      {
+        "file": "next-16/examples/cms-wordpress/src/app/api/revalidate/route.ts",
+        "ids": [
+          "B13"
+        ]
+      },
+      {
+        "file": "next-16/examples/cms-wordpress/src/app/layout.tsx",
+        "ids": [
+          "B1"
+        ]
+      },
+      {
+        "file": "next-16/examples/with-grafbase/app/posts/[slug]/page.tsx",
+        "ids": [
+          "B3",
+          "B4"
+        ]
+      },
+      {
+        "file": "next-16/examples/with-jest/app/blog/[slug]/page.tsx",
+        "ids": [
+          "B3",
+          "B4"
+        ]
+      },
+      {
+        "file": "next-16/examples/with-stripe-typescript/app/actions/stripe.ts",
+        "ids": [
+          "B1"
+        ]
+      },
+      {
+        "file": "next-16/examples/with-stripe-typescript/app/donate-with-checkout/result/page.tsx",
+        "ids": [
+          "B3",
+          "B4"
+        ]
+      },
+      {
+        "file": "next-16/examples/with-stripe-typescript/app/donate-with-elements/page.tsx",
+        "ids": [
+          "B4"
+        ]
+      },
+      {
+        "file": "next-16/examples/with-stripe-typescript/app/donate-with-elements/result/page.tsx",
+        "ids": [
+          "B3",
+          "B4"
+        ]
+      },
+      {
+        "file": "next-16/examples/with-stripe-typescript/app/donate-with-embedded-checkout/result/page.tsx",
+        "ids": [
+          "B3",
+          "B4"
+        ]
+      },
+      {
+        "file": "next-16/examples/with-styled-components/app/page.tsx",
+        "ids": [
+          "B17"
+        ]
+      },
+      {
+        "file": "next-16/examples/with-urql/app/pokemon/[name]/page.tsx",
+        "ids": [
+          "B3",
+          "B4"
+        ]
+      },
+      {
+        "file": "next-16/examples/with-vitest/app/blog/[slug]/page.tsx",
+        "ids": [
+          "B3",
+          "B4"
+        ]
+      },
+      {
+        "file": "next-16/examples/with-webassembly/app/api/edge/route.ts",
+        "ids": [
+          "B16"
+        ]
+      },
+      {
+        "file": "next-16/examples/with-zones/blog/app/blog/post/[id]/page.tsx",
+        "ids": [
+          "B4"
+        ]
+      }
+    ]
+  }
+]

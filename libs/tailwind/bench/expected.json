@@ -1,0 +1,18 @@
+{
+  "bad/globals.css": ["T1"],
+  "bad/tailwind.config.js": ["T8"],
+  "bad/postcss.config.js": ["T6"],
+  "bad/modal.html": ["T2"],
+  "bad/UserRow.jsx": ["T3", "T4"],
+  "bad/Badge.jsx": ["T5", "T10"],
+  "bad/theme.js": ["T9"],
+  "bad/package.json": ["T7"],
+  "bad/pricing.html": ["T2"],
+  "good/app.css": [],
+  "good/postcss.config.mjs": [],
+  "good/vite.config.ts": [],
+  "good/modal.html": [],
+  "good/UserRow.jsx": [],
+  "good/Card.module.css": [],
+  "good/pricing.html": []
+}

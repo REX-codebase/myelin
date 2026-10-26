@@ -17,3 +17,4 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm test
       - run: npm run self
+      - run: npm run bench

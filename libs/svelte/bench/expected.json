@@ -1,0 +1,21 @@
+{
+  "bad/Counter.svelte": ["B1", "B2", "B3"],
+  "bad/TodoForm.svelte": ["B3", "B4"],
+  "bad/Modal.svelte": ["B1", "B5"],
+  "bad/Page.svelte": ["B3", "B6"],
+  "bad/main.js": ["B7"],
+  "bad/Button.svelte": ["B1", "B5", "B8", "B9"],
+  "bad/Tabs.svelte": ["B10", "B12"],
+  "bad/Nav.svelte": ["K1", "K2", "K4", "K7"],
+  "bad/+page.server.ts": ["K3", "K4", "K8", "K9"],
+  "bad/svelte.config.js": ["K10"],
+  "bad/Search.svelte": ["B11", "K5"],
+  "good/Counter.svelte": [],
+  "good/TodoForm.svelte": [],
+  "good/Modal.svelte": [],
+  "good/Page.svelte": [],
+  "good/main.js": [],
+  "good/Nav.svelte": [],
+  "good/+page.server.ts": [],
+  "good/vite.config.ts": []
+}

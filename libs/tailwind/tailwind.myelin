@@ -1,0 +1,103 @@
+myelin 1
+id      tailwind
+about   Tailwind CSS v4.3 (CSS-first config, @import "tailwindcss", @tailwindcss/postcss): bans v3 directives, removed utilities and config patterns
+fires   tailwind | tailwindcss | tailwind css | @tailwindcss/postcss | @tailwindcss/vite | tailwind.config | utility classes
+status  Researched 2026-10-26 against Tailwind CSS 4.3.3 docs and the v3->v4 upgrade guide. Regex-level checks. Snippets not executed.
+
+= version     4.3.3 (npm latest; v3-lts tag is 3.4.19)
+= verified    2026-10-26
+= entry       one CSS file with @import "tailwindcss"; theme tokens live in @theme as CSS variables
+= build       PostCSS plugin is @tailwindcss/postcss, Vite plugin is @tailwindcss/vite, CLI is @tailwindcss/cli; no autoprefixer or postcss-import needed
+= content     template files are detected automatically; add extra paths with @source, safelist with @source inline()
+= browsers    Safari 16.4+, Chrome 111+, Firefox 128+
+
+! T1 /@tailwind\s+(?:base|components|utilities|variants|screens)\b/   The @tailwind directives were removed in v4. Use a single @import "tailwindcss"; -> $css
+! T2 /\b(?:bg|text|border|divide|ring|placeholder)-opacity-(?:\d|\[|\()/   *-opacity-* utilities were removed in v4. Use an opacity modifier on the color: bg-black/50, text-white/75, border-gray-900/10. -> $card
+! T3 /\bflex-(?:grow|shrink)(?:-[\w.[\]]+)?(?![\w-]|\s*:)/   flex-grow-* and flex-shrink-* were removed from v4 docs. Use grow, grow-0, shrink, shrink-0. -> $card
+! T4 /\boverflow-ellipsis\b/   overflow-ellipsis was removed in v4. Use text-ellipsis (or truncate). -> $card
+! T5 /(?<![\w-])decoration-(?:slice|clone)\b/   decoration-slice/decoration-clone were removed in v4. Use box-decoration-slice / box-decoration-clone.
+! T6 /\btailwindcss['"]?\s*:\s*\{|require\(\s*['"]tailwindcss['"]\s*\)/   In v4 the PostCSS plugin is the separate package @tailwindcss/postcss; drop autoprefixer and postcss-import. -> $postcss
+! T7 /\bnpx\s+tailwindcss\s/   In v4 the CLI is the separate package @tailwindcss/cli (npx @tailwindcss/cli -i in.css -o out.css); there is no init command. -> $css
+! T8 /\b(?:corePlugins|safelist)\s*:/   corePlugins and safelist are not supported in v4. Safelist with @source inline("..."); there is no way to disable core plugins. -> $css
+! T9 /tailwindcss\/resolveConfig/   resolveConfig was removed in v4. Read theme values as CSS variables (var(--color-blue-500), or getComputedStyle in JS).
+! T10 /[a-z0-9]-\[--[\w-]+\]/   v4 changed the CSS-variable shorthand from square brackets to parentheses: bg-(--brand-color), not bg-[--brand-color]. -> $card
+
+~ P1 Size-shift renames in v4 (the old names still exist but render one step smaller/different): shadow-sm -> shadow-xs, shadow -> shadow-sm, drop-shadow-sm -> drop-shadow-xs, drop-shadow -> drop-shadow-sm, blur-sm -> blur-xs, blur -> blur-sm, backdrop-blur-sm -> backdrop-blur-xs, backdrop-blur -> backdrop-blur-sm, rounded-sm -> rounded-xs, rounded -> rounded-sm. Write the v4 name for the v3 look.
+~ P2 outline-none now really sets outline-style: none. To hide the focus outline but keep it in forced-colors mode use outline-hidden (the old v3 behaviour).
+~ P3 Bare ring is now 1px and currentColor (was 3px blue-500). Write ring-3 plus an explicit ring color, e.g. focus:ring-3 focus:ring-blue-500.
+~ P4 border-* and divide-* default to currentColor (was gray-200). Always add a color: border border-gray-200.
+~ P5 Configure in CSS, not tailwind.config.js: tokens in @theme (--color-*, --font-*, --breakpoint-*), dark mode with @custom-variant dark (&:where(.dark, .dark *)), custom classes with @utility instead of @layer utilities/components, plugins with @plugin. A JS config is no longer auto-detected; load it explicitly with @config only for legacy setups.
+~ P6 Prefer bg-linear-to-r (and bg-radial, bg-conic, bg-linear-45) over the legacy bg-gradient-to-r name.
+~ P7 Put the important modifier at the end (flex! bg-red-500!); the leading !flex form is deprecated. A prefix is written like a variant: tw:flex, set with @import "tailwindcss" prefix(tw).
+~ P8 Variants stack left to right in v4 (*:first:pt-0, not first:*:pt-0). hover only applies on devices that support hover.
+~ P9 Use CSS variables instead of theme(): var(--color-red-500); where theme() is unavoidable use the variable name, theme(--breakpoint-xl), not theme(screens.xl).
+~ P10 In CSS modules or Vue/Svelte/Astro <style> blocks, add @reference "../app.css" (or @reference "tailwindcss") before using @apply. -> $reference
+~ P11 Container queries (@container, @sm:, @max-md:) are in core; do not add @tailwindcss/container-queries. transform-none no longer resets rotate-*/scale-*/translate-*; reset the individual property instead (e.g. focus:scale-none).
+~ P12 Since 4.1.15/4.2: break-words -> wrap-break-word, start-* / end-* -> inset-s-* / inset-e-* (old names deprecated, still work).
+~ P13 With Vite, use the @tailwindcss/vite plugin instead of PostCSS. -> $vite
+
+$ css
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@source "../node_modules/@acme/ui";
+@source inline("underline");
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-display: "Satoshi", "sans-serif";
+  --breakpoint-3xl: 120rem;
+  --color-brand-500: oklch(0.62 0.19 259.8);
+  --color-brand-600: oklch(0.55 0.2 262.9);
+}
+
+@utility content-auto {
+  content-visibility: auto;
+}
+
+@layer base {
+  h1 {
+    font-family: var(--font-display);
+  }
+}
+$$
+
+$ postcss
+export default {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  },
+};
+$$
+
+$ vite
+import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
+
+export default defineConfig({
+  plugins: [tailwindcss()],
+});
+$$
+
+$ card
+<div class="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-4 shadow-xs dark:border-white/10 dark:bg-gray-900">
+  <img class="size-12 shrink-0 rounded-full" src="/avatar.jpg" alt="" />
+  <div class="min-w-0 grow">
+    <p class="truncate font-medium text-gray-900 dark:text-white">Ada Lovelace</p>
+    <p class="overflow-hidden text-sm text-ellipsis whitespace-nowrap text-gray-500">ada@example.com</p>
+  </div>
+  <button class="rounded-sm bg-(--color-brand-500) px-3 py-1.5 text-white hover:bg-brand-600 focus:outline-hidden focus-visible:ring-3 focus-visible:ring-brand-500/50">
+    Follow
+  </button>
+</div>
+<div class="fixed inset-0 bg-black/50"></div>
+<div class="h-2 bg-linear-to-r from-brand-500 to-sky-400"></div>
+$$
+
+$ reference
+@reference "../../app.css";
+
+.title {
+  @apply text-2xl font-bold text-gray-900;
+}
+$$

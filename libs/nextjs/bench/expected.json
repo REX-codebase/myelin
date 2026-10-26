@@ -1,0 +1,58 @@
+{
+  "bad/blog-page.tsx": [
+    "B3",
+    "B4"
+  ],
+  "bad/middleware.ts": [
+    "B5"
+  ],
+  "bad/route.ts": [
+    "B1",
+    "B16"
+  ],
+  "bad/next.config.js": [
+    "B7",
+    "B8",
+    "B11",
+    "B15"
+  ],
+  "bad/layout.tsx": [
+    "B14",
+    "B17"
+  ],
+  "bad/navbar.tsx": [
+    "B18",
+    "B19"
+  ],
+  "bad/actions.ts": [
+    "B12",
+    "B13"
+  ],
+  "bad/package.json": [
+    "B10"
+  ],
+  "bad/product-page.tsx": [
+    "B2",
+    "B6"
+  ],
+  "bad/opengraph-image.tsx": [
+    "B3",
+    "B4",
+    "B20"
+  ],
+  "bad/settings.ts": [
+    "B1",
+    "B8"
+  ],
+  "bad/amp-article.tsx": [
+    "B9"
+  ],
+  "good/page.tsx": [],
+  "good/proxy.ts": [],
+  "good/route.ts": [],
+  "good/next.config.ts": [],
+  "good/layout.tsx": [],
+  "good/navbar.tsx": [],
+  "good/actions.ts": [],
+  "good/opengraph-image.tsx": []
+}

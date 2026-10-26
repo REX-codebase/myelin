@@ -1,0 +1,193 @@
+myelin 1
+id      react-router
+about   React Router v8 (react-router, react-router/dom, @react-router/*): bans v5/v6/early-v7 and Remix v2 APIs that models still write
+fires   react-router | react router | react-router-dom | createBrowserRouter | RouterProvider | useNavigate | loader | remix
+status  Researched 2026-10-26 against React Router 8.5.0 docs (reactrouter.com), the v6->v7 and v7->v8 upgrade guides and CHANGELOG. Regex-level checks. Snippets not executed.
+
+= version   8.5.0 (latest, 2026-10-16); v8.0.0 released 2026-06-17; v7 maintained at 7.18.x
+= verified  2026-10-26
+= packages  one package: react-router (+ react-router/dom for RouterProvider / HydratedRouter in the browser); framework mode adds @react-router/dev, @react-router/node, @react-router/serve, @react-router/fs-routes
+= baseline  v8 needs node 22.22+, react/react-dom 19.2.7+, vite 7+ (framework); ESM-only
+= modes     declarative (<BrowserRouter><Routes><Route element>), data (createBrowserRouter + <RouterProvider>), framework (app/routes.ts + route modules with Route.* types)
+= future    v8 has no future flags yet; all v7_* and v8_* flags were removed and are default behaviour
+
+! R1 /['"]react-router-dom['"]/   react-router-dom was removed in v8. Import everything from 'react-router'; import RouterProvider / HydratedRouter from 'react-router/dom'. -> $data
+! R2 /import\s*\{[^}]*\bSwitch\b[^}]*\}\s*from\s*['"]react-router/   <Switch> is v5. Use <Routes> with <Route path element={<Page />}>. -> $declarative
+! R3 /\b(useHistory|useRouteMatch)\s*\(/   useHistory / useRouteMatch are v5. Use useNavigate() (navigate('/path'), navigate(-1)) and useMatch / useParams. -> $declarative
+! R4 /import\s*\{[^}]*\bwithRouter\b[^}]*\}\s*from\s*['"]react-router/   withRouter is v5. Use the hooks (useNavigate, useLocation, useParams) in a function component. -> $declarative
+! R5 /<Redirect\b|import\s*\{[^}]*\bRedirect\b[^}]*\}\s*from\s*['"]react-router/   <Redirect> is v5. Render <Navigate to="..." replace /> or throw redirect('/path') from a loader/action. -> $routemodule
+! R6 /<Route\b[^>]*\s(component|render)=\{/   <Route component> / <Route render> are v5. Use element={<Page />} (declarative) or Component: Page (route objects). -> $declarative
+! R7 /<(Route|NavLink)\b[^>]*\sexact\b/   exact is v5: routes match exactly by default; on NavLink use end. -> $declarative
+! R8 /\bactive(ClassName|Style)=/   NavLink activeClassName/activeStyle are v5. Pass a function: className={({ isActive }) => ...}. -> $declarative
+! R9 /import\s*\{[^}]*\b(json|defer)\b[^}]*\}\s*from\s*['"](react-router|@remix-run\/[\w-]+)['"]|(?<![.\w])(json|defer)\(/   json() and defer() were removed in v7. Return plain objects (promises stream automatically); use data(value, { status, headers }) for status/headers. -> $routemodule
+! R10 /\bv[78]_[A-Za-z]+\b/   v7_* future flags were removed in v7 and v8_* flags in v8; their behaviour is now the default. Delete the future option. -> $data
+! R11 /\bfallbackElement\b/   RouterProvider fallbackElement was removed in v7. Put HydrateFallback (or hydrateFallbackElement) on the root route. -> $data
+! R12 /['"]@remix-run\/(react|node|cloudflare|cloudflare-pages|cloudflare-workers|deno|server-runtime|router|dev|serve|express|architect|testing|fs-routes|route-config)['"]/   Remix v2 packages are superseded by React Router v7+. Import from 'react-router' and '@react-router/*' (node, dev, serve, fs-routes). -> $routes
+! R13 /\bunstable_(middleware|clientMiddleware|createContext|RouterContextProvider|getContext|onError|url|useTransitions|defaultShouldRevalidate|mask|splitRouteModules|viteEnvironmentApi|passThroughRequests|subResourceIntegrity)\b/   These APIs were stabilized under their plain names (middleware, clientMiddleware, createContext, RouterContextProvider, getContext, onError, url, useTransitions, defaultShouldRevalidate, mask). Drop the unstable_ prefix. -> $middleware
+! R14 /\bmeta\b[^\n]*\(\s*\{[^}]*\bdata\b[^}]*\}|\bmatch(es\[[^\]]*\])?\??\.data\b/   v8 removed the data field from meta args, meta matches and useMatches(). Use loaderData. -> $meta
+! R15 /\bformMethod\s*[!=]==?\s*['"](get|post|put|patch|delete)['"]/   formMethod is normalized to uppercase since v7. Compare against "POST", "GET", etc.
+! R16 /\bcloudflareDevProxy\b|@react-router\/dev\/vite\/cloudflare/   The Cloudflare dev proxy was removed in v8. Use the cloudflare() plugin from @cloudflare/vite-plugin.
+! R17 /\b(createRemixStub|installGlobals|RemixBrowser|RemixServer)\b/   Remix v2 names. Use createRoutesStub, native Node fetch (no installGlobals), HydratedRouter (react-router/dom) and ServerRouter.
+
+~ P1 In framework mode type route modules with the generated Route types (import type { Route } from "./+types/<file>") and read loaderData / actionData from component props.
+~ P2 In the browser import RouterProvider from 'react-router/dom'; the top-level 'react-router' export is for non-DOM contexts such as tests.
+~ P3 Create the data router once at module scope, never inside component state.
+~ P4 Use <Form>, useFetcher and actions for mutations instead of manual fetch + useState; use useNavigation / fetcher.state for pending UI.
+~ P5 Middleware (export const middleware / clientMiddleware) is always on in v8; loader/action/middleware context is a RouterContextProvider: use context.get / context.set with createContext.
+
+$ data
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { createBrowserRouter } from 'react-router';
+import { RouterProvider } from 'react-router/dom';
+import Root from './routes/root.jsx';
+import Home from './routes/home.jsx';
+import Team, { teamLoader } from './routes/team.jsx';
+
+function Spinner() {
+  return <p>Loading...</p>;
+}
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    Component: Root,
+    HydrateFallback: Spinner,
+    children: [
+      { index: true, Component: Home },
+      { path: 'teams/:teamId', loader: teamLoader, Component: Team },
+    ],
+  },
+]);
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <RouterProvider router={router} />
+  </StrictMode>
+);
+$$
+
+$ declarative
+import { BrowserRouter, Routes, Route, NavLink, Navigate, useNavigate, useParams } from 'react-router';
+
+function Home() {
+  const navigate = useNavigate();
+  return <button onClick={() => navigate('/users/42')}>Open user 42</button>;
+}
+
+function User() {
+  const { userId } = useParams();
+  const navigate = useNavigate();
+  return (
+    <>
+      <h1>User {userId}</h1>
+      <button onClick={() => navigate(-1)}>Back</button>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <nav>
+        <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : undefined)}>Home</NavLink>
+      </nav>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="users/:userId" element={<User />} />
+        <Route path="old-home" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+$$
+
+$ routes
+import { type RouteConfig, index, layout, route } from '@react-router/dev/routes';
+
+export default [
+  index('./routes/home.tsx'),
+  layout('./routes/auth-layout.tsx', [
+    route('login', './routes/login.tsx'),
+  ]),
+  route('projects/:projectId', './routes/project.tsx'),
+] satisfies RouteConfig;
+$$
+
+$ routemodule
+import { Form, data, redirect, useNavigation } from 'react-router';
+import type { Route } from './+types/project';
+import { getProject, updateProject } from '../models/project.server';
+
+export async function loader({ params }: Route.LoaderArgs) {
+  const project = await getProject(params.projectId);
+  if (!project) throw data('Project not found', { status: 404 });
+  return { project };
+}
+
+export async function action({ request, params }: Route.ActionArgs) {
+  const formData = await request.formData();
+  const title = String(formData.get('title') ?? '').trim();
+  if (!title) return data({ error: 'Title is required' }, { status: 400 });
+  await updateProject(params.projectId, { title });
+  return redirect(`/projects/${params.projectId}`);
+}
+
+export default function Project({ loaderData, actionData }: Route.ComponentProps) {
+  const navigation = useNavigation();
+  const saving = navigation.formMethod === 'POST';
+  return (
+    <Form method="post">
+      <h1>{loaderData.project.title}</h1>
+      <input name="title" defaultValue={loaderData.project.title} />
+      <button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+      {actionData?.error ? <p role="alert">{actionData.error}</p> : null}
+    </Form>
+  );
+}
+$$
+
+$ meta
+import type { Route } from './+types/post';
+import { getPost } from '../models/post.server';
+
+export async function loader({ params }: Route.LoaderArgs) {
+  return { post: await getPost(params.slug) };
+}
+
+export function meta({ loaderData }: Route.MetaArgs) {
+  return [
+    { title: loaderData?.post.title ?? 'Post not found' },
+    { name: 'description', content: loaderData?.post.summary ?? '' },
+  ];
+}
+
+export default function Post({ loaderData }: Route.ComponentProps) {
+  return <article>{loaderData.post.body}</article>;
+}
+$$
+
+$ middleware
+import { createContext, redirect } from 'react-router';
+import type { Route } from './+types/dashboard';
+import { getUserFromSession, type User } from '../session.server';
+
+export const userContext = createContext<User | null>(null);
+
+const authMiddleware: Route.MiddlewareFunction = async ({ request, context }) => {
+  const user = await getUserFromSession(request);
+  if (!user) throw redirect('/login');
+  context.set(userContext, user);
+};
+
+export const middleware: Route.MiddlewareFunction[] = [authMiddleware];
+
+export async function loader({ context }: Route.LoaderArgs) {
+  const user = context.get(userContext);
+  return { name: user?.name ?? 'guest' };
+}
+
+export default function Dashboard({ loaderData }: Route.ComponentProps) {
+  return <h1>Welcome {loaderData.name}</h1>;
+}
+$$

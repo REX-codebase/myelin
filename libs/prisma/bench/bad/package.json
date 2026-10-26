@@ -1,0 +1,15 @@
+{
+  "name": "blog-api",
+  "scripts": {
+    "db:migrate": "prisma migrate dev --skip-generate --skip-seed",
+    "db:push": "prisma db push --skip-generate",
+    "db:diff": "prisma migrate diff --from-url \"$DATABASE_URL\" --to-schema-datamodel prisma/schema.prisma --script",
+    "build": "prisma generate && tsc"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.0"
+  }
+}

@@ -1,0 +1,263 @@
+myelin 1
+id      tanstack-query
+about   TanStack Query v5 (5.104, @tanstack/react-query + vue/solid/svelte adapters): bans v3/v4 APIs and pre-5.102 imperative methods models learned from older docs
+fires   tanstack query | react query | react-query | @tanstack/react-query | @tanstack/vue-query | useQuery | useMutation | queryClient | QueryClientProvider
+status  Researched 2026-10-26 against @tanstack/react-query 5.104.5 docs (no v6 released). Regex-level checks. Snippets not executed or type-checked.
+
+= version          @tanstack/react-query 5.104.5 (latest); same core for @tanstack/vue-query, solid-query, svelte-query; v6 not released
+= verified         2026-10-26
+= signature        every hook and QueryClient method takes ONE options object: useQuery({ queryKey, queryFn }), useMutation({ mutationFn }), invalidateQueries({ queryKey })
+= renames          cacheTime -> gcTime; useErrorBoundary -> throwOnError; status 'loading' -> 'pending'; isLoading (v4) -> isPending; isInitialLoading -> isLoading; keepPreviousData -> placeholderData: keepPreviousData; Hydrate -> HydrationBoundary; hashQueryKey -> hashKey
+= imperative       queryClient.query(options) / queryClient.infiniteQuery(options) replace fetchQuery, prefetchQuery, ensureQueryData (and infinite variants), deprecated since 5.102
+= requires         React 18+, TypeScript 4.7+; infinite queries need initialPageParam and getNextPageParam
+
+! B1 /['"](?:react-query|vue-query)(?:\/[\w-]+)?['"]/   The package was renamed in v4. Import from '@tanstack/react-query' (devtools: '@tanstack/react-query-devtools'; Vue: '@tanstack/vue-query'). -> $provider
+! B2 /\b(?:useQuery|useInfiniteQuery|useSuspenseQuery|useSuspenseInfiniteQuery|useIsFetching|useIsMutating)(?:<[^>]*>)?\(\s*[\['"`]|\buseQueries\(\s*\[/   v5 supports only the single object signature. Write useQuery({ queryKey: ['todos'], queryFn }) (and useQueries({ queries: [...] })). -> $query
+! B3 /\buseMutation\(\s*(?:async\s+)?(?:function\b|\([^)]*\)\s*=>|[A-Za-z_$][\w$]*\s*=>|[A-Za-z_$][\w$]*\s*,\s*\{)/   v5 useMutation takes one object: useMutation({ mutationFn, onSuccess, ... }). -> $mutation
+! B4 /\.(?:invalidateQueries|refetchQueries|cancelQueries|removeQueries|resetQueries|isFetching|getQueriesData|setQueriesData)\(\s*[\['"`]/   v5 QueryClient filter methods take an object: queryClient.invalidateQueries({ queryKey: ['todos'] }). -> $mutation
+! B5 /\bcacheTime\b/   cacheTime was renamed to gcTime in v5. -> $provider
+! B6 /\bstatus\s*[!=]==?\s*['"]loading['"]|['"]loading['"]\s*[!=]==?\s*[\w.]*status\b/   The 'loading' status was renamed to 'pending' in v5 (isLoading -> isPending; the new isLoading means isPending && isFetching). -> $query
+! B7 /\b(?:useQuery|useSuspenseQuery|useInfiniteQuery|useQueries)(?:<[^>]*>)?\(\s*\{(?:(?!\}\s*\))[\s\S])*?\bon(?:Success|Error|Settled)\s*[:(]/   onSuccess / onError / onSettled were removed from queries in v5 (they still exist on mutations). Derive state from data/error, use useEffect, or set a global QueryCache({ onError }). -> $provider
+! B8 /\bkeepPreviousData\s*:|\bisPreviousData\b/   keepPreviousData / isPreviousData were removed in v5. Use placeholderData: keepPreviousData (imported from '@tanstack/react-query') and isPlaceholderData. -> $paginated
+! B9 /\buseErrorBoundary\b/   useErrorBoundary was renamed to throwOnError in v5. -> $suspense
+! B10 /<Hydrate\b|\buseHydrate\b|import\s*\{[^}]*\bHydrate\b[^}]*\}/   Hydrate was renamed to HydrationBoundary and useHydrate was removed in v5. -> $ssr
+! B11 /\bsuspense\s*:\s*true\b/   The suspense: true flag was removed in v5. Use useSuspenseQuery / useSuspenseInfiniteQuery / useSuspenseQueries. -> $suspense
+! B12 /\b(?:refetchPage|contextSharing|isDataEqual|hashQueryKey|isInitialLoading|dehydrateMutations|dehydrateQueries|refetchActive|refetchInactive|setLogger)\b/   Removed or renamed in v4/v5: refetchPage -> maxPages, contextSharing / custom context -> pass a queryClient, isDataEqual -> structuralSharing fn, hashQueryKey -> hashKey, isInitialLoading -> isLoading, dehydrateQueries/Mutations -> shouldDehydrateQuery/Mutation, refetchActive/Inactive -> refetchType, setLogger removed.
+! B13 /\{\s*pageParam\s*=/   v5 infinite queries need an explicit initialPageParam instead of a default value for pageParam in queryFn. -> $infinite
+! B14 /\b\w*[qQ]uery\.remove\s*\(\s*\)/   query.remove() was removed from useQuery results in v5. Use queryClient.removeQueries({ queryKey }).
+! B15 /\brefetchInterval\s*:\s*(?:async\s*)?\(\s*\w+\s*,\s*\w+\s*\)\s*=>/   In v5 the refetchInterval callback only receives the query; read data from query.state.data.
+! B16 /\.(?:prefetchQuery|ensureQueryData|fetchQuery|prefetchInfiniteQuery|fetchInfiniteQuery|ensureInfiniteQueryData)\s*\(/   fetchQuery / prefetchQuery / ensureQueryData (and infinite variants) are deprecated since 5.102 and will be removed in the next major. Use await queryClient.query(options) (prefetch: .catch(noop); ensure: staleTime: 'static') or queryClient.infiniteQuery(options). Projects pinned below 5.102 must keep the old call. -> $ssr
+
+~ P1 Create the QueryClient once per app (module scope in SPAs, useState(() => new QueryClient()) in components/SSR), never inside render.
+~ P2 Share query definitions with queryOptions({ queryKey, queryFn }) / infiniteQueryOptions / mutationOptions so keys and types stay in sync between hooks, prefetching and invalidation.
+~ P3 For first-load spinners check isPending (or status === 'pending'); isLoading in v5 is isPending && isFetching and stays false for disabled queries.
+~ P4 Mutation callbacks (onMutate/onSuccess/onError/onSettled) remain valid; return the invalidateQueries promise from onSuccess/onSettled to keep the mutation pending until refetch completes.
+~ P5 Default error type is Error in v5; register a custom global error type via the Register interface instead of per-call generics.
+~ P6 Install @tanstack/eslint-plugin-query and keep exhaustive-deps on: every variable used in queryFn belongs in queryKey.
+
+$ provider
+import { useState, type ReactNode } from 'react'
+import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+
+export function AppQueryProvider({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        queryCache: new QueryCache({
+          onError: (error) => console.error('Query failed:', error.message),
+        }),
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000,
+            gcTime: 10 * 60 * 1000,
+            retry: 2,
+          },
+        },
+      }),
+  )
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  )
+}
+$$
+
+$ query
+import { queryOptions, useQuery } from '@tanstack/react-query'
+
+type Todo = { id: number; title: string; done: boolean }
+
+export const todosOptions = (filter: string) =>
+  queryOptions({
+    queryKey: ['todos', { filter }],
+    queryFn: async ({ signal }): Promise<Todo[]> => {
+      const res = await fetch(`/api/todos?filter=${encodeURIComponent(filter)}`, { signal })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return res.json()
+    },
+  })
+
+export function TodoList({ filter }: { filter: string }) {
+  const { data, status, error, isFetching } = useQuery(todosOptions(filter))
+
+  if (status === 'pending') return <p>Loading...</p>
+  if (status === 'error') return <p>Error: {error.message}</p>
+  return (
+    <ul aria-busy={isFetching}>
+      {data.map((todo) => (
+        <li key={todo.id}>{todo.title}</li>
+      ))}
+    </ul>
+  )
+}
+$$
+
+$ mutation
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+
+type NewTodo = { title: string }
+
+async function createTodo(input: NewTodo) {
+  const res = await fetch('/api/todos', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json() as Promise<{ id: number; title: string }>
+}
+
+export function AddTodo() {
+  const queryClient = useQueryClient()
+  const mutation = useMutation({
+    mutationFn: createTodo,
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['todos'] }),
+  })
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        const title = String(new FormData(e.currentTarget).get('title') ?? '')
+        mutation.mutate({ title })
+      }}
+    >
+      <input name="title" />
+      <button disabled={mutation.isPending}>{mutation.isPending ? 'Adding...' : 'Add'}</button>
+      {mutation.isError && <p role="alert">{mutation.error.message}</p>}
+    </form>
+  )
+}
+$$
+
+$ paginated
+import { useState } from 'react'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+
+async function fetchProjects(page: number) {
+  const res = await fetch(`/api/projects?page=${page}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json() as Promise<{ items: { id: number; name: string }[]; hasMore: boolean }>
+}
+
+export function Projects() {
+  const [page, setPage] = useState(0)
+  const { data, isPending, isPlaceholderData, error } = useQuery({
+    queryKey: ['projects', page],
+    queryFn: () => fetchProjects(page),
+    placeholderData: keepPreviousData,
+  })
+
+  if (isPending) return <p>Loading...</p>
+  if (error) return <p>Error: {error.message}</p>
+  return (
+    <div>
+      {data.items.map((p) => (
+        <div key={p.id}>{p.name}</div>
+      ))}
+      <button onClick={() => setPage((p) => Math.max(p - 1, 0))} disabled={page === 0}>
+        Previous
+      </button>
+      <button
+        onClick={() => setPage((p) => p + 1)}
+        disabled={isPlaceholderData || !data.hasMore}
+      >
+        Next
+      </button>
+    </div>
+  )
+}
+$$
+
+$ infinite
+import { useInfiniteQuery } from '@tanstack/react-query'
+
+type Page = { items: { id: string; text: string }[]; nextCursor: number | null }
+
+async function fetchFeed(cursor: number): Promise<Page> {
+  const res = await fetch(`/api/feed?cursor=${cursor}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export function Feed() {
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } = useInfiniteQuery({
+    queryKey: ['feed'],
+    queryFn: ({ pageParam }) => fetchFeed(pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    maxPages: 5,
+  })
+
+  if (status === 'pending') return <p>Loading...</p>
+  if (status === 'error') return <p>Could not load the feed.</p>
+  return (
+    <>
+      {data.pages.flatMap((page) => page.items).map((item) => (
+        <p key={item.id}>{item.text}</p>
+      ))}
+      <button onClick={() => fetchNextPage()} disabled={!hasNextPage || isFetchingNextPage}>
+        {isFetchingNextPage ? 'Loading more...' : hasNextPage ? 'Load more' : 'No more'}
+      </button>
+    </>
+  )
+}
+$$
+
+$ suspense
+import { Suspense } from 'react'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+
+type Post = { id: number; title: string; body: string }
+
+const fetchPost = async (id: number): Promise<Post> => {
+  const res = await fetch(`/api/posts/${id}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+function PostBody({ id }: { id: number }) {
+  const { data: post } = useSuspenseQuery({ queryKey: ['post', id], queryFn: () => fetchPost(id) })
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <p>{post.body}</p>
+    </article>
+  )
+}
+
+export function PostTitleStrict({ id }: { id: number }) {
+  const { data } = useQuery({ queryKey: ['post', id], queryFn: () => fetchPost(id), throwOnError: true })
+  return <h2>{data?.title}</h2>
+}
+
+export function PostPage({ id }: { id: number }) {
+  return (
+    <Suspense fallback={<p>Loading post...</p>}>
+      <PostBody id={id} />
+    </Suspense>
+  )
+}
+$$
+
+$ ssr
+// app/posts/page.tsx (Next.js App Router, Server Component)
+import { dehydrate, HydrationBoundary, noop, QueryClient } from '@tanstack/react-query'
+import { Posts } from './posts'
+import { getPosts } from './api'
+
+export default async function PostsPage() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60 * 1000 } } })
+
+  await queryClient.query({ queryKey: ['posts'], queryFn: getPosts }).catch(noop)
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <Posts />
+    </HydrationBoundary>
+  )
+}
+$$

@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="588" viewBox="0 0 1280 588">
+  <style>
+    .lib{font:700 18px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#e9eef7}
+    .bad{font:16px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#ff6b8b;text-decoration:line-through;text-decoration-color:#ff3b6b88}
+    .good{font:16px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#7dff9a}
+    .arrow{font:700 20px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#5ff4ff}
+    .id{font:600 13px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#55627a}
+    .h{font:600 14px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;letter-spacing:3px}
+    .row{opacity:0;animation:in .5s ease-out forwards}
+    @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  </style>
+  <rect width="1280" height="588" rx="20" fill="#05070d"/>
+  <text x="230" y="66" class="h" fill="#ff6b8b">WHAT YOUR AI WRITES</text>
+  <text x="760" y="66" class="h" fill="#7dff9a">WHAT THE LIBRARY WANTS NOW</text>
+  <g class="row" style="animation-delay:0.00s">
+    <rect x="24" y="96" width="1232" height="48" rx="12" fill="#0d1322"/>
+    <text x="48" y="127" class="lib">three.js r186</text>
+    <text x="230" y="127" class="bad">const clock = new THREE.Clock();</text>
+    <text x="722" y="127" class="arrow">→</text>
+    <text x="760" y="127" class="good">const timer = new THREE.Timer();</text>
+    <text x="1232" y="127" class="id" text-anchor="end">B5</text>
+  </g>
+  <g class="row" style="animation-delay:0.18s">
+    <rect x="24" y="154" width="1232" height="48" rx="12" fill="#0b101b"/>
+    <text x="48" y="185" class="lib">React 19</text>
+    <text x="230" y="185" class="bad">ReactDOM.render(&lt;App /&gt;, root);</text>
+    <text x="722" y="185" class="arrow">→</text>
+    <text x="760" y="185" class="good">createRoot(root).render(&lt;App /&gt;);</text>
+    <text x="1232" y="185" class="id" text-anchor="end">B1</text>
+  </g>
+  <g class="row" style="animation-delay:0.36s">
+    <rect x="24" y="212" width="1232" height="48" rx="12" fill="#0d1322"/>
+    <text x="48" y="243" class="lib">Next.js 16</text>
+    <text x="230" y="243" class="bad">const t = cookies().get('token');</text>
+    <text x="722" y="243" class="arrow">→</text>
+    <text x="760" y="243" class="good">const t = (await cookies()).get('token');</text>
+    <text x="1232" y="243" class="id" text-anchor="end">B1</text>
+  </g>
+  <g class="row" style="animation-delay:0.54s">
+    <rect x="24" y="270" width="1232" height="48" rx="12" fill="#0b101b"/>
+    <text x="48" y="301" class="lib">Tailwind 4</text>
+    <text x="230" y="301" class="bad">@tailwind base;</text>
+    <text x="722" y="301" class="arrow">→</text>
+    <text x="760" y="301" class="good">@import "tailwindcss";</text>
+    <text x="1232" y="301" class="id" text-anchor="end">T1</text>
+  </g>
+  <g class="row" style="animation-delay:0.72s">
+    <rect x="24" y="328" width="1232" height="48" rx="12" fill="#0d1322"/>
+    <text x="48" y="359" class="lib">Zod 4</text>
+    <text x="230" y="359" class="bad">z.string().email()</text>
+    <text x="722" y="359" class="arrow">→</text>
+    <text x="760" y="359" class="good">z.email()</text>
+    <text x="1232" y="359" class="id" text-anchor="end">B1</text>
+  </g>
+  <g class="row" style="animation-delay:0.90s">
+    <rect x="24" y="386" width="1232" height="48" rx="12" fill="#0b101b"/>
+    <text x="48" y="417" class="lib">Svelte 5</text>
+    <text x="230" y="417" class="bad">export let name;</text>
+    <text x="722" y="417" class="arrow">→</text>
+    <text x="760" y="417" class="good">let { name } = $props();</text>
+    <text x="1232" y="417" class="id" text-anchor="end">B1</text>
+  </g>
+  <g class="row" style="animation-delay:1.08s">
+    <rect x="24" y="444" width="1232" height="48" rx="12" fill="#0d1322"/>
+    <text x="48" y="475" class="lib">Express 5</text>
+    <text x="230" y="475" class="bad">app.get('*', handler);</text>
+    <text x="722" y="475" class="arrow">→</text>
+    <text x="760" y="475" class="good">app.get('/*splat', handler);</text>
+    <text x="1232" y="475" class="id" text-anchor="end">E9</text>
+  </g>
+  <g class="row" style="animation-delay:1.26s">
+    <rect x="24" y="502" width="1232" height="48" rx="12" fill="#0b101b"/>
+    <text x="48" y="533" class="lib">React Router 8</text>
+    <text x="230" y="533" class="bad">import { Link } from 'react-router-dom';</text>
+    <text x="722" y="533" class="arrow">→</text>
+    <text x="760" y="533" class="good">import { Link } from 'react-router';</text>
+    <text x="1232" y="533" class="id" text-anchor="end">R1</text>
+  </g>
+</svg>

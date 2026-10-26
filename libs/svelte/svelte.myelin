@@ -1,0 +1,170 @@
+myelin 1
+id      svelte
+about   Svelte 5 (runes) + SvelteKit 3: bans Svelte 4 syntax and SvelteKit 2 APIs models learned from older releases
+fires   svelte | sveltekit | .svelte | runes | $state | $props | @sveltejs/kit | $app/
+status  Researched 2026-10-26 against svelte 5.57.2 and @sveltejs/kit 3.1.0 docs. Regex-level checks. Snippets not executed or compiled.
+
+= version          svelte 5.57.2, @sveltejs/kit 3.1.0
+= verified         2026-10-26
+= runes            $state, $derived, $effect, $props, $bindable, $inspect, $host
+= events           element events are attributes (onclick={fn}); component events are callback props
+= content          snippets + {@render ...}; children prop replaces the default slot
+= mount            mount(App, { target }) / hydrate / unmount from 'svelte'; render from 'svelte/server'
+= kit.config       SvelteKit 3: options go to sveltekit({...}) in vite.config.ts; svelte.config.js is no longer read
+= kit.modules      $app/state (page, navigating, updated), $app/env (browser, dev, building, version), $app/env/private, $app/env/public, $app/paths (resolve, asset)
+= kit.alias        #lib via package.json "imports" (with file extensions), replaces $lib
+= kit.min          Node 22.17, TypeScript 6, Svelte 5.57.1, Vite 8.0.12, @sveltejs/vite-plugin-svelte 7
+
+! B1 /\bexport\s+let\b/   Svelte 5 declares props with $props(), not export let: let { name, count = 0 } = $props(); -> $counter
+! B2 /^\s*\$:/m   $: reactive statements are legacy. Use $derived(...) for values (most cases) or $effect(() => ...) for side effects. -> $counter
+! B3 /\son:[a-z]+/   on: directives are deprecated. Use event attributes (onclick={handler}) and call event.preventDefault() inside the handler instead of |modifiers. -> $events
+! B4 /\bcreateEventDispatcher\b/   createEventDispatcher is deprecated. Accept callback props (let { onsave } = $props(); onsave?.(value)). -> $events
+! B5 /<slot\b/ unless /customElement|<script\s+setup|\bfrom\s+['"]vue['"]|\bv-(?:if|for|bind|model|slot|on)\b/   <slot> is deprecated outside custom elements. Take a children (or named) snippet prop and write {@render children?.()}. -> $card
+! B6 /\sslot="|<svelte:fragment\b|\slet:[a-zA-Z]/   slot="", <svelte:fragment> and let: are slot-era syntax. Pass {#snippet name(args)}...{/snippet} inside the component tags. -> $card
+! B7 /new\s+[A-Z]\w*\(\s*\{\s*target\b|\.\$(?:destroy|set|on)\(/   Components are functions, not classes. Use mount(App, { target, props }) and unmount(app); update props through a $state object. -> $mount
+! B8 /\$\$(?:props|restProps|slots)\b/   $$props / $$restProps / $$slots are legacy. Use let { a, b, ...rest } = $props() (or let props = $props()) and check snippet props directly.
+! B9 /\b(?:beforeUpdate|afterUpdate)\b/   beforeUpdate/afterUpdate are deprecated and disallowed in runes mode. Use $effect.pre(...) and $effect(...) (plus tick() if needed).
+! B10 /<svelte:(?:component|self)\b/   Not needed in Svelte 5: components are dynamic (<Thing />, <item.component />), and a component can import itself.
+! B11 /['"]svelte\/legacy['"]/   svelte/legacy is a migration shim (run, preventDefault, createClassComponent...). Write $effect/$derived and plain handlers instead.
+! B12 /\b(?:SvelteComponent|SvelteComponentTyped|ComponentType|ComponentEvents)\b/   Svelte 4 class types are deprecated. Use import type { Component, ComponentProps } from 'svelte'.
+! K1 /['"]\$app\/stores['"]/   $app/stores was removed in SvelteKit 3. Import { page, navigating, updated } from '$app/state' and read page.url (no $ prefix). -> $kitpage
+! K2 /['"]\$app\/environment['"]|['"]\$service-worker['"]/   SvelteKit 3 renamed $app/environment to $app/env and removed $service-worker (version from $app/env, assets/immutable/prerendered from $app/manifest). -> $kitpage
+! K3 /['"]\$env\/(?:static|dynamic)\/(?:private|public)['"]/   $env/* modules are deprecated in SvelteKit 3. Declare vars in src/env.ts with defineEnvVars and import from '$app/env/private' or '$app/env/public'. -> $kitenv
+! K4 /['"]\$lib(?:\/|['"])/   SvelteKit 3 no longer generates $lib. Use the #lib subpath import from package.json, with the file extension: import x from '#lib/x.js'. -> $kitload
+! K5 /\binvalidateAll\b|\b(?:noScroll|keepFocus)\s*:/   SvelteKit 3: invalidateAll is deprecated in favour of refreshAll; goto's keepFocus/noScroll became reset: false, replaceState became replace.
+! K6 /import\s*\{[^}]*\b(?:pushState|replaceState)\b[^}]*\}\s*from\s*['"]\$app\/navigation['"]/   Shallow routing via pushState/replaceState is deprecated. Use goto(url, { shallow: true, state }) (add replace: true to replace).
+! K7 /import\s*\{[^}]*\b(?:base|assets|resolveRoute)\b[^}]*\}\s*from\s*['"]\$app\/paths['"]/   base, assets and resolveRoute were removed from $app/paths. Use resolve('/blog/[slug]', { slug }) and asset('file.png') (no leading slash). -> $kitpage
+! K8 /import\s*\{[^}]*\b(?:json|text)\b[^}]*\}\s*from\s*['"]@sveltejs\/kit['"]/   json() and text() helpers are deprecated in SvelteKit 3. Return Response.json(data) or new Response(text). -> $kitapi
+! K9 /\berror\(\s*\d{3}\s*,\s*\{/   SvelteKit 3: error(status, message) takes a string second argument; extra App.Error fields go in a third argument. -> $kitload
+! K10 /\bkit\s*:\s*\{/   SvelteKit 3 does not read svelte.config.js. Pass options (adapter, paths, csrf...) directly to sveltekit({...}) in vite.config.ts. -> $kitconfig
+
+~ P1 Prefer $derived over $effect for anything computable from other state; $effect is for side effects (DOM, network, timers).
+~ P2 Stores (svelte/store) still exist and are fine for async streams, but shared state is usually a $state object exported from a .svelte.js/.svelte.ts file.
+~ P3 Make two-way bindable props explicit with $bindable(): let { value = $bindable('') } = $props();
+~ P4 Type props with an interface: let { title }: { title: string } = $props(); and Snippet from 'svelte' for snippet props.
+
+$ counter
+<script lang="ts">
+	let { initial = 0, step = 1 }: { initial?: number; step?: number } = $props();
+
+	let count = $state(initial);
+	let doubled = $derived(count * 2);
+
+	$effect(() => {
+		document.title = `count: ${count}`;
+	});
+</script>
+
+<button onclick={() => (count += step)}>
+	clicks: {count} (doubled: {doubled})
+</button>
+$$
+
+$ events
+<script lang="ts">
+	let { onsave }: { onsave?: (text: string) => void } = $props();
+	let text = $state('');
+
+	function handleSubmit(event: SubmitEvent) {
+		event.preventDefault();
+		onsave?.(text);
+		text = '';
+	}
+</script>
+
+<form onsubmit={handleSubmit}>
+	<input bind:value={text} />
+	<button type="submit">Save</button>
+</form>
+$$
+
+$ card
+<script lang="ts">
+	import type { Snippet } from 'svelte';
+
+	let { title, children, footer }: { title: string; children?: Snippet; footer?: Snippet<[string]> } = $props();
+</script>
+
+<article>
+	<h2>{title}</h2>
+	{@render children?.()}
+	{#if footer}
+		<footer>{@render footer(title)}</footer>
+	{/if}
+</article>
+$$
+
+$ mount
+import { mount, unmount } from 'svelte';
+import App from './App.svelte';
+
+const app = mount(App, {
+	target: document.getElementById('app')!,
+	props: { initial: 5 }
+});
+
+export function destroy() {
+	unmount(app);
+}
+
+export default app;
+$$
+
+$ kitpage
+<script lang="ts">
+	import { page } from '$app/state';
+	import { browser } from '$app/env';
+	import { resolve, asset } from '$app/paths';
+</script>
+
+<img src={asset('logo.png')} alt="logo" />
+<p>current pathname: {page.url.pathname}</p>
+<a href={resolve('/blog/[slug]', { slug: 'hello-world' })}>first post</a>
+{#if browser}
+	<p>rendered in the browser</p>
+{/if}
+$$
+
+$ kitload
+import { error } from '@sveltejs/kit';
+import { getPost } from '#lib/server/posts.js';
+
+export async function load({ params }) {
+	const post = await getPost(params.slug);
+	if (!post) error(404, 'Post not found');
+	return { post };
+}
+$$
+
+$ kitapi
+import { error } from '@sveltejs/kit';
+
+export async function GET({ url }) {
+	const q = url.searchParams.get('q');
+	if (!q) error(400, 'Missing q');
+	return Response.json({ q, results: [] });
+}
+$$
+
+$ kitenv
+import { defineEnvVars } from '@sveltejs/kit/env';
+
+export const variables = defineEnvVars({
+	DATABASE_URL: {},
+	PUBLIC_SITE_NAME: { public: true }
+});
+$$
+
+$ kitconfig
+import adapter from '@sveltejs/adapter-auto';
+import { sveltekit } from '@sveltejs/kit/vite';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+	plugins: [
+		sveltekit({
+			adapter: adapter()
+		})
+	]
+});
+$$

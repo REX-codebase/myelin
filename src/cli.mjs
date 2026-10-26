@@ -3,12 +3,21 @@ import { join, extname } from 'node:path';
 import { parse } from './parse.mjs';
 import { check, snippetUnits } from './check.mjs';
 import { renderGate, renderHeader } from './gate.mjs';
+import { libPath, listLibs, detectLibs, benchAll, benchTable, benchCross } from './libs.mjs';
+import { mkdirSync, copyFileSync } from 'node:fs';
 
 const DEFAULT_EXT = 'js,mjs,cjs,jsx,ts,tsx,py,html,wgsl,glsl';
 
 const HELP = `myelin - check LLM output against a .myelin rule ledger
 
+<ledger> is a path to a .myelin file, or the id of a bundled lib (e.g. three, react).
+lint also takes several, comma-separated: myelin lint three,react src/
+
 usage:
+  myelin libs                              list bundled library ledgers
+  myelin detect [dir]                      suggest libs from a project's package.json
+  myelin use <lib> [dir]                   copy a bundled ledger into <dir>/.myelin/
+  myelin bench [lib...]                    score libs on their labelled corpus (--md table, --cross false-positive sweep)
   myelin validate <ledger>                 parse the ledger and report problems
   myelin self <ledger|dir>...              validate, then run the ledger's own snippets through its rules
   myelin lint <ledger> <file|dir>...       check files against the ledger (--ext=js,ts to filter dirs)
@@ -41,9 +50,16 @@ function parseArgs(argv) {
   return { pos, flags };
 }
 
+function resolveLedger(path) {
+  if (existsSync(path)) return path;
+  const lib = libPath(path);
+  if (lib) return lib;
+  throw new CliError(`cannot read ${path} (not a file or a bundled lib; run "myelin libs")`);
+}
+
 function load(path) {
   if (!path) throw new CliError('missing ledger path');
-  if (!existsSync(path)) throw new CliError(`cannot read ${path}`);
+  path = resolveLedger(path);
   return parse(readFileSync(path, 'utf8'));
 }
 
@@ -177,18 +193,101 @@ export async function main(argv) {
       }
 
       case 'lint': {
-        const [ledgerPath, ...targets] = args;
-        const ledger = load(ledgerPath);
-        requireValid(ledgerPath, ledger);
+        const [ledgerArg, ...targets] = args;
+        if (!ledgerArg) throw new CliError('missing ledger path');
+        const names = existsSync(ledgerArg) ? [ledgerArg] : ledgerArg.split(',').map((x) => x.trim()).filter(Boolean);
+        const ledgers = names.map((n) => {
+          const l = load(n);
+          requireValid(n, l);
+          return [n, l];
+        });
         if (!targets.length) throw new CliError('missing file or directory to check');
-        const exts = String(flags.ext || DEFAULT_EXT).split(',').map((s) => s.trim());
+        const exts = String(flags.ext || DEFAULT_EXT).split(',').map((x) => x.trim());
         const files = collect(targets, exts);
         if (!files.length) throw new CliError('no files to check');
         const units = files.map((f) => ({ name: f, text: readFileSync(f, 'utf8') }));
-        const result = check(ledger, units);
-        if (flags.json) log(JSON.stringify(result, null, 2));
-        else reportCheck(result, log);
-        return result.ok ? 0 : 1;
+        const results = ledgers.map(([n, l]) => ({ ledger: n, ...check(l, units) }));
+        const ok = results.every((r) => r.ok);
+        if (flags.json) log(JSON.stringify(results.length === 1 ? results[0] : { ok, results }, null, 2));
+        else
+          for (const r of results) {
+            if (results.length > 1) log(`[${r.ledger}]`);
+            reportCheck(r, log);
+          }
+        return ok ? 0 : 1;
+      }
+
+      case 'libs': {
+        const libs = listLibs();
+        if (flags.json) {
+          log(JSON.stringify(libs, null, 2));
+          return 0;
+        }
+        if (!libs.length) {
+          log('no bundled libs');
+          return 0;
+        }
+        const w = Math.max(...libs.map((l) => l.id.length));
+        for (const l of libs) log(`${l.id.padEnd(w)}  ${String(l.version).padEnd(10)}  ${String(l.bans).padStart(3)} bans  ${l.snippets} snippets  ${l.name}`);
+        return 0;
+      }
+
+      case 'detect': {
+        const dir = args[0] || '.';
+        const { found } = detectLibs(dir);
+        if (flags.json) {
+          log(JSON.stringify(found.map((f) => ({ id: f.id, matched: f.matched })), null, 2));
+          return 0;
+        }
+        if (!found.length) {
+          log('no bundled libs match this project');
+          return 0;
+        }
+        for (const f of found) log(`${f.id}  (${f.matched.join(', ')})`);
+        log(`\nlint with: myelin lint ${found.map((f) => f.id).join(',')} src/`);
+        return 0;
+      }
+
+      case 'use': {
+        const id = args[0];
+        if (!id) throw new CliError('missing lib id');
+        const src = libPath(id);
+        if (!src) throw new CliError(`no bundled lib named ${id}. Run "myelin libs".`, 1);
+        const dir = join(args[1] || '.', '.myelin');
+        mkdirSync(dir, { recursive: true });
+        const dest = join(dir, `${id}.myelin`);
+        if (existsSync(dest) && !flags.force) throw new CliError(`${dest} exists; pass --force to overwrite`, 1);
+        copyFileSync(src, dest);
+        log(`wrote ${dest}`);
+        return 0;
+      }
+
+      case 'bench': {
+        if (flags.cross) {
+          const r = benchCross(args);
+          if (flags.json) log(JSON.stringify(r, null, 2));
+          else {
+            for (const h of r.hits) log(`  ${h.ledger} fired ${h.ban} on ${h.file}`);
+            log(`${r.ledgers} ledgers x other libs' good files: ${r.checks} checks, ${r.hits.length} cross-library false positive(s)`);
+          }
+          return r.hits.length ? 1 : 0;
+        }
+        let results;
+        try {
+          results = benchAll(args);
+        } catch (e) {
+          throw new CliError(e.message, 1);
+        }
+        if (flags.json) log(JSON.stringify(results, null, 2));
+        else {
+          log(benchTable(results, { markdown: !!flags.md }));
+          if (flags.verbose)
+            for (const r of results)
+              for (const f of r.files)
+                if (!f.exact) log(`  ${r.id}/${f.file}: expected [${f.expected}] fired [${f.fired}]`);
+        }
+        const perfect = results.every((r) => r.fp === 0 && r.fn === 0);
+        return perfect || flags.md ? 0 : 1;
       }
 
       case 'gate': {

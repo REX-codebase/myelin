@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="516" viewBox="0 0 1280 516">
+  <style>.b{transform-box:fill-box;transform-origin:left;animation:g 1.1s cubic-bezier(.2,.8,.2,1) both}@keyframes g{from{transform:scaleX(0)}to{transform:scaleX(1)}}</style>
+  <rect width="1280" height="516" rx="20" fill="#05070d"/>
+  
+    <text x="170" y="118" text-anchor="middle" style="font:800 54px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#f1f5fb">13</text>
+    <text x="170" y="150" text-anchor="middle" style="font:15px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#7f8ba0">libraries</text>
+  
+    <text x="420" y="118" text-anchor="middle" style="font:800 54px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#f1f5fb">231</text>
+    <text x="420" y="150" text-anchor="middle" style="font:15px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#7f8ba0">verified bans</text>
+  
+    <text x="670" y="118" text-anchor="middle" style="font:800 54px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#ff6b8b">120/120</text>
+    <text x="670" y="150" text-anchor="middle" style="font:15px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#7f8ba0">stale files caught</text>
+  
+    <text x="920" y="118" text-anchor="middle" style="font:800 54px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#7dff9a">88/88</text>
+    <text x="920" y="150" text-anchor="middle" style="font:15px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#7f8ba0">current files left clean</text>
+  
+    <text x="1140" y="118" text-anchor="middle" style="font:800 54px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#5ff4ff">0</text>
+    <text x="1140" y="150" text-anchor="middle" style="font:15px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#7f8ba0">false alarms in 1056 cross-checks</text>
+  <text x="48" y="222" style="font:600 14px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;letter-spacing:3px;fill:#5ff4ff">IN THE WILD · OFFICIAL EXAMPLE CODE, OLD RELEASE vs CURRENT</text>
+      <text x="48" y="296" style="font:700 22px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#f1f5fb">three.js</text>
+      <text x="48" y="320" style="font:13px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#6b7890">files flagged as stale</text>
+      
+      <rect x="480" y="260" width="620" height="30" rx="8" fill="#111827"/>
+      <rect x="480" y="260" width="606.3" height="30" rx="8" fill="#ff6b8b" class="b"/>
+      <text x="1116" y="281" style="font:700 17px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#ff6b8b">97.8%</text>
+      <text x="464" y="281" text-anchor="end" style="font:15px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#aab4c5">r150 examples (2023)</text>
+      <rect x="480" y="302" width="620" height="30" rx="8" fill="#111827"/>
+      <rect x="480" y="302" width="4.0" height="30" rx="8" fill="#7dff9a" class="b"/>
+      <text x="1116" y="323" style="font:700 17px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#7dff9a">0.4%</text>
+      <text x="464" y="323" text-anchor="end" style="font:15px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#aab4c5">r186 WebGPU examples</text>
+      <text x="48" y="416" style="font:700 22px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#f1f5fb">Next.js</text>
+      <text x="48" y="440" style="font:13px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#6b7890">files flagged as stale</text>
+      
+      <rect x="480" y="380" width="620" height="30" rx="8" fill="#111827"/>
+      <rect x="480" y="380" width="78.7" height="30" rx="8" fill="#ff6b8b" class="b"/>
+      <text x="1116" y="401" style="font:700 17px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#ff6b8b">12.7%</text>
+      <text x="464" y="401" text-anchor="end" style="font:15px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#aab4c5">14.2 App Router examples</text>
+      <rect x="480" y="422" width="620" height="30" rx="8" fill="#111827"/>
+      <rect x="480" y="422" width="30.9" height="30" rx="8" fill="#7dff9a" class="b"/>
+      <text x="1116" y="443" style="font:700 17px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#7dff9a">5.0%</text>
+      <text x="464" y="443" text-anchor="end" style="font:15px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#aab4c5">16.4.3 App Router examples</text>
+</svg>

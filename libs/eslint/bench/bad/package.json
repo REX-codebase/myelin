@@ -1,0 +1,17 @@
+{
+  "name": "inventory-service",
+  "version": "1.4.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint --no-eslintrc --rulesdir ./eslint-rules --ignore-path .gitignore src",
+    "lint:fix": "eslint --env node,es2022 --fix src"
+  },
+  "eslintConfig": {
+    "extends": "eslint:recommended",
+    "env": { "node": true }
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  }
+}

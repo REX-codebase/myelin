@@ -1,0 +1,187 @@
+myelin 1
+id      vue
+about   Vue 3.5 (+ Vue Router 4/5, Nuxt 4): bans Vue 2 / Options-API-era globals, removed instance APIs and Nuxt 3 patterns models still write
+fires   vue | vuejs | .vue | createApp | script setup | composition api | vue-router | nuxt | nuxt.config
+status  Researched 2026-10-26 against vue 3.5.44, vue-router 5.4.0, nuxt 4.6.2 docs. Regex-level checks. Snippets not executed or compiled.
+
+= version          vue 3.5.44 (3.6 is RC only); vue-router 5.4.0 (no breaking changes from 4); nuxt 4.6.2; pinia 4.1.0
+= verified         2026-10-26
+= app              createApp(App).use(router).use(pinia).mount('#app'); globals go on app.config.globalProperties or provide/inject
+= sfc              <script setup> + defineProps / defineEmits / defineModel (3.4+) / useTemplateRef (3.5+) / useId (3.5+); destructured defineProps is reactive (3.5+)
+= lifecycle        beforeUnmount / unmounted (onBeforeUnmount / onUnmounted); directive hooks created, beforeMount, mounted, beforeUpdate, updated, beforeUnmount, unmounted
+= nuxt4            srcDir is app/ (app/pages, app/components, app/app.vue); server/, shared/, public/ stay at the root; useFetch/useAsyncData data is a shallowRef defaulting to undefined
+
+! B1 /\bnew\s+Vue\s*\(/   new Vue() is gone in Vue 3. Create the app with createApp(App) and call .mount('#app'). -> $app
+! B2 /\bVue\.(component|directive|mixin|use|prototype|extend|filter|set|delete|config|observable|compile)\b/   Vue 3 has no global Vue.* API. Use the app instance (app.component / app.directive / app.use / app.config.globalProperties), defineComponent instead of Vue.extend, reactive() instead of Vue.observable. -> $app
+! B3 /\{\{[^}]*?[^|]\|(?!\|)\s*[A-Za-z_$][\w$]*\s*(\([^)]*\))?\s*\}\}|\bfilters\s*:\s*\{/   Filters were removed in Vue 3. Call a method or computed property instead: {{ formatPrice(total) }}. -> $sfc
+! B4 /(?:\bthis|\bvm|\$root|\$parent|\b\w*[bB]us)\.\$(?:on|off|once)\s*\(/   $on / $off / $once were removed in Vue 3 (no event-bus on instances). Emit to the parent with defineEmits, share state with provide/inject or a Pinia store, or use a tiny emitter like mitt. -> $sfc
+! B5 /\$listeners\b|\$scopedSlots\b/   $listeners was merged into $attrs and $scopedSlots into $slots in Vue 3. Use v-bind="$attrs" / useAttrs(), and $slots / useSlots().
+! B6 /:[\w-]+\.sync\s*=/   The .sync modifier was removed in Vue 3. Use v-model:propName on the parent and defineModel('propName') in the child. -> $model
+! B7 /\$children\b|\.\$(?:set|delete|destroy)\s*\(/   $children, $set, $delete and $destroy were removed in Vue 3. Use template refs (useTemplateRef) for children; plain assignment / delete works on reactive objects. -> $sfc
+! B8 /^\s*(?:async\s+)?(?:beforeDestroy|destroyed)\s*(?:\(\s*\)|:)/m   beforeDestroy / destroyed were renamed in Vue 3. Use beforeUnmount / unmounted (onBeforeUnmount / onUnmounted in <script setup>). -> $sfc
+! B9 /<template\s+functional\b|\bfunctional\s*:\s*true\b/   Functional SFC templates and { functional: true } were removed in Vue 3. Write a normal component, or a plain function returning h(...). -> $render
+! B10 /(?:@|v-on:)[\w-]+\.native\b/   The .native modifier was removed in Vue 3. Listeners not declared in emits fall through to the root element automatically; declare real component events with defineEmits.
+! B11 /(?:@|v-on:)key(?:up|down|press)\.\d+|\bconfig\.keyCodes\b/   Numeric keyCode modifiers and config.keyCodes were removed in Vue 3. Use key aliases in kebab-case: @keyup.enter, @keyup.page-down.
+! B12 /\bmodel\s*:\s*\{\s*prop\s*:|\$emit\(\s*['"]input['"]/   Component v-model in Vue 3 uses the modelValue prop and the update:modelValue event; the model option is gone. Use defineModel() in the child. -> $model
+! B13 /\brender\s*(?::\s*(?:function\s*)?)?\(\s*(?:h|createElement)\s*[,)]|\brender\s*:\s*(?:h|createElement)\s*=>/   Vue 3 render functions do not receive h. Import h from 'vue' and write render() { return h(...) } (props flattened, no attrs/on/domProps nesting). -> $render
+! B14 /\.[\w-]+-(?:enter|leave)(?![\w-])/   Vue 3 renamed the transition classes: .v-enter -> .v-enter-from and .v-leave -> .v-leave-from (e.g. .fade-enter-from). -> $sfc
+! B15 /\b(?:bind|inserted|update|componentUpdated|unbind)\s*\(\s*el\b|\b(?:componentUpdated|unbind)\s*:/   Custom directive hooks were renamed in Vue 3: bind -> beforeMount, inserted -> mounted, componentUpdated -> updated, unbind -> unmounted (update was removed). -> $directive
+! B16 /\bnew\s+(?:VueRouter|Router)\s*\(|\bmode\s*:\s*['"](?:history|hash|abstract)['"]|\bpath\s*:\s*['"]\*['"]/   Vue Router 4+ uses createRouter({ history: createWebHistory(), routes }); mode is gone and the catch-all is path: '/:pathMatch(.*)*'. -> $app
+! B17 /\bwindow\.__NUXT__\b/   Nuxt 4 removes window.__NUXT__ after hydration. Read the payload with useNuxtApp().payload.
+! B18 /\bdedupe\s*:\s*(?:true|false)\b/   Nuxt 4 removed boolean dedupe values. Use dedupe: 'cancel' (was true) or dedupe: 'defer' (was false). -> $nuxtpage
+! B19 /\b(?:hid|vmid)\s*:\s*['"]/   Unhead v2 (Nuxt 4) removed the hid / vmid props from useHead tags; meta tags are deduplicated by name/property automatically. -> $nuxtpage
+! B20 /\bgenerate\s*:\s*\{[^}]*\b(?:routes|exclude)\s*:/   Nuxt 4 removed the top-level generate config. Use nitro: { prerender: { routes, ignore } } in nuxt.config.ts.
+
+~ P1 Prefer <script setup lang="ts"> with the Composition API for new components. The Options API is still supported in Vue 3; do not rewrite working Options API code just to avoid it, but use the Vue 3 names (emits, beforeUnmount, unmounted).
+~ P2 In Vue 3.5+ destructure props with JS defaults (const { count = 0 } = defineProps<...>()) instead of withDefaults; wrap destructured props in a getter when passing them to watch or composables (watch(() => count, ...)).
+~ P3 Prefer defineModel() over hand-written modelValue prop + update:modelValue emit (Vue 3.4+), and useTemplateRef('name') over a same-named ref(null) for template refs (Vue 3.5+).
+~ P4 Pinia is the recommended store for Vue 3 (Vuex is in maintenance); Vite (create-vue) replaces Vue CLI for new projects.
+~ P5 In Nuxt 4 put app code under app/ (app/pages, app/components, app/composables, app/app.vue); keep server/, shared/, public/ and nuxt.config.ts at the root. Check status === 'success' rather than !pending, and expect data.value to be undefined (not null) before load.
+~ P6 Declare component events with defineEmits / emits; undeclared listeners fall through via $attrs.
+
+$ app
+import { createApp } from 'vue'
+import { createRouter, createWebHistory } from 'vue-router'
+import { createPinia } from 'pinia'
+import App from './App.vue'
+import HomeView from './views/HomeView.vue'
+import NotFound from './views/NotFound.vue'
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    { path: '/', name: 'home', component: HomeView },
+    { path: '/about', name: 'about', component: () => import('./views/AboutView.vue') },
+    { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFound },
+  ],
+})
+
+const app = createApp(App)
+app.config.globalProperties.$formatDate = (d: Date) => d.toLocaleDateString()
+app.config.errorHandler = (err) => console.error(err)
+app.use(createPinia())
+app.use(router)
+app.mount('#app')
+$$
+
+$ sfc
+<script setup lang="ts">
+import { computed, onMounted, onBeforeUnmount, useTemplateRef } from 'vue'
+
+const { price, currency = 'USD', open = false } = defineProps<{
+  price: number
+  currency?: string
+  open?: boolean
+}>()
+
+const emit = defineEmits<{ close: [reason: string] }>()
+
+const panel = useTemplateRef<HTMLDivElement>('panel')
+const formatted = computed(() =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(price)
+)
+
+function onKey(e: KeyboardEvent) {
+  if (e.key === 'Escape') emit('close', 'escape')
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onKey)
+  panel.value?.focus()
+})
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+</script>
+
+<template>
+  <Transition name="fade">
+    <div v-if="open" ref="panel" tabindex="-1" class="panel">
+      <p>Total: {{ formatted }}</p>
+      <button @click="emit('close', 'button')">Close</button>
+    </div>
+  </Transition>
+</template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
+$$
+
+$ model
+<!-- TitleInput.vue -->
+<script setup lang="ts">
+const title = defineModel<string>('title', { required: true })
+const published = defineModel<boolean>('published', { default: false })
+</script>
+
+<template>
+  <input v-model="title" placeholder="Title" />
+  <label><input v-model="published" type="checkbox" /> Published</label>
+</template>
+
+<!-- Parent usage: <TitleInput v-model:title="post.title" v-model:published="post.published" /> -->
+$$
+
+$ render
+import { h, defineComponent } from 'vue'
+
+export const DynamicHeading = defineComponent({
+  props: { level: { type: Number, required: true } },
+  setup(props, { slots }) {
+    return () => h(`h${props.level}`, { class: 'heading' }, slots.default?.())
+  },
+})
+
+export const Badge = (props: { label: string }) => h('span', { class: 'badge' }, props.label)
+Badge.props = ['label']
+$$
+
+$ directive
+import type { Directive } from 'vue'
+
+export const vFocus: Directive<HTMLElement, boolean> = {
+  mounted(el, binding) {
+    if (binding.value !== false) el.focus()
+  },
+  updated(el, binding) {
+    if (binding.value && binding.oldValue === false) el.focus()
+  },
+  unmounted(el) {
+    el.blur()
+  },
+}
+$$
+
+$ nuxtpage
+<!-- app/pages/posts/[slug].vue -->
+<script setup lang="ts">
+const route = useRoute()
+const slug = computed(() => String(route.params.slug))
+
+const { data: post, status, error, refresh } = await useFetch(() => `/api/posts/${slug.value}`, {
+  key: `post-${slug.value}`,
+  dedupe: 'cancel',
+})
+
+useHead({
+  title: () => post.value?.title ?? 'Post',
+  meta: [{ name: 'description', content: () => post.value?.summary ?? '' }],
+})
+</script>
+
+<template>
+  <article v-if="status === 'success' && post">
+    <h1>{{ post.title }}</h1>
+    <p>{{ post.summary }}</p>
+    <button @click="refresh()">Reload</button>
+  </article>
+  <p v-else-if="error">Could not load the post.</p>
+  <p v-else>Loading...</p>
+</template>
+$$

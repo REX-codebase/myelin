@@ -1,0 +1,16 @@
+{
+  "bad/react-app.eslintrc.json": ["L6", "L3", "L1", "L2", "L4", "L8"],
+  "bad/eslintrc-node.js": ["L13", "L6", "L3", "L1", "L2", "L7"],
+  "bad/eslint.config.js": ["L1", "L19"],
+  "bad/ts.eslint.config.mjs": ["L17", "L5"],
+  "bad/package.json": ["L11", "L8", "L12", "L1", "L3"],
+  "bad/eslint-rules.cjs": ["L18", "L14", "L15", "L11"],
+  "bad/mocha.eslint.config.mjs": ["L9", "L4", "L16"],
+  "bad/lint-runner.mjs": ["L10"],
+  "good/eslint.config.js": [],
+  "good/ts.eslint.config.mjs": [],
+  "good/browser.eslint.config.mjs": [],
+  "good/local-rules.eslint.config.js": [],
+  "good/package.json": [],
+  "good/compat.eslint.config.mjs": []
+}

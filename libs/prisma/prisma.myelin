@@ -1,0 +1,160 @@
+myelin 1
+id      prisma
+about   Prisma ORM 7 (7.10, Rust-free prisma-client generator + driver adapters + prisma.config.ts): bans Prisma 4-6 setup and removed APIs models learned from older docs
+fires   prisma | @prisma/client | schema.prisma | prisma.config.ts | PrismaClient | prisma migrate | driver adapter | @prisma/adapter-
+status  Researched 2026-10-26 against Prisma ORM 7.10.1 docs (Prisma ORM 8 is a release candidate, not targeted). Regex-level checks. Snippets not executed or generated.
+
+= version          prisma / @prisma/client 7.10.1 (stable); Prisma ORM 8 is RC (8.0.0-rc.27, new @prisma/orm-postgres runtime) and not covered here; Prisma 6 gets security fixes until 2026-11-19
+= verified         2026-10-26
+= generator        provider = "prisma-client" with a required output path; import PrismaClient and Prisma from "<output>/client" (types also in /models, /enums, /browser)
+= client           new PrismaClient({ adapter }) with a driver adapter (@prisma/adapter-pg, @prisma/adapter-better-sqlite3, @prisma/adapter-mariadb, ...) or { accelerateUrl }; no zero-arg constructor
+= config           prisma.config.ts at the project root holds schema path, migrations.path, migrations.seed and datasource.url (via env() from 'prisma/config'); .env is not auto-loaded, import 'dotenv/config'
+= cli              migrate dev / db push no longer run generate or seed; run prisma generate and prisma db seed explicitly
+= runtime          ESM package ("type": "module"), Node 20.19+, TypeScript 5.4+
+
+! B1 /\bprovider\s*=\s*"prisma-client-js"/   Prisma 7 defaults to the Rust-free "prisma-client" generator; prisma-client-js is deprecated. Use provider = "prisma-client" with an output path. -> $schema
+! B2 /(?:\bfrom\s*|\brequire\(\s*|\bimport\(\s*)['"]@prisma\/client(?:\/edge)?['"]/   With the prisma-client generator, PrismaClient and the Prisma namespace are imported from your generated output, e.g. import { PrismaClient, Prisma } from "./generated/prisma/client". -> $client
+! B3 /\bnew\s+PrismaClient\s*\(/ unless /\b(?:adapter|accelerateUrl)\b/   Prisma 7 removed new PrismaClient() / new PrismaClient({}). Pass a driver adapter: new PrismaClient({ adapter: new PrismaPg({ connectionString }) }) (or accelerateUrl). -> $client
+! B4 /\bdatasourceUrl\s*:|\bdatasources\s*:\s*\{/   The datasources and datasourceUrl PrismaClient options were removed in Prisma 7. Give the connection string to the driver adapter instead (SQLite: PrismaBetterSqlite3({ url })). -> $sqlite
+! B5 /^\s*(?:url|directUrl|shadowDatabaseUrl)\s*=\s*env\(/m   In Prisma 7 connection URLs no longer live in the schema datasource block. Keep only provider there and set datasource.url (and shadowDatabaseUrl) in prisma.config.ts. -> $config
+! B6 /\.\$use\s*\(/   Client middleware ($use) was removed in Prisma 7. Use a query extension: prisma.$extends({ query: { $allModels: { async $allOperations({ args, query }) { ... } } } }). -> $extension
+! B7 /\brejectOnNotFound\b/   rejectOnNotFound was removed in Prisma 5. Use findUniqueOrThrow / findFirstOrThrow. -> $notfound
+! B8 /\$on\(\s*['"]beforeExit['"]/   The beforeExit hook was removed from the library engine in Prisma 5 and does not exist on the Rust-free client. Use process.on('beforeExit' | 'SIGTERM', ...) and await prisma.$disconnect().
+! B9 /\bengineType\s*=\s*"(?:binary|library)"|\bbinaryTargets\s*=|\bengine\s*:\s*['"](?:classic|js)['"]/   Prisma 7 is Rust-free: there are no query-engine binaries, so engineType "binary"/"library", binaryTargets and the prisma.config engine option are obsolete. Remove them. -> $schema
+! B10 /\bpreviewFeatures\s*=\s*\[[^\]]*"(?:driverAdapters|queryCompiler|fullTextIndex|fullTextSearch|metrics)"/   These preview flags are obsolete: driverAdapters and queryCompiler are GA since 6.16, fullTextIndex is GA, fullTextSearch became fullTextSearchPostgres (PostgreSQL) / GA (MySQL) in 6, and metrics was removed in 7. -> $schema
+! B11 /\bNotFoundError\b/   NotFoundError was removed in Prisma 6. Catch Prisma.PrismaClientKnownRequestError with code 'P2025'. -> $notfound
+! B12 /--skip-generate\b|--skip-seed\b|--(?:from|to)-(?:url|schema-datasource)\b|--shadow-database-url\b|\bdb\s+execute\b[^\n]*\s--(?:url|schema)\b/   Removed Prisma 7 CLI flags: migrate dev / db push no longer generate or seed (run prisma generate / prisma db seed); migrate diff uses --from-config-datasource / --to-config-datasource; db execute reads the connection from prisma.config.ts. -> $scripts
+! B13 /\bdirectUrl\s*:|\bexperimental\s*:\s*\{[^}]*\badapter\s*:/   prisma.config.ts in Prisma 7 removed datasource.directUrl and the adapter option. Put the direct (non-pooled) URL in datasource.url; migrations work with driver adapters automatically. -> $config
+! B14 /\bPRISMA_(?:CLI_QUERY_ENGINE_TYPE|CLIENT_ENGINE_TYPE|QUERY_ENGINE_BINARY|QUERY_ENGINE_LIBRARY|GENERATE_SKIP_AUTOINSTALL|SKIP_POSTINSTALL_GENERATE|GENERATE_IN_POSTINSTALL|GENERATE_DATAPROXY|GENERATE_NO_ENGINE|CLIENT_NO_RETRY|MIGRATE_SKIP_GENERATE|MIGRATE_SKIP_SEED)\b/   This Prisma environment variable was removed in Prisma 7. Delete it; run prisma generate explicitly in your build.
+! B15 /\bfrom\s*['"][^'"]*\/generated\/prisma['"]/   The prisma-client generator has no index file. Import from "<output>/client" (server), "<output>/browser" (types for the browser), "<output>/enums" or "<output>/models". -> $client
+
+~ P1 Create one PrismaClient per process (module singleton; in Next.js dev cache it on globalThis) and reuse it; do not construct a client per request.
+~ P2 Driver adapters use the underlying driver's pool settings (pg has no connect timeout by default); set pool/timeout/ssl options on the adapter, e.g. new PrismaPg({ connectionString, connectionTimeoutMillis: 5000 }).
+~ P3 Bytes fields are Uint8Array (since 6), not Buffer.
+~ P4 Configure seeding in prisma.config.ts (migrations.seed) and run prisma db seed explicitly; migrate dev / migrate reset no longer seed.
+~ P5 MongoDB is not supported in Prisma 7; stay on Prisma 6 for MongoDB projects.
+~ P6 Use array values for in / notIn / OR filters (single-value shortcuts were removed in 5).
+
+$ schema
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  name  String?
+  posts Post[]
+}
+
+model Post {
+  id        Int     @id @default(autoincrement())
+  title     String
+  published Boolean @default(false)
+  authorId  Int
+  author    User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+}
+$$
+
+$ config
+import "dotenv/config";
+import { defineConfig, env } from "prisma/config";
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  migrations: {
+    path: "prisma/migrations",
+    seed: "tsx prisma/seed.ts",
+  },
+  datasource: {
+    url: env("DATABASE_URL"),
+    shadowDatabaseUrl: env("SHADOW_DATABASE_URL"),
+  },
+});
+$$
+
+$ client
+import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "./generated/prisma/client";
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+
+export const prisma = new PrismaClient({ adapter });
+$$
+
+$ sqlite
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaClient } from "./generated/prisma/client";
+
+const adapter = new PrismaBetterSqlite3({
+  url: process.env.DATABASE_URL || "file:./dev.db",
+});
+
+export const prisma = new PrismaClient({ adapter });
+$$
+
+$ extension
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "./generated/prisma/client";
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+
+export const prisma = new PrismaClient({ adapter }).$extends({
+  query: {
+    $allModels: {
+      async $allOperations({ model, operation, args, query }) {
+        const start = performance.now();
+        const result = await query(args);
+        console.log(`${model}.${operation} took ${(performance.now() - start).toFixed(1)}ms`);
+        return result;
+      },
+    },
+  },
+});
+$$
+
+$ notfound
+import { Prisma } from "./generated/prisma/client";
+import { prisma } from "./db";
+
+export async function getUserOrNull(id: number) {
+  try {
+    return await prisma.user.findUniqueOrThrow({ where: { id } });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      return null;
+    }
+    throw error;
+  }
+}
+$$
+
+$ scripts
+{
+  "type": "module",
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev && prisma generate",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:diff": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "dotenv": "^18.0.9"
+  },
+  "devDependencies": {
+    "prisma": "^7.10.1",
+    "tsx": "^4.23.15"
+  }
+}
+$$

@@ -1,0 +1,16 @@
+{
+  "bad/route-v4.ts": ["A7", "A12", "A1", "A6", "A3"],
+  "bad/chat-page.tsx": ["A5", "A8", "A9"],
+  "bad/legacy-openai-stream.ts": ["A4"],
+  "bad/weather-tool.ts": ["A10", "A2", "A15", "A18"],
+  "bad/extract.cjs": ["A17", "A11"],
+  "bad/route-v6.ts": ["A13", "A20", "A14"],
+  "bad/agent.ts": ["A19", "A12", "A16"],
+  "bad/cli-stream.mjs": ["A16", "A15"],
+  "good/route.ts": [],
+  "good/chat-page.tsx": [],
+  "good/extract.ts": [],
+  "good/agent.ts": [],
+  "good/express-pipe.ts": [],
+  "good/cli-stream.mjs": []
+}

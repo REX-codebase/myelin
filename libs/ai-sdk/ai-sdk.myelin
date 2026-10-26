@@ -1,0 +1,166 @@
+myelin 1
+id      ai-sdk
+about   Vercel AI SDK 7 (package ai, @ai-sdk/react 4): bans v3/v4/v5/v6-era APIs that were removed, renamed or deprecated
+fires   ai sdk | vercel ai sdk | ai-sdk | @ai-sdk | streamText | generateText | useChat | streamUI | toolloopagent
+status  Researched 2026-10-26 against ai 7.0.153 / @ai-sdk/react 4.0.157 and the official 4->5, 5->6, 6->7 migration guides. Regex-level checks. Snippets type-check (tsc --strict) against ai@7.0.153 types; not executed.
+
+= version      ai 7.0.153 (@ai-sdk/react 4.x, @ai-sdk/<provider> matching major)
+= verified     2026-10-26
+= node.min     22 (v7 is ESM-only)
+= imports      core + UI helpers from 'ai'; React hooks from '@ai-sdk/react'; providers from '@ai-sdk/<provider>'; OpenTelemetry from '@ai-sdk/otel'
+= streaming    streamText(...).stream -> toUIMessageStream({ stream }) -> createUIMessageStreamResponse({ stream }) (or pipeUIMessageStreamToResponse for Node)
+= steps        stopWhen: isStepCount(n) / hasToolCall(name); ToolLoopAgent defaults to isStepCount(20)
+= structured   generateText/streamText with output: Output.object({ schema }); read result.output / partialOutputStream
+
+! A1 /\bmaxTokens\s*:/                                              maxTokens was renamed to maxOutputTokens (v5). -> $tools
+! A2 /\btool\(\s*\{[^}]{0,400}?\bparameters\s*:/                    tool({ parameters }) is v4. Use inputSchema (and outputSchema if needed); execute receives the parsed input. -> $tools
+! A3 /\b(toDataStreamResponse|pipeDataStreamToResponse|toDataStream|createDataStreamResponse|createDataStream|DataStreamWriter|writeMessageAnnotation)\b/   The v4 data stream protocol was removed (v5). Use toUIMessageStream + createUIMessageStreamResponse / createUIMessageStream. -> $route
+! A4 /\b(StreamingTextResponse|OpenAIStream|AnthropicStream|AIStream|streamToResponse|StreamData|LangChainAdapter)\b/   v2/v3/v4 streaming helpers are gone. Use streamText(...) with toUIMessageStream / createUIMessageStreamResponse; LangChain lives in @ai-sdk/langchain. -> $route
+! A5 /['"]ai\/(react|svelte|vue|solid|rsc)['"]/                    Framework subpaths of 'ai' were removed. Import from '@ai-sdk/react' (or @ai-sdk/svelte, @ai-sdk/vue, @ai-sdk/rsc). -> $chat
+! A6 /\bmaxSteps\b/                                                 maxSteps was removed (v5). Use stopWhen: isStepCount(n) on the server; useChat has no step option. -> $tools
+! A7 /\b(CoreMessage|CoreUserMessage|CoreAssistantMessage|CoreSystemMessage|CoreToolMessage|convertToCoreMessages)\b/   Core* message types were removed (v6). Use ModelMessage and await convertToModelMessages(uiMessages). -> $route
+! A8 /\{[^{}]*\b(input|handleInputChange|handleSubmit|isLoading|append|reload)\b[^{}]*\}\s*=\s*useChat\(/   useChat no longer manages input or exposes input/handleInputChange/handleSubmit/isLoading/append/reload. Keep input in useState, call sendMessage({ text }), use status and regenerate(). -> $chat
+! A9 /\buseChat\(\s*\{[^}(]*\b(api|initialMessages|body|headers|credentials|onResponse|sendExtraMessageFields|keepLastMessageOnError|experimental_prepareRequestBody)\s*:/   These useChat options moved or were removed (v5). Pass transport: new DefaultChatTransport({ api, headers, body, credentials }); initialMessages became messages. -> $chat
+! A10 /\bstepCountIs\b/                                             stepCountIs was renamed to isStepCount in v7 (old name is only a deprecated alias). -> $tools
+! A11 /\b(generateObject|streamObject)\s*\(/                        generateObject/streamObject are deprecated since v6. Use generateText/streamText with output: Output.object({ schema }) and read output / partialOutputStream. -> $structured
+! A12 /^\s*system\s*:/m                                              The system option was renamed to instructions in v7 (ToolLoopAgent since v6); system is only a deprecated fallback. -> $tools
+! A13 /\brole\s*:\s*['"]system['"]/ unless /\ballowSystemInMessages\s*:\s*true\b/   v7 rejects system messages inside prompt/messages by default. Put them in instructions (or set allowSystemInMessages: true for trusted persisted chats only). -> $tools
+! A14 /\.(toUIMessageStreamResponse|pipeUIMessageStreamToResponse|toTextStreamResponse|pipeTextStreamToResponse|toUIMessageStream)\s*\(/   streamText result response methods are deprecated in v7. Import the stateless helpers from 'ai': toUIMessageStream({ stream: result.stream }) + createUIMessageStreamResponse / pipeUIMessageStreamToResponse, toTextStream + createTextStreamResponse. -> $route
+! A15 /\.fullStream\b|\bonStepFinish\b/                             v7 renames: result.fullStream is now result.stream, and onStepFinish is now onStepEnd. -> $node
+! A16 /\bexperimental_(telemetry|output|activeTools|prepareStep|generateImage|transcribe|generateSpeech|customProvider|onStart|onStepStart|onFinish|include|onToolCallStart|onToolCallFinish|context|continueSteps|providerMetadata|attachments|toToolResultContent|StreamData|throttle|resume)\b/   Promoted or removed experimental_ API. Drop the prefix: telemetry, output, activeTools, prepareStep, generateImage, transcribe, generateSpeech, customProvider, onStart, onStepStart, onEnd, include, onToolExecutionStart/End, context, throttle; attachments became file parts; resume became resume / resumeStream.
+! A17 /\brequire\(\s*['"](ai|@ai-sdk\/[\w-]+)['"]\s*\)/            AI SDK 7 packages are ESM-only. Use import, with "type": "module" or .mjs. -> $node
+! A18 /\b(promptTokens|completionTokens|cachedInputTokens)\b|\busage\.reasoningTokens\b/   Old usage fields. Use usage.inputTokens / outputTokens / totalTokens, usage.inputTokenDetails.cacheReadTokens and usage.outputTokenDetails.reasoningTokens. -> $node
+! A19 /\.textEmbedding(Model)?\s*\(|\b(Experimental_Agent|isToolOrDynamicToolUIPart|getToolOrDynamicToolName|ToolCallOptions|addToolResult)\b/   Renamed in v5/v6/v7: provider.embedding()/embeddingModel(), ToolLoopAgent, isToolUIPart, getToolName, ToolExecutionOptions, addToolOutput({ tool, toolCallId, output }).
+! A20 /(?<!await\s{0,4})\bconvertToModelMessages\(/                convertToModelMessages is async since v6. Write await convertToModelMessages(messages). -> $route
+
+~ P1 onFinish on generateText/streamText/agents/toUIMessageStream is deprecated in v7 in favour of onEnd; useChat({ onFinish }) is still the client option.
+~ P2 result.usage now sums all steps (totalUsage is deprecated); use result.finalStep.usage / finalStep.toolCalls for the last step only.
+~ P3 Render UI messages from message.parts (type 'text', 'reasoning', 'file', 'tool-<name>'); message.content is not a UI string any more.
+~ P4 For tool context in v7 declare contextSchema on the tool and pass toolsContext: { toolName: {...} }; shared data goes in runtimeContext.
+~ P5 Telemetry spans need registerTelemetry(new OpenTelemetry()) from '@ai-sdk/otel' once at startup; per-call isEnabled: true is no longer needed.
+~ P6 Prefer toolApproval on the call over the deprecated needsApproval tool property.
+
+$ route
+import {
+  streamText,
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
+
+export async function POST(req) {
+  const { messages } = await req.json();
+
+  const result = streamText({
+    model: 'anthropic/claude-sonnet-5.5',
+    instructions: 'You are a helpful assistant.',
+    messages: await convertToModelMessages(messages),
+  });
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
+}
+$$
+
+$ chat
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
+
+export default function Chat() {
+  const [text, setText] = useState('');
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({ api: '/api/chat' }),
+  });
+
+  return (
+    <div>
+      {messages.map((message) => (
+        <div key={message.id}>
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.parts.map((part, i) =>
+            part.type === 'text' ? <span key={`${message.id}-${i}`}>{part.text}</span> : null,
+          )}
+        </div>
+      ))}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          sendMessage({ text });
+          setText('');
+        }}
+      >
+        <input value={text} onChange={(e) => setText(e.currentTarget.value)} disabled={status !== 'ready'} />
+      </form>
+    </div>
+  );
+}
+$$
+
+$ tools
+import { generateText, tool, isStepCount } from 'ai';
+import { z } from 'zod';
+
+const weather = tool({
+  description: 'Get the weather in a location (fahrenheit)',
+  inputSchema: z.object({
+    location: z.string().describe('The location to get the weather for'),
+  }),
+  execute: async ({ location }) => ({ location, temperature: 72 }),
+});
+
+export async function askWeather(question) {
+  const result = await generateText({
+    model: 'anthropic/claude-sonnet-5.5',
+    instructions: 'Answer weather questions using the weather tool.',
+    prompt: question,
+    tools: { weather },
+    stopWhen: isStepCount(5),
+    maxOutputTokens: 1024,
+    onStepEnd: ({ stepNumber, usage }) => {
+      console.log(`step ${stepNumber}: ${usage.totalTokens} tokens`);
+    },
+  });
+  return result.text;
+}
+$$
+
+$ structured
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
+
+export async function makeRecipe(dish) {
+  const { output } = await generateText({
+    model: 'anthropic/claude-sonnet-5.5',
+    output: Output.object({
+      schema: z.object({
+        name: z.string(),
+        ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
+        steps: z.array(z.string()),
+      }),
+    }),
+    prompt: `Generate a recipe for ${dish}.`,
+  });
+  return output;
+}
+$$
+
+$ node
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = streamText({
+  model: openai('gpt-5.1'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+
+for await (const part of result.stream) {
+  if (part.type === 'text-delta') process.stdout.write(part.text);
+}
+
+const usage = await result.usage;
+console.log('\n', usage.inputTokens, usage.outputTokens, usage.outputTokenDetails.reasoningTokens);
+$$

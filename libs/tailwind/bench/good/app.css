@@ -1,0 +1,33 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@source not "../src/legacy";
+@source inline("bg-red-500");
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-display: "Satoshi", "sans-serif";
+  --color-brand: oklch(0.55 0.2 262.9);
+  --breakpoint-3xl: 120rem;
+}
+
+@utility btn-primary {
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1rem;
+  background-color: var(--color-brand);
+  color: white;
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+.sidebar {
+  flex-grow: 0;
+  flex-shrink: 0;
+  box-decoration-break: clone;
+  text-overflow: ellipsis;
+}

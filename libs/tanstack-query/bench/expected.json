@@ -1,0 +1,46 @@
+{
+  "bad/App.jsx": [
+    "B1",
+    "B5"
+  ],
+  "bad/useTodos.js": [
+    "B2",
+    "B6"
+  ],
+  "bad/Profile.tsx": [
+    "B7",
+    "B9"
+  ],
+  "bad/AddTodo.tsx": [
+    "B3",
+    "B4"
+  ],
+  "bad/Projects.tsx": [
+    "B8",
+    "B12"
+  ],
+  "bad/Feed.tsx": [
+    "B11",
+    "B13"
+  ],
+  "bad/_app.tsx": [
+    "B10",
+    "B12"
+  ],
+  "bad/session.ts": [
+    "B14",
+    "B15",
+    "B16"
+  ],
+  "bad/TodoList.vue": [
+    "B1",
+    "B2"
+  ],
+  "good/App.tsx": [],
+  "good/useTodos.ts": [],
+  "good/Profile.tsx": [],
+  "good/AddTodo.tsx": [],
+  "good/Feed.tsx": [],
+  "good/session.ts": [],
+  "good/TodoList.vue": []
+}

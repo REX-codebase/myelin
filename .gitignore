@@ -5,3 +5,4 @@ node_modules/
 results.csv
 outputs/
 *.zip
+.wild

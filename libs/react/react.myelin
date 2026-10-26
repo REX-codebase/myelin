@@ -1,0 +1,178 @@
+myelin 1
+id      react
+about   React 19.3 (react, react-dom): bans APIs removed or superseded in React 19 that models learned from React 16-18 docs
+fires   react | react-dom | jsx | tsx | createRoot | react component | react hooks
+status  Researched 2026-10-26 against React 19.3.0 docs (react.dev) and the React CHANGELOG. Regex-level checks. Snippets not executed.
+
+= version   19.3.0 (latest stable, 2026-09-09); 19.x since 2024-12-05
+= verified  2026-10-26
+= imports   createRoot / hydrateRoot from 'react-dom/client'; act from 'react'; useActionState from 'react'; useFormStatus from 'react-dom'
+= jsx       new JSX transform is required; importing React just for JSX is unnecessary
+= stable-in-19.x  use, useActionState, useOptimistic, useFormStatus, <form action>, ref as a prop, <Context> as provider, ref cleanup functions, useEffectEvent + <Activity> (19.2), <ViewTransition> + Fragment refs + react-dom browser() (19.3)
+
+! B1 /\bReactDOM\.(render|hydrate)\s*\(|import\s*\{[^}]*\b(render|hydrate)\b[^}]*\}\s*from\s*['"]react-dom['"]/   ReactDOM.render and ReactDOM.hydrate were removed in React 19. Use createRoot(el).render(<App />) or hydrateRoot(el, <App />) from 'react-dom/client'. -> $boot
+! B2 /\bunmountComponentAtNode\b/   unmountComponentAtNode was removed in React 19. Keep the root from createRoot and call root.unmount(). -> $boot
+! B3 /\bfindDOMNode\b/   findDOMNode was removed in React 19. Attach a ref to the DOM element (useRef + ref={ref}). -> $refprop
+! B4 /import\s*\{[^}]*\b(createRoot|hydrateRoot)\b[^}]*\}\s*from\s*['"]react-dom['"]/   createRoot and hydrateRoot live in 'react-dom/client', not 'react-dom'. -> $boot
+! B5 /\bReactDOM\.(createRoot|hydrateRoot)\s*\(/ unless /['"]react-dom\/client['"]/   createRoot/hydrateRoot come from 'react-dom/client'. Import them from there. -> $boot
+! B6 /['"]react-dom\/test-utils['"]/   react-dom/test-utils was removed in React 19. Import act from 'react'; use @testing-library/react for rendering and events. -> $acttest
+! B7 /\.propTypes\s*=|\bstatic\s+propTypes\b|from\s*['"]prop-types['"]/   propTypes checks were removed in React 19 and are silently ignored. Use TypeScript types (or another type checker). -> $refprop
+! B8 /\b[A-Z]\w*\.defaultProps\s*=/   defaultProps on function components was removed in React 19. Use ES default parameters in the props destructuring. (Classes may still use static defaultProps.) -> $refprop
+! B9 /\bref=["'][\w-]+["']|\bthis\.refs\b/   String refs were removed in React 19. Use useRef in function components or a callback ref in classes. -> $classref
+! B10 /\b(childContextTypes|contextTypes|getChildContext)\b/   Legacy context (contextTypes / childContextTypes / getChildContext) was removed in React 19. Use createContext with static contextType or useContext/use. -> $context
+! B11 /\bcreateFactory\s*\(/   React.createFactory was removed in React 19. Use JSX.
+! B12 /['"]react-test-renderer(\/shallow)?['"]/   react-test-renderer is deprecated and react-test-renderer/shallow was removed in React 19. Use @testing-library/react. -> $acttest
+! B13 /import\s*\{[^}]*\buseFormState\b[^}]*\}\s*from\s*['"]react-dom['"]|\bReactDOM\.useFormState\b/   ReactDOM.useFormState was renamed: use useActionState from 'react' (returns [state, formAction, isPending]). -> $actionstate
+! B14 /\bforwardRef\b/   React 19 function components receive ref as a regular prop; forwardRef is no longer needed and is marked for deprecation. Destructure ref from props. -> $refprop
+! B15 /\b\w*Context\.Provider\b/   In React 19 render the context itself as the provider: <ThemeContext value={...}>. Context.Provider is the legacy form and will be deprecated. -> $context
+! B16 /\/umd\/react(-dom)?\.(development|production)/   React 19 ships no UMD builds. Load React with an ESM CDN (esm.sh) or a bundler.
+! B17 /\b(renderToStaticNodeStream|unstable_renderSubtreeIntoContainer|unstable_createEventHandle|unstable_flushControlled|unstable_runWithPriority)\b/   Removed in React 19. For static HTML use prerender / prerenderToNodeStream from 'react-dom/static'; for subtrees use createPortal.
+! B18 /(?<![\w.])JSX\.(Element|IntrinsicElements|ElementClass|LibraryManagedAttributes)\b/ unless /import\s*(type\s*)?\{[^}]*\bJSX\b[^}]*\}\s*from\s*['"]react['"]/   React 19 types removed the global JSX namespace. Use React.JSX.Element or import type { JSX } from 'react'. -> $refprop
+! B19 /\buseRef<[^>]*>\(\s*\)/   React 19 types require an argument to useRef. Pass an initial value: useRef<HTMLInputElement>(null). -> $refprop
+! B20 /\bref=\{\s*\(?\s*\w+\s*\)?\s*=>\s*\(?\s*[\w.$]+(\[[^\]]*\])?\s*=[^=>]/   React 19 ref callbacks may return a cleanup function, so an implicit-return assignment is a type error. Use a block body: ref={el => { node = el; }}. -> $classref
+
+~ P1 Do not import React only to use JSX; import the hooks and types you use (import { useState } from 'react').
+~ P2 For form submissions prefer <form action={fn}> with useActionState / useFormStatus / useOptimistic over hand-rolled isPending state.
+~ P3 useEffect, useState, useMemo, useCallback, memo and Context.Consumer still work; do not rewrite valid code just to avoid them. With the React Compiler, manual memoization is often unnecessary.
+~ P4 Read promises and context with use() where it helps (it may be called conditionally); pass cached promises, never ones created during render.
+~ P5 Library code that must still support React 18 may keep forwardRef; say so explicitly when you do.
+
+$ boot
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App.jsx';
+
+const root = createRoot(document.getElementById('root'), {
+  onUncaughtError: (error, errorInfo) => {
+    console.error('Uncaught error', error, errorInfo.componentStack);
+  },
+});
+
+root.render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
+
+export function teardown() {
+  root.unmount();
+}
+$$
+
+$ refprop
+import { useRef, useEffect } from 'react';
+import type { JSX, Ref } from 'react';
+
+type TextInputProps = {
+  label: string;
+  placeholder?: string;
+  ref?: Ref<HTMLInputElement>;
+};
+
+export function TextInput({ label, placeholder = 'Type here', ref }: TextInputProps): JSX.Element {
+  return (
+    <label>
+      {label}
+      <input placeholder={placeholder} ref={ref} />
+    </label>
+  );
+}
+
+export function SearchBox(): JSX.Element {
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+  return <TextInput label="Search" ref={inputRef} />;
+}
+$$
+
+$ context
+import { createContext, use, useState } from 'react';
+
+export const ThemeContext = createContext('light');
+
+export function ThemeRoot({ children }) {
+  const [theme, setTheme] = useState('light');
+  return (
+    <ThemeContext value={theme}>
+      <button onClick={() => setTheme(t => (t === 'light' ? 'dark' : 'light'))}>Toggle theme</button>
+      {children}
+    </ThemeContext>
+  );
+}
+
+export function ThemedTitle({ text }) {
+  const theme = use(ThemeContext);
+  return <h1 className={`title-${theme}`}>{text}</h1>;
+}
+$$
+
+$ actionstate
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
+
+async function saveName(previousState, formData) {
+  const name = String(formData.get('name') ?? '').trim();
+  if (!name) return { error: 'Name is required', name: previousState.name };
+  const res = await fetch('/api/name', { method: 'POST', body: formData });
+  if (!res.ok) return { error: 'Could not save', name: previousState.name };
+  return { error: null, name };
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return <button type="submit" disabled={pending}>{pending ? 'Saving...' : 'Save'}</button>;
+}
+
+export function NameForm() {
+  const [state, formAction, isPending] = useActionState(saveName, { error: null, name: '' });
+  return (
+    <form action={formAction} aria-busy={isPending}>
+      <input name="name" defaultValue={state.name} />
+      <SubmitButton />
+      {state.error && <p role="alert">{state.error}</p>}
+    </form>
+  );
+}
+$$
+
+$ acttest
+import { act } from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Counter } from './Counter.jsx';
+
+test('increments', async () => {
+  render(<Counter />);
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: /increment/i }));
+  });
+  expect(screen.getByText('Count: 1')).toBeTruthy();
+});
+$$
+
+$ classref
+import { Component } from 'react';
+import { ThemeContext } from './theme.js';
+
+export class AutoFocusInput extends Component {
+  static contextType = ThemeContext;
+  static defaultProps = { placeholder: 'Type here' };
+
+  componentDidMount() {
+    this.input?.focus();
+  }
+
+  render() {
+    return (
+      <input
+        className={`input-${this.context}`}
+        placeholder={this.props.placeholder}
+        ref={node => {
+          this.input = node;
+        }}
+      />
+    );
+  }
+}
+$$

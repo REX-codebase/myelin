@@ -1,0 +1,40 @@
+{
+  "bad/schema.prisma": [
+    "B1",
+    "B5",
+    "B9",
+    "B10"
+  ],
+  "bad/db.ts": [
+    "B2",
+    "B3",
+    "B4",
+    "B6"
+  ],
+  "bad/users.ts": [
+    "B7",
+    "B11"
+  ],
+  "bad/server.ts": [
+    "B3",
+    "B8",
+    "B15"
+  ],
+  "bad/package.json": [
+    "B12"
+  ],
+  "bad/prisma.config.ts": [
+    "B9",
+    "B13"
+  ],
+  "bad/Dockerfile": [
+    "B14"
+  ],
+  "good/schema.prisma": [],
+  "good/prisma.config.ts": [],
+  "good/db.ts": [],
+  "good/users.ts": [],
+  "good/server.ts": [],
+  "good/package.json": [],
+  "good/Dockerfile": []
+}

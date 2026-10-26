@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="544" viewBox="0 0 1280 544">
+  <style>
+    .n{font:700 21px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#f1f5fb}
+    .v{font:600 16px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#5ff4ff}
+    .m{font:14px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#7f8ba0}
+    .id{font:13px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#45526a}
+    .c{opacity:0;animation:in .45s ease-out forwards}
+    @keyframes in{from{opacity:0}to{opacity:1}}
+  </style>
+  <rect width="1280" height="544" rx="20" fill="#05070d"/>
+  <g class="c" style="animation-delay:0.00s">
+    <rect x="24" y="24" width="296" height="112" rx="16" fill="#0d1322" stroke="#22314b"/>
+    <rect x="24" y="24" width="5" height="112" rx="2" fill="#5ff4ff"/>
+    <text x="48" y="64" class="n">Vercel AI SDK</text>
+    <text x="48" y="92" class="v">7.0.153</text>
+    <text x="48" y="118" class="m">20 bans · 5 snippets · <tspan class="id">ai-sdk</tspan></text>
+  </g>
+  <g class="c" style="animation-delay:0.08s">
+    <rect x="336" y="24" width="296" height="112" rx="16" fill="#0d1322" stroke="#22314b"/>
+    <rect x="336" y="24" width="5" height="112" rx="2" fill="#5ff4ff"/>
+    <text x="360" y="64" class="n">ESLint</text>
+    <text x="360" y="92" class="v">10.13.0</text>
+    <text x="360" y="118" class="m">19 bans · 3 snippets · <tspan class="id">eslint</tspan></text>
+  </g>
+  <g class="c" style="animation-delay:0.16s">
+    <rect x="648" y="24" width="296" height="112" rx="16" fill="#0d1322" stroke="#22314b"/>
+    <rect x="648" y="24" width="5" height="112" rx="2" fill="#5ff4ff"/>
+    <text x="672" y="64" class="n">Express</text>
+    <text x="672" y="92" class="v">5.3.0</text>
+    <text x="672" y="118" class="m">14 bans · 3 snippets · <tspan class="id">express</tspan></text>
+  </g>
+  <g class="c" style="animation-delay:0.24s">
+    <rect x="960" y="24" width="296" height="112" rx="16" fill="#0d1322" stroke="#22314b"/>
+    <rect x="960" y="24" width="5" height="112" rx="2" fill="#5ff4ff"/>
+    <text x="984" y="64" class="n">Next.js</text>
+    <text x="984" y="92" class="v">16.4.3</text>
+    <text x="984" y="118" class="m">20 bans · 7 snippets · <tspan class="id">nextjs</tspan></text>
+  </g>
+  <g class="c" style="animation-delay:0.32s">
+    <rect x="24" y="152" width="296" height="112" rx="16" fill="#0d1322" stroke="#22314b"/>
+    <rect x="24" y="152" width="5" height="112" rx="2" fill="#5ff4ff"/>
+    <text x="48" y="192" class="n">Prisma ORM</text>
+    <text x="48" y="220" class="v">7.10.1</text>
+    <text x="48" y="246" class="m">15 bans · 7 snippets · <tspan class="id">prisma</tspan></text>
+  </g>
+  <g class="c" style="animation-delay:0.40s">
+    <rect x="336" y="152" width="296" height="112" rx="16" fill="#0d1322" stroke="#22314b"/>
+    <rect x="336" y="152" width="5" height="112" rx="2" fill="#5ff4ff"/>
+    <text x="360" y="192" class="n">React</text>
+    <text x="360" y="220" class="v">19.3.0</text>
+    <text x="360" y="246" class="m">20 bans · 6 snippets · <tspan class="id">react</tspan></text>
+  </g>
+  <g class="c" style="animation-delay:0.48s">
+    <rect x="648" y="152" width="296" height="112" rx="16" fill="#0d1322" stroke="#22314b"/>
+    <rect x="648" y="152" width="5" height="112" rx="2" fill="#5ff4ff"/>
+    <text x="672" y="192" class="n">React Router</text>
+    <text x="672" y="220" class="v">8.5.0</text>
+    <text x="672" y="246" class="m">17 bans · 6 snippets · <tspan class="id">react-router</tspan></text>
+  </g>
+  <g class="c" style="animation-delay:0.56s">
+    <rect x="960" y="152" width="296" height="112" rx="16" fill="#0d1322" stroke="#22314b"/>
+    <rect x="960" y="152" width="5" height="112" rx="2" fill="#5ff4ff"/>
+    <text x="984" y="192" class="n">Svelte + SvelteKit</text>
+    <text x="984" y="220" class="v">5.57.2</text>
+    <text x="984" y="246" class="m">22 bans · 9 snippets · <tspan class="id">svelte</tspan></text>
+  </g>
+  <g class="c" style="animation-delay:0.64s">
+    <rect x="24" y="280" width="296" height="112" rx="16" fill="#0d1322" stroke="#22314b"/>
+    <rect x="24" y="280" width="5" height="112" rx="2" fill="#5ff4ff"/>
+    <text x="48" y="320" class="n">Tailwind CSS</text>
+    <text x="48" y="348" class="v">4.3.3</text>
+    <text x="48" y="374" class="m">10 bans · 5 snippets · <tspan class="id">tailwind</tspan></text>
+  </g>
+  <g class="c" style="animation-delay:0.72s">
+    <rect x="336" y="280" width="296" height="112" rx="16" fill="#0d1322" stroke="#22314b"/>
+    <rect x="336" y="280" width="5" height="112" rx="2" fill="#5ff4ff"/>
+    <text x="360" y="320" class="n">TanStack Query</text>
+    <text x="360" y="348" class="v">5.104.5</text>
+    <text x="360" y="374" class="m">16 bans · 7 snippets · <tspan class="id">tanstack-query</tspan></text>
+  </g>
+  <g class="c" style="animation-delay:0.80s">
+    <rect x="648" y="280" width="296" height="112" rx="16" fill="#0d1322" stroke="#22314b"/>
+    <rect x="648" y="280" width="5" height="112" rx="2" fill="#5ff4ff"/>
+    <text x="672" y="320" class="n">three.js</text>
+    <text x="672" y="348" class="v">r186</text>
+    <text x="672" y="374" class="m">21 bans · 9 snippets · <tspan class="id">three</tspan></text>
+  </g>
+  <g class="c" style="animation-delay:0.88s">
+    <rect x="960" y="280" width="296" height="112" rx="16" fill="#0d1322" stroke="#22314b"/>
+    <rect x="960" y="280" width="5" height="112" rx="2" fill="#5ff4ff"/>
+    <text x="984" y="320" class="n">Vue + Nuxt</text>
+    <text x="984" y="348" class="v">3.5.44</text>
+    <text x="984" y="374" class="m">20 bans · 6 snippets · <tspan class="id">vue</tspan></text>
+  </g>
+  <g class="c" style="animation-delay:0.96s">
+    <rect x="24" y="408" width="296" height="112" rx="16" fill="#0d1322" stroke="#22314b"/>
+    <rect x="24" y="408" width="5" height="112" rx="2" fill="#5ff4ff"/>
+    <text x="48" y="448" class="n">Zod</text>
+    <text x="48" y="476" class="v">4.6.7</text>
+    <text x="48" y="502" class="m">17 bans · 5 snippets · <tspan class="id">zod</tspan></text>
+  </g>
+  <g class="c" style="animation-delay:1.04s">
+    <rect x="336" y="408" width="296" height="112" rx="16" fill="none" stroke="#2c3a55" stroke-dasharray="6 6"/>
+    <text x="484" y="460" text-anchor="middle" class="n" fill="#7f8ba0" style="fill:#7f8ba0">+ your library</text>
+    <text x="484" y="488" text-anchor="middle" class="m">source link + bench file = PR</text>
+  </g>
+</svg>

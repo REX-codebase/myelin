@@ -1,0 +1,193 @@
+myelin 1
+id      nextjs
+about   Next.js 16.x (App Router, async Request APIs, proxy.ts, Cache Components): bans APIs models learned from Next 12-15
+fires   next.js | nextjs | next/navigation | next/headers | next/image | next.config | app router | proxy.ts | middleware.ts | server component | server action
+status  Researched 2026-10-26 against Next.js 16.4.3 docs and the v15/v16 upgrade guides. Regex-level checks. Snippets not executed.
+
+= version      16.4.3 (Active LTS line 16.x; 15.x maintenance LTS ended 2026-10-21)
+= verified     2026-10-26
+= runtime      Node.js 20.9+, TypeScript 5.1+, React 19.2+ (App Router uses React canary, 19.3 in 16.4)
+= bundler      Turbopack is the default for next dev and next build; --webpack opts out
+= request-apis params, searchParams, cookies(), headers(), draftMode() are Promises: always await them
+= proxy        proxy.ts with export function proxy() replaces middleware.ts (Node.js runtime only)
+= caching      fetch is not cached by default (since 15); Cache Components ('use cache' + cacheLife/cacheTag) is the recommended model since 16.4 and on by default in create-next-app
+
+! B1 /\b(?:cookies|headers|draftMode)\(\)\.(?:get|getAll|set|has|delete|entries|keys|values|forEach|isEnabled|enable|disable)\b|=\s*(?:cookies|headers|draftMode)\(\)/   cookies(), headers() and draftMode() return Promises in Next 16 (sync access removed). Write: const store = await cookies(). -> $cookies
+! B2 /\}\s*=\s*(?:props\.)?(?:params|searchParams)\b/ unless /=\s*await\s+(?:props\.)?(?:params|searchParams)\b|=\s*use\(\s*(?:props\.)?(?:params|searchParams)\s*\)/   params and searchParams are Promises in Next 16. Destructure after awaiting: const { slug } = await params. -> $page
+! B3 /(?<!\broute\.)\bparams\.(?!then\b)[A-Za-z_$]|\bsearchParams\.(?!(?:get|getAll|has|set|append|delete|entries|keys|values|forEach|toString|size|sort|then)\b)[A-Za-z_$]/ unless /\buse(?:Search)?Params\(|=\s*await\s+(?:props\.)?(?:params|searchParams)\b|=\s*use\(\s*(?:props\.)?(?:params|searchParams)\s*\)|from\s+['"](?:react-router|@remix-run\/[\w-]+|@sveltejs\/kit|express|hono)['"]|\.\/\+types\/|\b(?:getServerSideProps|getStaticProps|getStaticPaths|getInitialProps|NextPage|AppProps|NextApiRequest)\b/   Synchronous params/searchParams property access was removed in Next 16. Await first: const { id } = await params. -> $page
+! B4 /\b(?:params|searchParams)\??\s*:\s*\{/ unless /\b(?:getServerSideProps|getStaticProps|getStaticPaths|getInitialProps|NextPage|AppProps|NextApiRequest)\b/   Type params/searchParams as Promises: { params: Promise<{ slug: string }> } or use PageProps<'/route'>. -> $page
+! B5 /\bfunction\s+middleware\s*\(|\bconst\s+middleware\s*=|\bskipMiddlewareUrlNormalize\b/   middleware.ts is deprecated in Next 16: name the file proxy.ts and export function proxy(request). Flag is skipProxyUrlNormalize. -> $proxy
+! B6 /next\/legacy\/image/   next/legacy/image is deprecated in Next 16. Import Image from 'next/image'.
+! B7 /\bdomains\s*:\s*\[\s*['"`]/   images.domains is deprecated in Next 16. Use images.remotePatterns. -> $config
+! B8 /\b(?:serverRuntimeConfig|publicRuntimeConfig)\b|from\s+['"]next\/config['"]/   Runtime config (getConfig, serverRuntimeConfig, publicRuntimeConfig) was removed in Next 16. Read process.env on the server; NEXT_PUBLIC_ vars on the client.
+! B9 /from\s+['"]next\/amp['"]|\buseAmp\b|\bamp\s*:\s*(?:true|['"]hybrid['"]|\{)/   AMP support was removed in Next 16 (next/amp, useAmp, config.amp).
+! B10 /\bnext\s+lint\b|\bignoreDuringBuilds\b/   next lint and the eslint option in next.config were removed in Next 16, and next build no longer lints. Run eslint (flat config) or biome directly.
+! B11 /\bexperimental_ppr\b|\bppr\s*:|\bdynamicIO\b|\buseCache\s*:/   experimental.ppr, experimental_ppr, experimental.dynamicIO and experimental.useCache were removed in Next 16. Use top-level cacheComponents: true. -> $config
+! B12 /\bunstable_(?:cacheLife|cacheTag|rootParams)\b/   Stable in Next 16: import { cacheLife, cacheTag } from 'next/cache'; unstable_rootParams was removed (use next/root-params). -> $cached
+! B13 /\brevalidateTag\(\s*[^,()]+\)/   Single-argument revalidateTag is deprecated in Next 16. Pass a cacheLife profile: revalidateTag('posts', 'max'), or updateTag(tag) in a Server Action. -> $cached
+! B14 /@next\/font\b/   @next/font was removed in Next 15. Import from 'next/font/google' or 'next/font/local'. -> $layout
+! B15 /\b(?:serverComponentsExternalPackages|bundlePagesExternals)\b/   Renamed and stabilised in Next 15: top-level serverExternalPackages and bundlePagesRouterDependencies.
+! B16 /\bruntime\s*=\s*['"](?:experimental-)?edge['"]/   The Edge runtime segment config is deprecated (and experimental-edge errors since 15). Remove the runtime export; Node.js is the default.
+! B17 /^(?=[\s\S]*(?:['"]use (?:client|server)['"]|from\s+['"]next\/navigation['"]|export\s+(?:const\s+metadata|(?:async\s+)?function\s+generateMetadata)|<html\b|\bRootLayout\b))[\s\S]*?from\s+['"]next\/head['"]/   next/head does not work in the App Router. Export metadata or generateMetadata from layout/page. -> $layout
+! B18 /^(?=[\s\S]*(?:['"]use (?:client|server)['"]|from\s+['"]next\/navigation['"]|export\s+(?:const\s+metadata|(?:async\s+)?function\s+generateMetadata)|<html\b|\bRootLayout\b))[\s\S]*?from\s+['"]next\/router['"]/   In the App Router import useRouter, usePathname, useSearchParams from 'next/navigation'. next/router is Pages Router only. -> $nav
+! B19 /<Link\b[^>]*>\s*<a\b/   Link renders the <a> itself since Next 13. Put className and children on <Link> directly. -> $nav
+! B20 /import\s*\{[^}]*\bImageResponse\b[^}]*\}\s*from\s*['"]next\/server['"]/   ImageResponse moved to 'next/og' in Next 14.
+
+~ P1 Prefer the App Router (app/) for new code. The Pages Router and getServerSideProps/getStaticProps/getStaticPaths are still supported but only inside pages/; in app/ fetch data in async Server Components.
+~ P2 fetch() is not cached by default since Next 15. Opt in per call with cache: 'force-cache', or with 'use cache' when Cache Components is on.
+~ P3 With cacheComponents: true (default in new create-next-app apps since 16.4) the segment exports revalidate, dynamic, fetchCache and runtime are not supported. Use 'use cache' with cacheLife()/cacheTag() and <Suspense> for request-time data. Without Cache Components they still work.
+~ P4 Replace unstable_cache with a 'use cache' function when Cache Components is enabled.
+~ P5 Turbopack is the default: drop --turbopack/--turbo from scripts, and move experimental.turbopack to the top-level turbopack key.
+~ P6 Every parallel route slot (@slot) needs a default.js (return null or call notFound()), or the build fails in Next 16.
+~ P7 next/image defaults changed in 16: qualities is [75] only, minimumCacheTTL 4 h, 16 removed from imageSizes, local IPs blocked. Add values to images.qualities before using another quality prop.
+~ P8 In Server Actions use updateTag(tag) for read-your-writes and refresh() to refresh the client router.
+~ P9 Use useActionState from 'react' instead of the deprecated useFormState from react-dom.
+
+$ page
+import { notFound } from 'next/navigation'
+
+type Post = { title: string; body: string }
+
+async function getPost(slug: string): Promise<Post | null> {
+  const res = await fetch(`https://api.example.com/posts/${slug}`)
+  if (!res.ok) return null
+  return res.json()
+}
+
+export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const { slug } = await params
+  const { tab = 'overview' } = await searchParams
+  const post = await getPost(slug)
+  if (!post) notFound()
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <p>Tab: {tab}</p>
+      <div>{post.body}</div>
+    </article>
+  )
+}
+$$
+
+$ cookies
+import { cookies, headers } from 'next/headers'
+
+export async function GET() {
+  const cookieStore = await cookies()
+  const headerList = await headers()
+  const theme = cookieStore.get('theme')?.value ?? 'light'
+  const agent = headerList.get('user-agent') ?? 'unknown'
+  return Response.json({ theme, agent })
+}
+$$
+
+$ proxy
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export function proxy(request: NextRequest) {
+  const session = request.cookies.get('session')
+  if (!session) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+  return NextResponse.next()
+}
+
+export const config = {
+  matcher: ['/dashboard/:path*'],
+}
+$$
+
+$ config
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  cacheComponents: true,
+  partialPrefetching: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.example.com',
+        pathname: '/**',
+      },
+    ],
+  },
+}
+
+export default nextConfig
+$$
+
+$ cached
+'use server'
+
+import { cacheLife, cacheTag, updateTag, revalidateTag } from 'next/cache'
+
+export async function getProducts() {
+  'use cache'
+  cacheLife('hours')
+  cacheTag('products')
+  const res = await fetch('https://api.example.com/products')
+  return res.json()
+}
+
+export async function saveProduct(formData: FormData) {
+  const name = String(formData.get('name'))
+  await fetch('https://api.example.com/products', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+  updateTag('products')
+}
+
+export async function markCatalogStale() {
+  revalidateTag('catalog', 'max')
+}
+$$
+
+$ layout
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata: Metadata = {
+  title: 'Acme',
+  description: 'Acme storefront',
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" className={inter.className}>
+      <body>{children}</body>
+    </html>
+  )
+}
+$$
+
+$ nav
+'use client'
+
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+
+export function Nav() {
+  const pathname = usePathname()
+  const router = useRouter()
+  return (
+    <nav>
+      <Link href="/" className={pathname === '/' ? 'active' : ''}>
+        Home
+      </Link>
+      <Link href="/blog">Blog</Link>
+      <button onClick={() => router.push('/search')}>Search</button>
+    </nav>
+  )
+}
+$$

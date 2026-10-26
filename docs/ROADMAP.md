@@ -4,6 +4,8 @@ Ideas, not promises. Order is rough priority.
 
 ## Measure it first
 
+- Done in 0.2.0: detection benchmarks (labelled corpus, cross-library sweep, official examples old vs current). See BENCHMARKS.md.
+
 - Collect real outputs from several models across the four conditions in [eval/](../eval/README.md) and publish the numbers, including the cases where a ledger does not help.
 - Run the Three.js snippets on real WebGPU hardware and fix whatever breaks; update the example's `status`.
 
@@ -25,7 +27,8 @@ Ideas, not promises. Order is rough priority.
 ## Distribution
 
 - Publish to npm once the format has settled.
-- A small registry of community ledgers, each with a stated test status.
+- ~~A small registry of community ledgers~~ Bundled library ledgers shipped in 0.2.0 (`libs/`). Next: a monthly re-verification pass per library, and community-contributed libs.
+- More libraries: Angular, Astro, Remix-era to React Router, Drizzle, Mongoose, Playwright, Vitest, LangChain.js, OpenAI SDK.
 
 ## Out of scope
 

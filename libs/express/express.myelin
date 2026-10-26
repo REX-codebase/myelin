@@ -1,0 +1,114 @@
+myelin 1
+id      express
+about   Express 5.x (5.3): bans Express 4 APIs, signatures and path-to-regexp syntax that Express 5 removed
+fires   express | expressjs | express.js | express 5 | express router | node http server | rest api node
+status  Researched 2026-10-26 against Express 5.3.0 and the official v5 migration guide. Regex-level checks. Snippets run on express 5.3.0 (routes exercised over HTTP).
+
+= version      5.3.0
+= verified     2026-10-26
+= node.min     18
+= paths        path-to-regexp v8: named wildcards (/*splat, /{*splat}), optional parts in braces (/:file{.:ext}), no inline regex, ()[]?+! reserved
+= async        rejected promises / throws in async handlers go to the error handler automatically (no wrapper needed)
+= body         req.body is undefined until a parser runs; use express.json() / express.urlencoded()
+
+! E1 /\b(app|router)\.del\(/                                                Removed in Express 5. Use app.delete() / router.delete(). -> $routes
+! E2 /\breq\.param\(/                                                       req.param() was removed. Read req.params, req.body or req.query explicitly. -> $routes
+! E3 /\bres\.send\(\s*\d{3}\s*\)/                                           res.send(status) was removed. Use res.sendStatus(code), or res.status(code).send(body). -> $routes
+! E4 /\bres\.(json|jsonp|send)\([^;]*,\s*\d{3}\s*\)/                        res.json(obj, status) / res.jsonp(obj, status) / res.send(body, status) were removed. Use res.status(code).json(obj). -> $routes
+! E5 /\bres\.redirect\(\s*['"`][^'"`]*['"`]\s*,\s*\d{3}\s*\)/               res.redirect(url, status) was removed. Use res.redirect(status, url). -> $routes
+! E6 /\bres\.(redirect|location)\(\s*['"]back['"]\s*\)/                     The magic 'back' string was removed. Use res.redirect(req.get('Referrer') || '/'). -> $routes
+! E7 /\bres\.sendfile\(/                                                    res.sendfile() was removed. Use res.sendFile(name, { root }). -> $routes
+! E8 /\breq\.accepts(Charset|Encoding|Language)\(/                          Singular accepts* methods were removed. Use req.acceptsCharsets() / acceptsEncodings() / acceptsLanguages().
+! E9 /\.(get|post|put|patch|delete|all|use|options|head|route)\(\s*['"`](\*|[^'"`]*\/\*)['"`]/   Unnamed wildcard. Express 5 (path-to-regexp v8) needs a name: '/*splat', or '/{*splat}' to also match the root. -> $routes
+! E10 /\.(get|post|put|patch|delete|all|use|options|head|route)\(\s*['"`][^'"`]*:\w+\?/   Optional '?' params are not supported in Express 5. Wrap the optional part in braces: '/:file{.:ext}', '/users{/:id}'. -> $routes
+! E11 /\.(get|post|put|patch|delete|all|use|options|head|route)\(\s*['"`][^'"`]*:\w+\(/   Inline regex in a path param (':id(\\d+)') is not supported in Express 5. Use a plain ':id' and validate in the handler, or pass a RegExp. -> $routes
+! E12 /\bexpress\.static\.mime\b/                                            express.static.mime was removed. Use the mime-types package.
+! E13 /\b(app|router)\.param\(\s*(function\b|async\b|\(|[A-Za-z_$][\w$]*\s*\))/   app.param(fn) / router.param(fn) were removed. Only app.param(name, fn) remains; router.param takes one string name per call.
+! E14 /\breq\.query(\.[A-Za-z_$][\w$]*|\[[^\]]+\])?\s*=(?!=)/              req.query is a read-only getter in Express 5. Copy it into a local variable instead of assigning to it.
+
+~ P1 Write handlers as async functions and let errors propagate; no .catch(next), try/catch-to-next, or express-async-errors / express-async-handler wrappers are needed. -> $server
+~ P2 Use the built-in express.json() / express.urlencoded({ extended: true }) instead of importing body-parser. urlencoded now defaults to extended: false.
+~ P3 app.listen(port, (error) => ...) now passes listen errors (e.g. EADDRINUSE) to the callback; check it. -> $server
+~ P4 express.static and res.sendFile default dotfiles to 'ignore', including hidden directories; serve .well-known with { dotfiles: 'allow' }. -> $static
+~ P5 Wildcard params are arrays in Express 5 (req.params.splat is string[]); unmatched optional params are absent, not undefined.
+~ P6 req.host keeps the port in Express 5; use req.hostname for the bare host.
+
+$ server
+import express from 'express';
+
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+async function findUser(id) {
+  return { id, name: 'Ada' };
+}
+
+app.get('/users/:id', async (req, res) => {
+  const user = await findUser(req.params.id);
+  if (!user) {
+    res.sendStatus(404);
+    return;
+  }
+  res.json(user);
+});
+
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
+const port = Number(process.env.PORT) || 3000;
+app.listen(port, (error) => {
+  if (error) throw error;
+  console.log(`Listening on http://localhost:${port}`);
+});
+$$
+
+$ routes
+import express from 'express';
+
+const router = express.Router();
+
+router.post('/users', async (req, res) => {
+  const { name } = req.body;
+  res.status(201).json({ id: 1, name });
+});
+
+router.delete('/users/:id', async (req, res) => {
+  res.status(204).end();
+});
+
+router.get('/files/:file{.:ext}', (req, res) => {
+  const { file, ext = 'txt' } = req.params;
+  res.sendFile(`${file}.${ext}`, { root: '/srv/uploads' });
+});
+
+router.get('/old-docs', (req, res) => {
+  res.redirect(301, '/docs');
+});
+
+router.get('/go-back', (req, res) => {
+  res.redirect(req.get('Referrer') || '/');
+});
+
+router.get('/assets/*splat', (req, res) => {
+  res.json({ segments: req.params.splat });
+});
+
+router.get('/{*splat}', (req, res) => {
+  res.status(404).send('Not found');
+});
+
+export default router;
+$$
+
+$ static
+import express from 'express';
+
+const app = express();
+app.use('/.well-known', express.static('public/.well-known', { dotfiles: 'allow' }));
+app.use(express.static('public'));
+
+export default app;
+$$

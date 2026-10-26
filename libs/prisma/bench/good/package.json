@@ -1,0 +1,21 @@
+{
+  "name": "blog-api",
+  "type": "module",
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev && prisma generate",
+    "db:push": "prisma db push && prisma generate",
+    "db:seed": "prisma db seed",
+    "db:diff": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script",
+    "build": "prisma generate && tsc"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "dotenv": "^18.0.9"
+  },
+  "devDependencies": {
+    "prisma": "^7.10.1",
+    "tsx": "^4.23.15"
+  }
+}

@@ -1,0 +1,128 @@
+myelin 1
+id      eslint
+about   ESLint 10.x flat config (eslint.config.js + defineConfig): bans eslintrc-era config, CLI flags and removed rule-author APIs
+fires   eslint | eslint.config | eslintrc | flat config | lint config | eslint plugin | custom eslint rule | typescript-eslint
+status  Researched 2026-10-26 against ESLint 10.13.0 docs (v9 + v10 migration guides). Regex-level checks. Snippets loaded and run with eslint 10.13.0 (typescript 6.x for $ts).
+
+= version      10.13.0
+= verified     2026-10-26
+= node.min     ^20.19.0 || ^22.13.0 || >=24
+= config       eslint.config.{js,mjs,cjs,ts,mts,cts} only; .eslintrc.* and package.json "eslintConfig" are not read (removed in v10)
+= imports      defineConfig, globalIgnores from "eslint/config"; recommended rules from @eslint/js; env globals from the globals package
+= lookup       v10 looks up eslint.config.* from each linted file's directory upward
+
+! L1 /["']eslint:(recommended|all)["']/                       "eslint:recommended" / "eslint:all" strings are eslintrc-only. Import js from "@eslint/js" and use js.configs.recommended (or extends: ["js/recommended"] with plugins: { js }). -> $base
+! L2 /["']plugin:[^"'\s]+["']/ unless /\bFlatCompat\b/          "plugin:x/y" extends strings are eslintrc syntax. Import the plugin and use its flat config object (e.g. plugin.configs.recommended) or extends: ["x/recommended"]. -> $ts
+! L3 /\benv["']?\s*:\s*\{/                                    `env` does not exist in flat config. Spread globals from the globals package into languageOptions.globals. -> $base
+! L4 /\bplugins["']?\s*:\s*\[\s*["'`]/                                plugins is an object in flat config ({ name: importedPlugin }), not an array of strings. -> $ts
+! L5 /\bparser["']?\s*:\s*["'`]/                              Parsers are imported objects set on languageOptions.parser, not strings. -> $ts
+! L6 /\broot["']?\s*:\s*true\b/                               `root` does not exist in flat config (every eslint.config.* acts as root). Remove it.
+! L7 /\boverrides["']?\s*:\s*\[\s*\{\s*["']?files\b/          `overrides` is eslintrc. In flat config each array element is already a glob-scoped config object with its own files. -> $base
+! L8 /\bignorePatterns\b|\.eslintignore\b|--ignore-path\b/    .eslintignore, ignorePatterns and --ignore-path are not supported. Use globalIgnores([...]) from "eslint/config" (or a config object with only ignores). -> $base
+! L9 /\/\*\s*eslint-env\b/                                   /* eslint-env */ comments are reported as errors since v10. Use /* global name */ comments or globals in eslint.config.js. -> $base
+! L10 /\b(ESLINT_USE_FLAT_CONFIG|FlatESLint|LegacyESLint|CLIEngine)\b/   Removed: there is only flat config and the ESLint class. Use `new ESLint()` from "eslint" (eslintrc mode, FlatESLint, LegacyESLint are gone; CLIEngine since v8).
+! L11 /--(no-eslintrc|rulesdir|resolve-plugins-relative-to|env)(?![\w-])/   Removed CLI flags. --no-eslintrc became --no-config-lookup; --env/--rulesdir/--resolve-plugins-relative-to have no flag (put globals and local rules in eslint.config.js). -> $localrule
+! L12 /["']eslintConfig["']\s*:/                              The package.json "eslintConfig" key is not read. Create eslint.config.js. -> $base
+! L13 /\.eslintrc\b/                                           .eslintrc.* files are not supported in ESLint 10. Use eslint.config.js (npx @eslint/migrate-config .eslintrc.json converts one). -> $base
+! L14 /\bcontext\.(getScope|getAncestors|markVariableAsUsed|getDeclaredVariables|getSourceCode|getFilename|getPhysicalFilename|getCwd|getSource|getSourceLines|getAllComments|getComments|getNodeByRangeIndex)\s*\(|\bcontext\.parser(Options|Path)\b/   Removed rule-context API. Use context.sourceCode.getScope(node) / getAncestors(node) / getDeclaredVariables(node) / markVariableAsUsed(name, node), context.sourceCode, context.filename, context.physicalFilename, context.cwd, context.languageOptions. -> $localrule
+! L15 /\.(getTokenOrCommentBefore|getTokenOrCommentAfter|isSpaceBetweenTokens|getJSDocComment)\s*\(|\bsourceCode\.getComments\s*\(/   Removed SourceCode methods. Use getTokenBefore/After(node, { includeComments: true }), isSpaceBetween(), getCommentsBefore/After/Inside(). -> $localrule
+! L16 /["'](require|valid)-jsdoc["']/                         Core rules require-jsdoc and valid-jsdoc were removed in v9. Use eslint-plugin-jsdoc ("jsdoc/require-jsdoc").
+! L17 /\btseslint\.config\s*\(/                               tseslint.config(...) is deprecated. Use defineConfig(...) from "eslint/config" with extends: [tseslint.configs.recommended]. -> $ts
+! L18 /module\.exports\s*=\s*function\s*\w*\s*\(\s*context\b/  Function-style rules are not supported since v9. Export { meta, create(context) { ... } }. -> $localrule
+! L19 /\bfiles["']?\s*:\s*["'`]/                               files must be an array of globs in flat config: files: ["**/*.js"]. -> $base
+
+~ P1 Wrap the exported array in defineConfig([...]) from "eslint/config"; give every config object that uses extends a files key.
+~ P2 Flat config lints **/*.{js,mjs,cjs} by default; add files globs (e.g. "**/*.{ts,tsx}") for other extensions instead of relying on CLI flags. --ext still exists but is meant for --no-config-lookup runs.
+~ P3 Dotfiles are not ignored by default in flat config; add "**/.*" to globalIgnores if you want that.
+~ P4 FlatCompat from @eslint/eslintrc is only a bridge for shareable configs that have no flat export; prefer each plugin's native flat config.
+~ P6 Check plugin compatibility before upgrading: as of 2026-10-26 eslint-plugin-react 7.37.5 (latest) declares peer eslint <=9.7 and crashes on ESLint 10 ("contextOrFilename.getFilename is not a function"); typescript-eslint 8.72 needs typescript <6.1. Stay on ESLint 9.39.x if a required plugin has not caught up.
+~ P5 v10 enabled no-unassigned-vars, no-useless-assignment and preserve-caught-error in recommended; expect new reports after upgrading.
+
+$ base
+import { defineConfig, globalIgnores } from "eslint/config";
+import js from "@eslint/js";
+import globals from "globals";
+
+export default defineConfig([
+	globalIgnores(["dist/", "coverage/"]),
+	{
+		files: ["**/*.{js,mjs,cjs}"],
+		plugins: { js },
+		extends: ["js/recommended"],
+		languageOptions: {
+			ecmaVersion: "latest",
+			sourceType: "module",
+			globals: {
+				...globals.node,
+			},
+		},
+		rules: {
+			"no-unused-vars": "warn",
+		},
+	},
+	{
+		files: ["test/**/*.js"],
+		languageOptions: {
+			globals: {
+				...globals.mocha,
+			},
+		},
+	},
+]);
+$$
+
+$ ts
+import { defineConfig, globalIgnores } from "eslint/config";
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import globals from "globals";
+
+export default defineConfig([
+	globalIgnores(["dist/"]),
+	{
+		files: ["**/*.{ts,tsx}"],
+		extends: [js.configs.recommended, tseslint.configs.recommended],
+		languageOptions: {
+			globals: {
+				...globals.browser,
+			},
+		},
+		rules: {
+			"@typescript-eslint/no-explicit-any": "warn",
+		},
+	},
+]);
+$$
+
+$ localrule
+import { defineConfig } from "eslint/config";
+
+const noShadowedTodo = {
+	meta: {
+		type: "suggestion",
+		docs: { description: "disallow variables named todo that shadow an outer todo" },
+		schema: [],
+		messages: { shadow: "'todo' shadows an outer variable in {{file}}." },
+	},
+	create(context) {
+		const sourceCode = context.sourceCode;
+		return {
+			VariableDeclarator(node) {
+				if (node.id.type !== "Identifier" || node.id.name !== "todo") return;
+				const scope = sourceCode.getScope(node);
+				if (scope.upper && scope.upper.set.has("todo")) {
+					context.report({ node, messageId: "shadow", data: { file: context.filename } });
+				}
+			},
+		};
+	},
+};
+
+export default defineConfig([
+	{
+		files: ["**/*.js"],
+		plugins: { local: { rules: { "no-shadowed-todo": noShadowedTodo } } },
+		rules: { "local/no-shadowed-todo": "error" },
+	},
+]);
+$$

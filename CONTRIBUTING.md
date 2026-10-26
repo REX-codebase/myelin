@@ -29,3 +29,7 @@ If you claim a ledger improves model compliance, include the numbers from [eval/
 
 ## License
 Contributions to Myelin are licensed under the [MIT License](LICENSE). By submitting a contribution, you agree that it may be distributed under the same license.
+
+## Library ledgers
+
+The fastest way to help: a library changed and models still write the old API. See [libs/README.md](libs/README.md). Every rule needs an official source link and a bench file, and `npm run check` must pass.

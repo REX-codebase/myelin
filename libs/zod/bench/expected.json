@@ -1,0 +1,16 @@
+{
+  "bad/user-schema.ts": ["B1", "B3", "B8"],
+  "bad/signup-form.ts": ["B4", "B6"],
+  "bad/api-handler.ts": ["B6", "B7"],
+  "bad/schemas-compose.ts": ["B9", "B10", "B11"],
+  "bad/config.ts": ["B2", "B5", "B8", "B14"],
+  "bad/rpc.ts": ["B12", "B13", "B15"],
+  "bad/password.ts": ["B3", "B16"],
+  "bad/form-helpers.ts": ["B1", "B17"],
+  "good/user-schema.ts": [],
+  "good/signup-form.ts": [],
+  "good/api-handler.ts": [],
+  "good/schemas-compose.ts": [],
+  "good/config.ts": [],
+  "good/rpc.ts": []
+}
