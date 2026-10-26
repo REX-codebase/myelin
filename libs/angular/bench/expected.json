@@ -1,0 +1,19 @@
+{
+  "bad/app.module.ts": ["A2", "A11"],
+  "bad/todo-list.html": ["A1"],
+  "bad/counter.component.ts": ["A15", "A16"],
+  "bad/fade.component.ts": ["A12", "A13"],
+  "bad/api.service.ts": ["A4", "A5"],
+  "bad/app.config.ts": ["A3", "A14"],
+  "bad/routes.ts": ["A6"],
+  "bad/dynamic-host.ts": ["A7", "A9"],
+  "bad/module-ref.ts": ["A8"],
+  "bad/gestures.ts": ["A10"],
+  "good/main.ts": [],
+  "good/app.config.ts": [],
+  "good/auth.interceptor.ts": [],
+  "good/auth.guard.ts": [],
+  "good/todo-list.component.ts": [],
+  "good/counter.component.ts": [],
+  "good/todo.store.ts": []
+}

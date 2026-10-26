@@ -1,0 +1,9 @@
+<ul>
+  <li *ngFor="let todo of todos">
+    <span *ngIf="todo.done">Done: </span>{{ todo.title }}
+  </li>
+</ul>
+<p *ngIf="todos.length === 0">Nothing to do.</p>
+<div [ngSwitch]="status">
+  <p *ngSwitchCase="'loading'">Loading...</p>
+</div>

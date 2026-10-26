@@ -30,6 +30,7 @@ libs/<id>/
 | `prisma` | Prisma ORM | 7.10 (v8 is RC, not targeted) | 2026-10-26 |
 | `mongoose` | Mongoose | 9.11 | 2026-10-26 |
 | `openai` | OpenAI Node SDK | 7.43 | 2026-10-26 |
+| `angular` | Angular | 22.2 | 2026-10-26 |
 
 ## Scope notes
 
