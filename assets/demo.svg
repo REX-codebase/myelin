@@ -1,19 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="406" viewBox="0 0 1280 406">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="404" viewBox="0 0 1280 404" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif">
   <style>
-    .l{font:16px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;white-space:pre;opacity:0;animation:t 9.9s steps(1) infinite}
+    .l{font:15px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;white-space:pre;opacity:0;animation:t 9.4s steps(1) infinite}
     @keyframes t{0%{opacity:1}96%{opacity:1}100%{opacity:0}}
   </style>
-  <rect width="1280" height="406" rx="16" fill="#05070d" stroke="#1d2638"/>
-  <circle cx="30" cy="28" r="7" fill="#ff5f57"/><circle cx="54" cy="28" r="7" fill="#febc2e"/><circle cx="78" cy="28" r="7" fill="#28c840"/>
-  <text x="640" y="33" text-anchor="middle" style="font:13px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#55627a">myelin · three.js r186</text>
-  <text x="40" y="76" class="l" fill="#e9eef7" style="animation-delay:0.40s">$ myelin lint three scene.js        # code your AI just wrote</text>
-  <text x="40" y="106" class="l" fill="#ff6b8b" style="animation-delay:0.95s">FAIL B2   scene.js:2  EffectComposer and its passes only work with WebGLRenderer.</text>
-  <text x="40" y="136" class="l" fill="#ff6b8b" style="animation-delay:1.50s">FAIL B14  scene.js:4  This ledger targets the WebGPU path: use new THREE.WebGPURenderer() from …</text>
-  <text x="40" y="166" class="l" fill="#ff6b8b" style="animation-delay:2.05s">FAIL B7   scene.js:5  The encoding API was replaced in r152 and removed in r162: renderer.outpu…</text>
-  <text x="40" y="196" class="l" fill="#ff6b8b" style="animation-delay:2.60s">FAIL B6   scene.js:6  PCFSoftShadowMap was removed in r186 (both renderers warn and fall back).</text>
-  <text x="40" y="226" class="l" fill="#ff6b8b" style="animation-delay:3.15s">FAIL B5   scene.js:7  THREE.Clock is deprecated since r183.</text>
-  <text x="40" y="256" class="l" fill="#8a96aa" style="animation-delay:3.70s">5 failure(s). Each message carries the r186 fix.</text>
-  <text x="40" y="286" class="l" fill="#000" style="animation-delay:4.25s"></text>
-  <text x="40" y="316" class="l" fill="#e9eef7" style="animation-delay:4.80s">$ myelin lint three scene.js        # after one retry with the fixes</text>
-  <text x="40" y="346" class="l" fill="#7dff9a" style="animation-delay:5.35s">21 bans, 0 requires, 1 unit(s) checked: clean</text>
+  <rect x=".5" y=".5" width="1279" height="403" rx="12" fill="#0b0f19" stroke="#1d2638"/>
+  <line x1="0" y1="52" x2="1280" y2="52" stroke="#1d2638"/>
+  <circle cx="30" cy="26" r="5" fill="#1d2638"/><circle cx="50" cy="26" r="5" fill="#1d2638"/><circle cx="70" cy="26" r="5" fill="#1d2638"/>
+  <text x="640" y="31" text-anchor="middle" style="font:12px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#55627a">myelin · three.js r186</text>
+  <text x="40" y="84" class="l" fill="#e9eef7" style="animation-delay:0.40s">$ myelin lint three scene.js        # code your AI just wrote</text>
+  <text x="40" y="114" class="l" fill="#ff7a93" style="animation-delay:0.90s">FAIL B2   scene.js:2  EffectComposer and its passes only work with WebGLRenderer.</text>
+  <text x="40" y="144" class="l" fill="#ff7a93" style="animation-delay:1.40s">FAIL B14  scene.js:4  This ledger targets the WebGPU path: use new THREE.WebGPURenderer() from …</text>
+  <text x="40" y="174" class="l" fill="#ff7a93" style="animation-delay:1.90s">FAIL B7   scene.js:5  The encoding API was replaced in r152 and removed in r162: renderer.outpu…</text>
+  <text x="40" y="204" class="l" fill="#ff7a93" style="animation-delay:2.40s">FAIL B6   scene.js:6  PCFSoftShadowMap was removed in r186 (both renderers warn and fall back).</text>
+  <text x="40" y="234" class="l" fill="#ff7a93" style="animation-delay:2.90s">FAIL B5   scene.js:7  THREE.Clock is deprecated since r183.</text>
+  <text x="40" y="264" class="l" fill="#8a96aa" style="animation-delay:3.40s">5 failure(s). Each message carries the r186 fix.</text>
+  <text x="40" y="294" class="l" fill="#0b0f19" style="animation-delay:3.90s"></text>
+  <text x="40" y="324" class="l" fill="#e9eef7" style="animation-delay:4.40s">$ myelin lint three scene.js        # after one retry with the fixes</text>
+  <text x="40" y="354" class="l" fill="#6ee7a0" style="animation-delay:4.90s">21 bans, 0 requires, 1 unit(s) checked: clean</text>
 </svg>

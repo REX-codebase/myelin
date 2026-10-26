@@ -16,9 +16,40 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const MONO = 'JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace';
 const SANS = 'Inter, Segoe UI, Helvetica, Arial, sans-serif';
 
+// One palette for every image: a quiet dark surface, hairline borders, one accent.
+const C = {
+  bg: '#0b0f19', card: '#0f1523', line: '#1d2638',
+  text: '#e9eef7', mute: '#8a96aa', dim: '#55627a',
+  accent: '#5ff4ff', bad: '#ff7a93', good: '#6ee7a0',
+};
+const W = 1280;
+const frame = (H) => `<rect x=".5" y=".5" width="${W - 1}" height="${H - 1}" rx="12" fill="${C.bg}" stroke="${C.line}"/>`;
+const svg = (H, style, body) => `
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="${SANS}">
+  <style>${style}</style>
+  ${frame(H)}${body}
+</svg>`;
+const label = (x, y, t, color = C.dim, anchor = 'start') =>
+  `<text x="${x}" y="${y}" text-anchor="${anchor}" style="font:600 12px ${MONO};letter-spacing:2.5px;fill:${color}">${esc(t)}</text>`;
+
 function fires(lib, text) {
   const l = parse(readFileSync(libPath(lib), 'utf8'));
   return check(l, [{ name: 'x', text }]).violations.filter((v) => v.kind === 'ban').map((v) => v.id);
+}
+
+// ---------- 0. hero.svg: wordmark ----------
+{
+  const H = 320;
+  const caps = [0, 1, 2, 3, 4].map((i) => `<rect class="cap" x="${496 + i * 62}" y="64" width="48" height="12" rx="6" fill="${C.accent}" style="animation-delay:${(i * 0.12).toFixed(2)}s"/>`).join('');
+  out('hero.svg', svg(H, `
+    .cap{opacity:0;animation:in .6s ease-out forwards}
+    @keyframes in{from{opacity:0}to{opacity:1}}
+  `, `
+  <line x1="470" y1="70" x2="810" y2="70" stroke="${C.line}" stroke-width="2" stroke-linecap="round"/>
+  ${caps}
+  <text x="${W / 2}" y="176" text-anchor="middle" style="font:800 80px ${SANS};letter-spacing:18px;fill:${C.text}">MYELIN</text>
+  <text x="${W / 2}" y="232" text-anchor="middle" style="font:400 24px ${SANS};fill:${C.mute}">Your AI learned last year's docs. Myelin teaches it this year's.</text>
+  ${label(W / 2, 276, 'RULE LEDGERS FOR LLM CODE', C.dim, 'middle')}`));
 }
 
 // ---------- 1. compare.svg: what your AI writes vs what the library wants now ----------
@@ -37,77 +68,65 @@ for (const [lib, , bad, good] of PAIRS) {
   if (fires(lib, good).length) throw new Error(`compare: ${lib} fires on its fix: ${good}`);
 }
 {
-  const rowH = 58, top = 96, W = 1280, H = top + PAIRS.length * rowH + 28;
+  const rowH = 56, top = 88, H = top + PAIRS.length * rowH + 24;
   const rows = PAIRS.map(([lib, name, bad, good], i) => {
     const y = top + i * rowH;
     const id = fires(lib, bad)[0];
     return `
-  <g class="row" style="animation-delay:${(i * 0.18).toFixed(2)}s">
-    <rect x="24" y="${y}" width="${W - 48}" height="${rowH - 10}" rx="12" fill="${i % 2 ? '#0b101b' : '#0d1322'}"/>
-    <text x="48" y="${y + 31}" class="lib">${esc(name)}</text>
-    <text x="230" y="${y + 31}" class="bad">${esc(bad)}</text>
-    <text x="722" y="${y + 31}" class="arrow">→</text>
-    <text x="760" y="${y + 31}" class="good">${esc(good)}</text>
-    <text x="${W - 48}" y="${y + 31}" class="id" text-anchor="end">${id}</text>
+  <g class="row" style="animation-delay:${(i * 0.12).toFixed(2)}s">
+    <line x1="48" y1="${y}" x2="${W - 48}" y2="${y}" stroke="${C.line}"/>
+    <text x="48" y="${y + 34}" class="lib">${esc(name)}</text>
+    <text x="240" y="${y + 34}" class="bad">${esc(bad)}</text>
+    <text x="716" y="${y + 34}" class="arrow">→</text>
+    <text x="760" y="${y + 34}" class="good">${esc(good)}</text>
+    <text x="${W - 48}" y="${y + 34}" class="id" text-anchor="end">${id}</text>
   </g>`;
   }).join('');
-  out('compare.svg', `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <style>
-    .lib{font:700 18px ${SANS};fill:#e9eef7}
-    .bad{font:16px ${MONO};fill:#ff6b8b;text-decoration:line-through;text-decoration-color:#ff3b6b88}
-    .good{font:16px ${MONO};fill:#7dff9a}
-    .arrow{font:700 20px ${SANS};fill:#5ff4ff}
-    .id{font:600 13px ${MONO};fill:#55627a}
-    .h{font:600 14px ${MONO};letter-spacing:3px}
+  out('compare.svg', svg(H, `
+    .lib{font:600 16px ${SANS};fill:${C.text}}
+    .bad{font:15px ${MONO};fill:${C.bad};text-decoration:line-through;text-decoration-color:${C.bad}88}
+    .good{font:15px ${MONO};fill:${C.good}}
+    .arrow{font:500 18px ${SANS};fill:${C.dim}}
+    .id{font:600 12px ${MONO};fill:${C.dim}}
     .row{opacity:0;animation:in .5s ease-out forwards}
-    @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-  </style>
-  <rect width="${W}" height="${H}" rx="20" fill="#05070d"/>
-  <text x="230" y="66" class="h" fill="#ff6b8b">WHAT YOUR AI WRITES</text>
-  <text x="760" y="66" class="h" fill="#7dff9a">WHAT THE LIBRARY WANTS NOW</text>${rows}
-</svg>`);
+    @keyframes in{from{opacity:0}to{opacity:1}}
+  `, `
+  ${label(240, 54, 'WHAT YOUR AI WRITES', C.bad)}
+  ${label(760, 54, 'WHAT THE LIBRARY WANTS NOW', C.good)}${rows}`));
 }
 
 // ---------- 2. libs.svg: the library grid ----------
 const libs = listLibs();
 {
-  const cols = 4, cw = 296, ch = 112, gap = 16, pad = 24;
-  const rowsN = Math.ceil(libs.length / cols);
-  const W = pad * 2 + cols * cw + (cols - 1) * gap, H = pad * 2 + rowsN * ch + (rowsN - 1) * gap;
+  const cols = 4, gap = 16, pad = 32, ch = 104;
+  const cw = (W - pad * 2 - gap * (cols - 1)) / cols;
+  const rowsN = Math.ceil((libs.length + 1) / cols);
+  const H = pad * 2 + rowsN * ch + (rowsN - 1) * gap;
+  const pos = (i) => [pad + (i % cols) * (cw + gap), pad + Math.floor(i / cols) * (ch + gap)];
   const cards = libs.map((l, i) => {
-    const x = pad + (i % cols) * (cw + gap), y = pad + Math.floor(i / cols) * (ch + gap);
+    const [x, y] = pos(i);
     return `
-  <g class="c" style="animation-delay:${(i * 0.08).toFixed(2)}s">
-    <rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="16" fill="#0d1322" stroke="#22314b"/>
-    <rect x="${x}" y="${y}" width="5" height="${ch}" rx="2" fill="#5ff4ff"/>
-    <text x="${x + 24}" y="${y + 40}" class="n">${esc(l.name)}</text>
-    <text x="${x + 24}" y="${y + 68}" class="v">${esc(l.version)}</text>
-    <text x="${x + 24}" y="${y + 94}" class="m">${l.bans} bans · ${l.snippets} snippets · <tspan class="id">${esc(l.id)}</tspan></text>
+  <g class="c" style="animation-delay:${(i * 0.05).toFixed(2)}s">
+    <rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="10" fill="${C.card}" stroke="${C.line}"/>
+    <text x="${x + 20}" y="${y + 38}" class="n">${esc(l.name)}</text>
+    <text x="${x + 20}" y="${y + 62}" class="v">${esc(l.version)}</text>
+    <text x="${x + 20}" y="${y + 84}" class="m">${l.bans} bans · ${l.snippets} snippets</text>
   </g>`;
-  }).join('') + (() => {
-    const i = libs.length;
-    if (i % cols === 0) return '';
-    const x = pad + (i % cols) * (cw + gap), y = pad + Math.floor(i / cols) * (ch + gap);
-    return `
-  <g class="c" style="animation-delay:${(i * 0.08).toFixed(2)}s">
-    <rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="16" fill="none" stroke="#2c3a55" stroke-dasharray="6 6"/>
-    <text x="${x + cw / 2}" y="${y + 52}" text-anchor="middle" class="n" fill="#7f8ba0" style="fill:#7f8ba0">+ your library</text>
-    <text x="${x + cw / 2}" y="${y + 80}" text-anchor="middle" class="m">source link + bench file = PR</text>
+  }).join('');
+  const [ax, ay] = pos(libs.length);
+  const add = `
+  <g class="c" style="animation-delay:${(libs.length * 0.05).toFixed(2)}s">
+    <rect x="${ax}" y="${ay}" width="${cw}" height="${ch}" rx="10" fill="none" stroke="${C.line}" stroke-dasharray="4 5"/>
+    <text x="${ax + cw / 2}" y="${ay + 48}" text-anchor="middle" class="n" style="fill:${C.mute}">+ your library</text>
+    <text x="${ax + cw / 2}" y="${ay + 72}" text-anchor="middle" class="m">source link + bench file = PR</text>
   </g>`;
-  })();
-  out('libs.svg', `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <style>
-    .n{font:700 21px ${SANS};fill:#f1f5fb}
-    .v{font:600 16px ${MONO};fill:#5ff4ff}
-    .m{font:14px ${SANS};fill:#7f8ba0}
-    .id{font:13px ${MONO};fill:#45526a}
+  out('libs.svg', svg(H, `
+    .n{font:600 17px ${SANS};fill:${C.text}}
+    .v{font:500 14px ${MONO};fill:${C.accent}}
+    .m{font:13px ${SANS};fill:${C.mute}}
     .c{opacity:0;animation:in .45s ease-out forwards}
     @keyframes in{from{opacity:0}to{opacity:1}}
-  </style>
-  <rect width="${W}" height="${H}" rx="20" fill="#05070d"/>${cards}
-</svg>`);
+  `, cards + add));
 }
 
 // ---------- 3. bench.svg: the numbers ----------
@@ -124,44 +143,48 @@ if (existsSync(wildPath)) {
 {
   const tot = bench.reduce((a, r) => ({ bad: a.bad + r.badFiles, caught: a.caught + r.badCaught, good: a.good + r.goodFiles, clean: a.clean + r.goodClean }), { bad: 0, caught: 0, good: 0, clean: 0 });
   const bans = bench.reduce((a, r) => a + r.bans, 0);
-  const W = 1280;
-  const stat = (x, big, small, color = '#f1f5fb') => `
-    <text x="${x}" y="118" text-anchor="middle" style="font:800 54px ${SANS};fill:${color}">${big}</text>
-    <text x="${x}" y="150" text-anchor="middle" style="font:15px ${SANS};fill:#7f8ba0">${small}</text>`;
+  const stats = [
+    [libs.length, 'libraries', C.text],
+    [bans, 'verified bans', C.text],
+    [`${tot.caught}/${tot.bad}`, 'stale files caught', C.bad],
+    [`${tot.clean}/${tot.good}`, 'current files left clean', C.good],
+    [cross.hits.length, `false alarms in ${cross.checks.toLocaleString('en-US')} cross-checks`, C.accent],
+  ];
+  const colW = (W - 96) / stats.length;
+  const statSvg = stats.map(([big, small, color], i) => {
+    const x = 48 + colW * i + colW / 2;
+    return `
+  <text x="${x}" y="100" text-anchor="middle" style="font:700 46px ${SANS};fill:${color}">${big}</text>
+  <text x="${x}" y="130" text-anchor="middle" style="font:14px ${SANS};fill:${C.mute}">${esc(small)}</text>`;
+  }).join('');
   let bars = '';
-  let H = 200;
+  let H = 168;
   if (wild) {
     const pairs = [['three', 'three.js'], ['nextjs', 'Next.js']];
-    const y0 = 236;
-    bars = `<text x="48" y="${y0 - 14}" style="font:600 14px ${MONO};letter-spacing:3px;fill:#5ff4ff">IN THE WILD · OFFICIAL EXAMPLE CODE, OLD RELEASE vs CURRENT</text>`;
+    const y0 = 168;
+    bars = `<line x1="48" y1="${y0}" x2="${W - 48}" y2="${y0}" stroke="${C.line}"/>
+  ${label(48, y0 + 36, 'IN THE WILD · OFFICIAL EXAMPLES, OLD RELEASE VS CURRENT')}`;
     pairs.forEach(([lib, name], i) => {
       const o = wild.find((r) => r.lib === lib && r.kind === 'old');
       const n = wild.find((r) => r.lib === lib && r.kind === 'new');
       if (!o || !n) return;
-      const y = y0 + 20 + i * 120, bw = 620, x = 480;
+      const y = y0 + 60 + i * 104, bw = 600, x = 500;
       const bar = (yy, r, color) => `
-      <rect x="${x}" y="${yy}" width="${bw}" height="30" rx="8" fill="#111827"/>
-      <rect x="${x}" y="${yy}" width="${Math.max(4, bw * r.rate).toFixed(1)}" height="30" rx="8" fill="${color}" class="b"/>
-      <text x="${x + bw + 16}" y="${yy + 21}" style="font:700 17px ${MONO};fill:${color}">${(r.rate * 100).toFixed(1)}%</text>
-      <text x="${x - 16}" y="${yy + 21}" text-anchor="end" style="font:15px ${SANS};fill:#aab4c5">${esc(r.label.replace(/^three\.js |^Next\.js /, ''))}</text>`;
+  <rect x="${x}" y="${yy}" width="${bw}" height="22" rx="6" fill="${C.card}"/>
+  <rect x="${x}" y="${yy}" width="${Math.max(4, bw * r.rate).toFixed(1)}" height="22" rx="6" fill="${color}" class="b"/>
+  <text x="${x + bw + 16}" y="${yy + 17}" style="font:600 15px ${MONO};fill:${color}">${(r.rate * 100).toFixed(1)}%</text>
+  <text x="${x - 16}" y="${yy + 17}" text-anchor="end" style="font:14px ${SANS};fill:${C.mute}">${esc(r.label.replace(/^three\.js |^Next\.js /, ''))}</text>`;
       bars += `
-      <text x="48" y="${y + 40}" style="font:700 22px ${SANS};fill:#f1f5fb">${name}</text>
-      <text x="48" y="${y + 64}" style="font:13px ${SANS};fill:#6b7890">files flagged as stale</text>
-      ${bar(y + 4, o, '#ff6b8b')}${bar(y + 46, n, '#7dff9a')}`;
+  <text x="48" y="${y + 24}" style="font:600 20px ${SANS};fill:${C.text}">${name}</text>
+  <text x="48" y="${y + 46}" style="font:13px ${SANS};fill:${C.dim}">files flagged as stale</text>
+  ${bar(y + 2, o, C.bad)}${bar(y + 38, n, C.good)}`;
     });
-    H = y0 + 20 + pairs.length * 120 + 20;
+    H = y0 + 60 + pairs.length * 104 + 8;
   }
-  out('bench.svg', `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <style>.b{transform-box:fill-box;transform-origin:left;animation:g 1.1s cubic-bezier(.2,.8,.2,1) both}@keyframes g{from{transform:scaleX(0)}to{transform:scaleX(1)}}</style>
-  <rect width="${W}" height="${H}" rx="20" fill="#05070d"/>
-  ${stat(170, libs.length, 'libraries')}
-  ${stat(420, bans, 'verified bans')}
-  ${stat(670, `${tot.caught}/${tot.bad}`, 'stale files caught', '#ff6b8b')}
-  ${stat(920, `${tot.clean}/${tot.good}`, 'current files left clean', '#7dff9a')}
-  ${stat(1140, cross.hits.length, `false alarms in ${cross.checks} cross-checks`, '#5ff4ff')}
-  ${bars}
-</svg>`);
+  out('bench.svg', svg(H, `
+    .b{transform-box:fill-box;transform-origin:left;animation:g 1s cubic-bezier(.2,.8,.2,1) both}
+    @keyframes g{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  `, statSvg + bars));
 }
 
 // ---------- 4. demo.svg: an animated terminal with real lint output ----------
@@ -189,21 +212,47 @@ if (existsSync(wildPath)) {
     ['p', '$ myelin lint three scene.js        # after one retry with the fixes'],
     ['g', '21 bans, 0 requires, 1 unit(s) checked: clean'],
   ];
-  const W = 1280, lh = 30, top = 76, H = top + lines.length * lh + 30;
-  const color = { p: '#e9eef7', f: '#ff6b8b', d: '#8a96aa', s: '#000', g: '#7dff9a' };
-  const body = lines.map(([k, t], i) => `<text x="40" y="${top + i * lh}" class="l" fill="${color[k]}" style="animation-delay:${(0.4 + i * 0.55).toFixed(2)}s">${esc(t)}</text>`).join('\n  ');
-  const total = (0.4 + lines.length * 0.55 + 4).toFixed(1);
-  out('demo.svg', `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <style>
-    .l{font:16px ${MONO};white-space:pre;opacity:0;animation:t ${total}s steps(1) infinite}
+  const lh = 30, top = 84, H = top + lines.length * lh + 20;
+  const color = { p: C.text, f: C.bad, d: C.mute, s: C.bg, g: C.good };
+  const body = lines.map(([k, t], i) => `<text x="40" y="${top + i * lh}" class="l" fill="${color[k]}" style="animation-delay:${(0.4 + i * 0.5).toFixed(2)}s">${esc(t)}</text>`).join('\n  ');
+  const total = (0.4 + lines.length * 0.5 + 4).toFixed(1);
+  out('demo.svg', svg(H, `
+    .l{font:15px ${MONO};white-space:pre;opacity:0;animation:t ${total}s steps(1) infinite}
     @keyframes t{0%{opacity:1}96%{opacity:1}100%{opacity:0}}
-  </style>
-  <rect width="${W}" height="${H}" rx="16" fill="#05070d" stroke="#1d2638"/>
-  <circle cx="30" cy="28" r="7" fill="#ff5f57"/><circle cx="54" cy="28" r="7" fill="#febc2e"/><circle cx="78" cy="28" r="7" fill="#28c840"/>
-  <text x="${W / 2}" y="33" text-anchor="middle" style="font:13px ${MONO};fill:#55627a">myelin · three.js r186</text>
-  ${body}
-</svg>`);
+  `, `
+  <line x1="0" y1="52" x2="${W}" y2="52" stroke="${C.line}"/>
+  <circle cx="30" cy="26" r="5" fill="${C.line}"/><circle cx="50" cy="26" r="5" fill="${C.line}"/><circle cx="70" cy="26" r="5" fill="${C.line}"/>
+  <text x="${W / 2}" y="31" text-anchor="middle" style="font:12px ${MONO};fill:${C.dim}">myelin · three.js r186</text>
+  ${body}`));
 }
 
-console.log(`assets written: compare.svg libs.svg bench.svg demo.svg (${libs.length} libs)`);
+// ---------- 5. how.svg: ledger -> model -> script -> current code ----------
+{
+  const H = 236;
+  const steps = [
+    ['01', 'Ledger', 'what changed since', 'the model was trained', 'three.myelin'],
+    ['02', 'Model', 'reads the rules', 'before it writes', 'myelin gate'],
+    ['03', 'Script', 'checks every ban', 'in every file', 'myelin lint'],
+    ['04', 'Current code', 'or CI fails with', 'the exact fix', 'exit 0 / exit 1'],
+  ];
+  const bw = 250, gap = (W - 96 - bw * steps.length) / (steps.length - 1);
+  const cards = steps.map(([n, title, a, b, cmd], i) => {
+    const x = 48 + i * (bw + gap), last = i === steps.length - 1;
+    const arrow = last ? '' : `<path d="M${x + bw + 14} 118 H${x + bw + gap - 14} m-6 -5 l6 5 l-6 5" fill="none" stroke="${C.dim}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    return `
+  <g class="s" style="animation-delay:${(i * 0.15).toFixed(2)}s">
+    <rect x="${x}" y="48" width="${bw}" height="140" rx="10" fill="${C.card}" stroke="${last ? C.good + '66' : C.line}"/>
+    <text x="${x + 22}" y="80" style="font:600 12px ${MONO};letter-spacing:2px;fill:${last ? C.good : C.accent}">${n}</text>
+    <text x="${x + 22}" y="108" style="font:600 20px ${SANS};fill:${C.text}">${title}</text>
+    <text x="${x + 22}" y="132" style="font:14px ${SANS};fill:${C.mute}">${a}</text>
+    <text x="${x + 22}" y="152" style="font:14px ${SANS};fill:${C.mute}">${b}</text>
+    <text x="${x + 22}" y="174" style="font:12px ${MONO};fill:${C.dim}">${cmd}</text>
+  </g>${arrow}`;
+  }).join('');
+  out('how.svg', svg(H, `
+    .s{opacity:0;animation:in .5s ease-out forwards}
+    @keyframes in{from{opacity:0}to{opacity:1}}
+  `, cards));
+}
+
+console.log(`assets written: hero.svg compare.svg libs.svg bench.svg demo.svg how.svg (${libs.length} libs)`);

@@ -1,32 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="440" viewBox="0 0 1280 440" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif">
-  <defs>
-    <radialGradient id="bg" cx="50%" cy="58%" r="75%"><stop offset="0" stop-color="#0d2233"/><stop offset="1" stop-color="#04060b"/></radialGradient>
-    <linearGradient id="sheath" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8fdff"/><stop offset="1" stop-color="#1f9fc4"/></linearGradient>
-    <linearGradient id="word" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#8fe9ff"/></linearGradient>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-    <style>
-      .pulse{animation:run 2.4s cubic-bezier(.7,0,.3,1) infinite}
-      @keyframes run{0%{transform:translateX(0);opacity:0}8%{opacity:1}92%{opacity:1}100%{transform:translateX(1040px);opacity:0}}
-      .cap{animation:breathe 2.4s ease-in-out infinite}
-      .cap:nth-of-type(2){animation-delay:.25s}.cap:nth-of-type(3){animation-delay:.5s}.cap:nth-of-type(4){animation-delay:.75s}.cap:nth-of-type(5){animation-delay:1s}
-      @keyframes breathe{0%,100%{opacity:.85}50%{opacity:1}}
-    </style>
-  </defs>
-  <rect width="1280" height="440" fill="url(#bg)"/>
-  <g stroke="#5ff4ff" stroke-opacity=".06">
-    <path d="M0 330 H1280 M0 370 H1280 M0 410 H1280"/>
-  </g>
-  <!-- axon -->
-  <line x1="120" y1="118" x2="1160" y2="118" stroke="#2b3a52" stroke-width="6" stroke-linecap="round"/>
-  <g filter="url(#glow)">
-    <rect class="cap" x="170" y="100" width="150" height="36" rx="18" fill="url(#sheath)"/>
-    <rect class="cap" x="370" y="100" width="150" height="36" rx="18" fill="url(#sheath)"/>
-    <rect class="cap" x="570" y="100" width="150" height="36" rx="18" fill="url(#sheath)"/>
-    <rect class="cap" x="770" y="100" width="150" height="36" rx="18" fill="url(#sheath)"/>
-    <rect class="cap" x="970" y="100" width="150" height="36" rx="18" fill="url(#sheath)"/>
-    <circle class="pulse" cx="120" cy="118" r="9" fill="#ffffff"/>
-  </g>
-  <text x="640" y="262" text-anchor="middle" font-size="118" font-weight="800" letter-spacing="26" fill="url(#word)" filter="url(#glow)">MYELIN</text>
-  <text x="640" y="326" text-anchor="middle" font-size="27" fill="#e6edf5">Your AI learned last year's docs. Myelin teaches it this year's.</text>
-  <text x="640" y="376" text-anchor="middle" font-size="17" fill="#7c8aa0" font-family="JetBrains Mono, Menlo, Consolas, monospace" letter-spacing="3">RULE LEDGERS FOR LLM CODE  ·  A MODEL READS THEM  ·  A SCRIPT CHECKS THEM</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif">
+  <style>
+    .cap{opacity:0;animation:in .6s ease-out forwards}
+    @keyframes in{from{opacity:0}to{opacity:1}}
+  </style>
+  <rect x=".5" y=".5" width="1279" height="319" rx="12" fill="#0b0f19" stroke="#1d2638"/>
+  <line x1="470" y1="70" x2="810" y2="70" stroke="#1d2638" stroke-width="2" stroke-linecap="round"/>
+  <rect class="cap" x="496" y="64" width="48" height="12" rx="6" fill="#5ff4ff" style="animation-delay:0.00s"/><rect class="cap" x="558" y="64" width="48" height="12" rx="6" fill="#5ff4ff" style="animation-delay:0.12s"/><rect class="cap" x="620" y="64" width="48" height="12" rx="6" fill="#5ff4ff" style="animation-delay:0.24s"/><rect class="cap" x="682" y="64" width="48" height="12" rx="6" fill="#5ff4ff" style="animation-delay:0.36s"/><rect class="cap" x="744" y="64" width="48" height="12" rx="6" fill="#5ff4ff" style="animation-delay:0.48s"/>
+  <text x="640" y="176" text-anchor="middle" style="font:800 80px Inter, Segoe UI, Helvetica, Arial, sans-serif;letter-spacing:18px;fill:#e9eef7">MYELIN</text>
+  <text x="640" y="232" text-anchor="middle" style="font:400 24px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#8a96aa">Your AI learned last year's docs. Myelin teaches it this year's.</text>
+  <text x="640" y="276" text-anchor="middle" style="font:600 12px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;letter-spacing:2.5px;fill:#55627a">RULE LEDGERS FOR LLM CODE</text>
 </svg>
