@@ -60,10 +60,13 @@ function lineOf(re, text) {
   return text.slice(0, m.index).split('\n').length;
 }
 
-export function check(ledger, units) {
+// options.ignore: rule ids to leave out (a project's own exceptions).
+// options.bansOnly: skip requirements, for a host that sees one edit and not the whole output.
+export function check(ledger, units, { ignore = null, bansOnly = false } = {}) {
   const violations = [];
-  const bans = ledger.rules.filter((r) => r.kind === 'ban');
-  const reqs = ledger.rules.filter((r) => r.kind === 'require');
+  const skipped = (r) => ignore && ignore.has(r.id);
+  const bans = ledger.rules.filter((r) => r.kind === 'ban' && !skipped(r));
+  const reqs = bansOnly ? [] : ledger.rules.filter((r) => r.kind === 'require' && !skipped(r));
   if (ledger.header && ledger.header.comments === 'skip') {
     units = units.map((u) => ({
       ...u,

@@ -304,17 +304,20 @@ export function reexports(text) {
   return edges(text).bare;
 }
 
+// A declaration starts a line or follows `{` or `;` (so `interface A { b(): void; c: 1 }` counts b and c).
 const DECL_LINE = new RegExp(
-  `^[ \\t]*(?:(?:export|declare|default|abstract|static|readonly|public|protected|private|async|override|accessor|get|set)\\s+)*(?:(function\\*?|class|interface|type|enum|namespace|const|let|var)\\s+)?(${IDENT})\\s*[?!]?\\s*(?:[(<:=;,{]|\\s+(?:extends|implements)\\b|$)`,
+  `(?<=^|[{;])[ \\t]*(?:(?:export|declare|default|abstract|static|readonly|public|protected|private|async|override|accessor|get|set)\\s+)*(?:(function\\*?|class|interface|type|enum|namespace|const|let|var)\\s+)?(${IDENT})\\s*[?!]?\\s*(?=([(<:=;,{])|\\s+(?:extends|implements)\\b|$)`,
   'gm',
 );
 
 /**
- * How many declaration-like lines each name has, split into keyworded ones (`function x`,
- * `interface X`, `const x`: module-scope symbols) and bare ones (`x(): void`, `x: string`:
- * members). It deliberately over-counts (a parameter on its own line looks like a member), so a
- * name that is deprecated in one place and also declared elsewhere is treated as ambiguous.
- *   Map<name, { sym, mem }>
+ * How many declaration-like spots each name has, by what kind of thing they declare:
+ *   sym   keyworded: `function x`, `interface X`, `const x` (a module-scope symbol)
+ *   fn    a member that is called: `x(): void`, `x<T>(a: T): T`
+ *   prop  any other member: `x: string`, `x?: number`
+ * It deliberately over-counts (a parameter on its own line looks like a member), so a name that
+ * is deprecated in one place and also declared elsewhere is treated as ambiguous.
+ *   Map<name, { sym, fn, prop }>
  */
 export function declarationCounts(text) {
   const { clean } = strip(text);
@@ -322,9 +325,10 @@ export function declarationCounts(text) {
   for (const m of clean.matchAll(DECL_LINE)) {
     const name = m[2];
     if (name === 'export' || name === 'import' || name === 'declare') continue;
-    const c = counts.get(name) || { sym: 0, mem: 0 };
+    const c = counts.get(name) || { sym: 0, fn: 0, prop: 0 };
     if (m[1]) c.sym++;
-    else c.mem++;
+    else if (m[3] === '(' || m[3] === '<') c.fn++;
+    else c.prop++;
     counts.set(name, c);
   }
   return counts;

@@ -17,23 +17,32 @@ import { createHash } from 'node:crypto';
 import { builtinModules } from 'node:module';
 import { surface, findPackage, typesNameFor, typesTarget, pkgNameOf } from './surface.mjs';
 import { pkgVersion } from './util.mjs';
+import { parse } from './parse.mjs';
 
 // ---- which names are too common to match by name --------------------------------------------
 
-const COMMON = new Set();
+// Names that belong to the language or its standard objects (`map`, `then`, `toString`): never a rule.
+const BUILTIN = new Set();
 for (const o of [Object, Function, Array, String, Number, Boolean, Symbol, BigInt, Date, RegExp, Error, Promise, Map, Set, WeakMap, WeakSet, ArrayBuffer, DataView, Uint8Array, URL, URLSearchParams, JSON, Math, Reflect]) {
-  for (const n of Object.getOwnPropertyNames(o)) COMMON.add(n);
-  if (o.prototype) for (const n of Object.getOwnPropertyNames(o.prototype)) COMMON.add(n);
+  for (const n of Object.getOwnPropertyNames(o)) BUILTIN.add(n);
+  if (o.prototype) for (const n of Object.getOwnPropertyNames(o.prototype)) BUILTIN.add(n);
 }
-for (const n of `id key name type value data text size mode path port host url uri src href
+for (const n of 'addEventListener removeEventListener dispatchEvent on off emit once'.split(' ')) BUILTIN.add(n);
+// Reserved and contextual keywords: `async` is a real rxjs export, and a rule on it would fire on every async function.
+for (const n of `async await break case catch class const continue debugger default delete do else enum export extends false finally
+  for function if implements import in instanceof interface let new null package private protected public return static super
+  switch this throw true try typeof var void while with yield of from as type declare namespace module abstract readonly
+  require exports undefined NaN Infinity globalThis window document console process`.split(/\s+/)) BUILTIN.add(n);
+// Words every codebase uses for its own things (`name`, `data`, `run`). Matching one as a bare
+// property or call would fire on the project's own code, so only a call on a call result may use it.
+const GENERIC = new Set(`id key name type value data text size mode path port host url uri src href
   options option config props state event error result input output index length count items list label title
-  style class className children default then catch finally on off emit once listener handler callback
-  args params query body headers status message code user users file files dir url cwd env
-  start stop run exec close open read write send get set add remove delete create update find
-  parse stringify toJSON next done return throw call apply bind`.split(/\s+/)) COMMON.add(n);
-
-// A name nobody uses for anything else: long, mixed case. Safe to match as a bare identifier.
-const distinctive = (n) => n.length >= 8 && /[a-z]/.test(n) && /[A-Z_]/.test(n) && !COMMON.has(n);
+  style class className children default listener handler callback args params query body headers status
+  message code user users file files dir cwd env start stop run exec close open read write send get set add
+  remove delete create update find parse stringify next done return throw call apply bind`.split(/\s+/));
+// A plain lowercase word (`resolution`, `page`, `copy`, `empty`). Everyone names things with these, so
+// without type information a match on one says very little.
+const wordlike = (n) => /^[a-z]+$/.test(n);
 
 const MAX_RIVALS = 16;
 const MIN = { method: 3, property: 5, symbol: 3, 'enum-member': 2 };
@@ -47,11 +56,11 @@ const ID_R = '(?![\\w$])';
 
 /**
  * The guard: the file imports, requires or re-exports one of these module specifiers.
- * With `subpaths`, a specifier also stands for everything below it ("dayjs" covers "dayjs/plugin/utc").
+ * `prefixes` also match everything below them ("dayjs" covers "dayjs/plugin/utc").
  */
-export function importGate(specs, { subpaths = false } = {}) {
-  const alt = [...specs].sort().map(esc).join('|');
-  return `\\b(?:from|import|require)\\s*\\(?\\s*['"](?:${alt})${subpaths ? "(?:\\/[^'\"]*)?" : ''}['"]`;
+export function importGate(specs, prefixes = []) {
+  const alt = [...[...specs].sort().map(esc), ...[...prefixes].sort().map((p) => esc(p) + "(?:\\/[^'\"]*)?")].join('|');
+  return `\\b(?:from|import|require)\\s*\\(?\\s*['"](?:${alt})['"]`;
 }
 
 function importForm(name, specs) {
@@ -61,7 +70,7 @@ function importForm(name, specs) {
 
 // ---- messages: never copy a package's prose into a model's context ----------------------------
 
-const CODE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*(?:\(\))?$/;
+const CODE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*(?:\([\w$., ]{0,30}\))?$/;
 const SAFE_PKG = /^(?:@[\w.~-]+\/)?[\w.~-]+$/;
 const SAFE_VER = /^[\w.+-]{1,32}$/;
 
@@ -75,19 +84,30 @@ export function suggestions(note, own) {
   const push = (t) => {
     if (!t) return;
     const tok = t.trim().replace(/^typeof\s+/, '');
-    if (CODE.test(tok) && tok.length <= 60 && tok !== own && tok.replace(/\(\)$/, '') !== own && !found.includes(tok)) found.push(tok);
+    if (CODE.test(tok) && tok.length <= 60 && tok.replace(/\(.*\)$/, '') !== own && !found.includes(tok)) found.push(tok);
   };
+  // "Use `x` from `pkg` instead": the replacement is the same name, imported from somewhere else.
+  const from = note.match(/\bfrom\s+[`'"]((?:@[\w.-]+\/)?[\w.-]+(?:\/[\w.-]+){0,3})[`'"]/);
+  if (from) return { names: [], module: from[1] };
   for (const m of note.matchAll(/\{@link(?:code|plain)?\s+([^\s}]+)/g)) push(m[1]);
   for (const m of note.matchAll(/`([^`\n]{1,60})`/g)) push(m[1]);
-  const m = note.match(/\b(?:use|prefer|see|replaced by|replace with|switch to|migrate to)\s+(?:the\s+)?([A-Za-z_$][\w$.]*(?:\(\))?)/i);
+  const m = note.match(/\b(?:use|prefer|see|replaced by|replace with|switch to|migrate to)\s+(?:the\s+)?([A-Za-z_$][\w$.]*(?:\([\w$., ]{0,30}\))?)/i);
   if (m) push(m[1]);
-  return found.slice(0, 2);
+  return { names: found.slice(0, 2), module: null };
+}
+
+/** How a deprecated API is written in code: `ZodString.email()`, `React.LegacyRef`, `fs.exists()`. */
+export function labelFor(decl) {
+  const lead = decl.container || decl.module || '';
+  const callable = decl.kind === 'method' || decl.kind === 'function';
+  return (lead ? lead + '.' : '') + decl.name + (callable ? '()' : '');
 }
 
 export function messageFor(decl, pkg) {
   const where = pkg && SAFE_PKG.test(pkg.name) && SAFE_VER.test(pkg.version) ? ` in ${pkg.name}@${pkg.version}` : '';
-  const recs = suggestions(decl.note, decl.name);
-  return `Deprecated${where}.` + (recs.length ? ` Use ${recs.map((r) => '`' + r + '`').join(' or ')} instead.` : '');
+  const { names, module } = suggestions(decl.note, decl.name);
+  const advice = module ? ` Import it from \`${module}\` instead.` : names.length ? ` Use ${names.map((r) => '`' + r + '`').join(' or ')} instead.` : '';
+  return `\`${labelFor(decl)}\` is deprecated${where}.${advice}`;
 }
 
 // ---- reading the project ----------------------------------------------------------------------
@@ -130,7 +150,7 @@ export function fingerprint(roots) {
 const slug = (s) => s.replace(/^@/, '').replace(/[^A-Za-z0-9_]/g, '_');
 const aliasesOf = (m) => (NODE_BUILTINS.has(m) ? [m, 'node:' + m] : [m]);
 
-const emptyCount = () => ({ sym: 0, mem: 0 });
+const emptyCount = () => ({ sym: 0, fn: 0, prop: 0 });
 const bump = (map, name, field, by = 1) => {
   const c = map.get(name) || emptyCount();
   c[field] += by;
@@ -140,11 +160,9 @@ const bump = (map, name, field, by = 1) => {
 /** One deprecated declaration per container+name, with every import specifier that exposes it. */
 function mergeDeclarations(surf) {
   const merged = new Map();
-  let seen = 0;
   for (const [file, gates] of surf.gates) {
     const sc = surf.scans.get(file);
     for (const d of sc.decls) {
-      seen++;
       const key = [d.container || '', d.name, d.member].join('|');
       let m = merged.get(key);
       if (!m) merged.set(key, (m = { ...d, specs: new Set(), scopes: new Set(), pkg: sc.pkg }));
@@ -153,7 +171,7 @@ function mergeDeclarations(surf) {
       gates.forEach((g) => m.scopes.add(g));
     }
   }
-  return { merged, seen };
+  return { merged };
 }
 
 /**
@@ -170,16 +188,19 @@ function liveness(surf) {
       const sc = surf.scans.get(f);
       for (const [n, c] of sc.counts) {
         bump(total, n, 'sym', c.sym);
-        bump(total, n, 'mem', c.mem);
+        bump(total, n, 'fn', c.fn);
+        bump(total, n, 'prop', c.prop);
       }
-      for (const d of sc.decls) bump(dep, d.name, d.member ? 'mem' : 'sym');
+      for (const d of sc.decls) bump(dep, d.name, !d.member ? 'sym' : d.kind === 'method' ? 'fn' : 'prop');
     }
     return { total, dep };
   };
   const liveOf = ({ total, dep }, name) => {
     const t = total.get(name) || emptyCount();
     const x = dep.get(name) || emptyCount();
-    return { sym: Math.max(0, t.sym - x.sym), mem: Math.max(0, t.mem - x.mem) };
+    const live = { sym: Math.max(0, t.sym - x.sym), fn: Math.max(0, t.fn - x.fn), prop: Math.max(0, t.prop - x.prop) };
+    live.mem = live.fn + live.prop;
+    return live;
   };
 
   const scopeCache = new Map();
@@ -204,36 +225,64 @@ function liveness(surf) {
     }
   }
   const tallies = new Map([...byPackage].map(([k, files]) => [k, tally(files)]));
-  const rivals = (name, specs) => {
+  // `callable` limits the search to things a `.name(` could be: a property of the same name is no rival.
+  const rivals = (name, specs, callable) => {
     const mine = new Set([...specs].map(pkgNameOf));
     const out = new Set();
     for (const [k, t] of tallies) {
       if (mine.has(k)) continue;
       const o = liveOf(t, name);
-      if (o.sym + o.mem) out.add(k);
+      if (callable ? o.sym + o.fn : o.sym + o.mem) out.add(k);
     }
     return out;
   };
-  return { within, rivals };
+  // The same name, live, on another subpath of the same package: `ai` against `ai/test`,
+  // `zod` against `zod/v3`. A file that imports both cannot tell which one a bare name means.
+  const gateTallies = new Map();
+  const siblings = (name, ownGates, callable) => {
+    const mine = new Set([...ownGates].map(pkgNameOf));
+    const out = new Set();
+    for (const g of surf.scope.keys()) {
+      if (ownGates.has(g) || !mine.has(pkgNameOf(g))) continue;
+      if (!gateTallies.has(g)) gateTallies.set(g, tally(surf.scope.get(g)));
+      const o = liveOf(gateTallies.get(g), name);
+      if (callable ? o.sym + o.fn : o.sym + o.mem) out.add(g);
+    }
+    return out;
+  };
+  return { within, rivals, siblings };
 }
 
-// The shape of the regex a declaration gets, or the reason it gets none.
-function shapeOf(d, family, rival) {
+// The shape of the regex a declaration gets, or the reason it gets none. There is never a bare
+// identifier match: a local variable called `rangeFog` is not the deprecated TSL function.
+//   import     `import { Name } from "pkg"`: exact, and the only form for a name with a rival
+//   access     `.Name`, `.name(`: a property or method reached through some object
+//   chained    `).name(`: a call on a call result, the one place `z.string().email()` differs from `z.email()`
+//   binding    `{ Name`: a destructured or object-literal key
+//   jsx        `<Tag Name=...>`: a prop on a JSX element
+function shapeOf(d, family, rival, exactOnly = false) {
   const name = esc(d.name);
-  const bare = distinctive(d.name);
+  const plain = wordlike(d.name);
   if (family === 'enum-member') return rival.mem ? { why: 'another enum member has this name' } : { re: `${ID_L}${esc(d.container)}\\.${name}${ID_R}` };
   if (family === 'symbol') {
     if (rival.sym) return { why: `${rival.sym} live export(s) share this name` };
-    if (bare && !rival.mem) return { re: `${ID_L}${name}${ID_R}` };
     const imp = importForm(d.name, d.specs);
-    return { re: rival.mem ? imp : `${imp}|\\.${name}${d.kind === 'function' ? '\\s*\\(' : ID_R}` };
+    if (exactOnly || rival.mem) return { re: imp };
+    if (plain && d.kind !== 'function') return { re: imp }; // `.copy` could be anything; the import cannot
+    return { re: `${imp}|\\.${name}${d.kind === 'function' ? '\\s*\\(' : ID_R}` };
+  }
+  if (family === 'method') {
+    const clash = rival.fn;
+    if (clash) return { why: `${clash} live method(s) share this name` };
+    // `z.email()` is live and `z.string().email()` is deprecated: only a call on a call result can be the latter.
+    return { re: rival.sym || plain || GENERIC.has(d.name) ? `\\)\\s*\\??\\.${name}\\s*\\(` : `\\.${name}\\s*\\(` };
   }
   if (rival.mem) return { why: `${rival.mem} live member(s) share this name` };
-  if (bare && !rival.sym) return { re: `${ID_L}${name}${ID_R}` };
-  // `z.email()` is live and `z.string().email()` is deprecated: only a call on a call result can be the latter.
-  if (family === 'method') return { re: rival.sym ? `\\)\\s*\\??\\.${name}\\s*\\(` : `\\.${name}\\s*\\(` };
   if (rival.sym) return { why: 'a live export shares this property name' };
-  return { re: `\\.${name}${ID_R}|(?<=[{,]\\s*)${name}\\s*:` };
+  if (plain || GENERIC.has(d.name)) return { why: 'a plain word is too common a property name to match without types' };
+  const binding = `\\{[^{};()]*?(?<![\\w$.])(?<!\\b(?:const|let|var|function|class|type|interface|enum)\\s+)${name}${ID_R}\\s*[,}:=]`;
+  const jsx = `<[A-Za-z][\\w.]*(?:[^<>{}]|\\{(?:[^{}]|\\{[^{}]*\\})*\\})*?\\s${ID_L}${name}${ID_R}\\s*(?:=|\\/?>|\\s)`;
+  return { re: `\\.${name}${ID_R}|${binding}|${jsx}` };
 }
 
 /**
@@ -248,9 +297,10 @@ export function derive(dir, { only = null } = {}) {
   if (!roots.length) return { error: all.length ? 'none of those packages are installed' : 'no dependencies are installed here (run your package manager first)' };
 
   const surf = surface(roots);
-  const { merged, seen } = mergeDeclarations(surf);
+  const { merged } = mergeDeclarations(surf);
   const live = liveness(surf);
-  const stats = { files: surf.gates.size, decls: seen, rules: 0, merged: 0, skipped: { common: 0, short: 0, ambiguous: 0, unusable: 0 }, skips: [], packages: new Map() };
+  const rootNames = new Set(roots.map((r) => r.name));
+  const stats = { files: surf.gates.size, decls: merged.size, rules: 0, merged: 0, skipped: { common: 0, short: 0, ambiguous: 0, unusable: 0 }, skips: [], packages: new Map() };
   const skip = (d, reason, detail) => {
     stats.skipped[reason]++;
     stats.skips.push({ name: d.container ? `${d.container}.${d.name}` : d.name, reason, detail });
@@ -264,18 +314,24 @@ export function derive(dir, { only = null } = {}) {
     if (!/^[A-Za-z_$][\w$]*$/.test(name) || name.startsWith('_')) { skip(d, 'unusable', 'internal or not an identifier'); continue; } // `_x` is internal by convention
     const family = d.kind === 'enum-member' ? 'enum-member' : d.member ? (d.kind === 'method' ? 'method' : 'property') : 'symbol';
     if (family === 'enum-member' && !d.container) { skip(d, 'unusable', 'enum member without an enum'); continue; }
-    if (family !== 'enum-member' && COMMON.has(name)) { skip(d, 'common', 'too common a name to match'); continue; }
+    if (family !== 'enum-member' && BUILTIN.has(name)) { skip(d, 'common', 'a name the language itself uses'); continue; }
+    if (family === 'property' && GENERIC.has(name)) { skip(d, 'common', 'too common a property name to match safely'); continue; }
     if (name.length < MIN[family]) { skip(d, 'short', `shorter than ${MIN[family]} characters`); continue; }
 
     // A live declaration of the same name in this surface makes the name ambiguous outright. One
     // in another installed package only matters in a file that imports both, so it becomes an
     // `unless` guard instead of costing the rule.
-    const shape = shapeOf(d, family, live.within(d.scopes, name));
+    const sibs = d.module ? new Set() : live.siblings(name, d.scopes, family === 'method');
+    const shape = shapeOf(d, family, live.within(d.scopes, name), family === 'symbol' && sibs.size > 0);
     if (!shape.re) { skip(d, 'ambiguous', shape.why); continue; }
-    const others = distinctive(name) ? new Set() : live.rivals(name, d.specs);
+    const others = live.rivals(name, d.specs, family === 'method');
     if (others.size > MAX_RIVALS) { skip(d, 'ambiguous', `${others.size} other packages declare this name`); continue; }
+    // A symbol with a live twin on a sibling subpath is matched by its import statement alone (exact).
+    // A member cannot be told apart by syntax, so a file importing the sibling is left alone.
+    const stepAside = family === 'symbol' ? [] : [...sibs];
 
-    const owner = d.module || (d.pkg.name.startsWith('@types/') ? typesTarget(d.pkg.name) : d.pkg.name);
+    const declared = d.module || (d.pkg.name.startsWith('@types/') ? typesTarget(d.pkg.name) : d.pkg.name);
+    const owner = rootNames.has(declared) || d.module ? declared : pkgNameOf([...d.specs].sort()[0]);
     let id = [slug(owner.replace(/^node:/, '')), d.container && slug(d.container), slug(name)].filter(Boolean).join('-');
     for (let n = 2; ids.has(id); n++) id = id.replace(/-\d+$/, '') + '-' + n;
     ids.add(id);
@@ -283,7 +339,7 @@ export function derive(dir, { only = null } = {}) {
       id,
       re: shape.re,
       when: importGate(d.specs),
-      unless: others.size ? importGate(others, { subpaths: true }) : null,
+      unless: others.size || stepAside.length ? importGate(stepAside, others) : null,
       message: messageFor(d, d.pkg),
       specs: [...d.specs].sort(),
       pkg: d.pkg,
@@ -296,7 +352,7 @@ export function derive(dir, { only = null } = {}) {
     const key = [r.re, r.when, r.unless].join('\0');
     const prior = byShape.get(key);
     if (!prior) byShape.set(key, r);
-    else if (/ Use /.test(r.message) && !/ Use /.test(prior.message)) byShape.set(key, { ...r, id: prior.id });
+    else if (/ (?:Use|Import it from) /.test(r.message) && !/ (?:Use|Import it from) /.test(prior.message)) byShape.set(key, { ...r, id: prior.id });
   }
   const unique = [...byShape.values()].sort((a, b) => a.id.localeCompare(b.id));
   stats.rules = unique.length;
@@ -307,26 +363,52 @@ export function derive(dir, { only = null } = {}) {
     stats.packages.set(r.pkg.name, ps);
   }
 
-  const lines = [
+  const head = [
     'myelin 1.1',
     'id      derived',
     "about   Deprecated APIs in this project's installed dependencies, read from their type declarations",
     `fires   ${[...new Set(roots.map((r) => r.name))].slice(0, 40).join(' | ')}`,
     'comments skip',
+    'render  brief',
     'status  DERIVED, not curated. Each rule comes from a @deprecated tag in a package installed here and matches by name in files that import it. Expect misses and the odd false alarm.',
     '',
     `= generator    myelin derive ${pkgVersion()}`,
     `= fingerprint  ${fingerprint(roots)}`,
     ...roots.map((r) => `= package      ${r.types ? '@types/' : ''}${r.name} ${r.version || 'unknown'}`),
   ];
-  let group = null;
-  for (const r of unique) {
-    const g = r.id.split('-')[0];
-    if (g !== group) lines.push('', `# ${g}`);
-    group = g;
-    lines.push(`! ${r.id} /${r.re}/ when /${r.when}/${r.unless ? ` unless /${r.unless}/` : ''} ${r.message}`);
+  const ruleLine = (r) => `! ${r.id} /${r.re}/ when /${r.when}/${r.unless ? ` unless /${r.unless}/` : ''} ${r.message}`;
+  const render = (list) => {
+    const lines = [...head];
+    let group = null;
+    for (const r of list) {
+      const g = r.id.split('-')[0];
+      if (g !== group) lines.push('', `# ${g}`);
+      group = g;
+      lines.push(ruleLine(r));
+    }
+    return lines.join('\n') + '\n';
+  };
+
+  // A generator must never write a ledger that does not parse. Anything that fails is dropped and counted.
+  let kept = unique;
+  let text = render(kept);
+  for (let pass = 0; pass < 3; pass++) {
+    const bad = parse(text).problems.filter((p) => p.level === 'error');
+    if (!bad.length) break;
+    const lineOf = new Map(text.split('\n').map((l, i) => [i + 1, l]));
+    const drop = new Set(bad.map((p) => lineOf.get(p.line)).filter((l) => l && l.startsWith('! ')));
+    if (!drop.size) break;
+    for (const r of kept.filter((x) => drop.has(ruleLine(x)))) {
+      stats.skipped.unusable++;
+      stats.skips.push({ name: r.id, reason: 'unusable', detail: 'the pattern generated for it did not parse' });
+    }
+    kept = kept.filter((r) => !drop.has(ruleLine(r)));
+    text = render(kept);
   }
-  return { text: lines.join('\n') + '\n', rules: unique, stats, roots, notes: surf.notes };
+  stats.rules = kept.length;
+  const ok = parse(text);
+  if (!ok.ok) return { error: `could not produce a valid ledger: ${ok.problems.find((p) => p.level === 'error').message}` };
+  return { text, rules: kept, stats, roots, notes: surf.notes };
 }
 
 export const DERIVED_FILE = join('.myelin', 'derived.myelin');

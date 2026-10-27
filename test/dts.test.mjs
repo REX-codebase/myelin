@@ -232,9 +232,15 @@ export interface Root {
 }
 export declare function render(): void;`;
   const c = declarationCounts(t);
-  assert.deepEqual(c.get('render'), { sym: 1, mem: 2 }, 'one function, two members');
-  assert.deepEqual(c.get('only'), { sym: 0, mem: 1 });
-  assert.deepEqual(c.get('Root'), { sym: 1, mem: 0 });
+  assert.deepEqual(c.get('render'), { sym: 1, fn: 2, prop: 0 }, 'one function, two method signatures');
+  assert.deepEqual(c.get('only'), { sym: 0, fn: 1, prop: 0 });
+  assert.deepEqual(c.get('Root'), { sym: 1, fn: 0, prop: 0 });
+  const one = declarationCounts('export interface Other { optional(): void; flag: boolean }');
+  assert.deepEqual(one.get('optional'), { sym: 0, fn: 1, prop: 0 }, 'members on the same line as the brace are seen');
+  assert.deepEqual(one.get('flag'), { sym: 0, fn: 0, prop: 1 });
+  const p = declarationCounts('interface A {\n  url: string;\n  size?: number;\n  go<T>(a: T): T;\n}');
+  assert.deepEqual(p.get('url'), { sym: 0, fn: 0, prop: 1 }, 'a property is not callable');
+  assert.deepEqual(p.get('go'), { sym: 0, fn: 1, prop: 0 }, 'a generic method is');
 });
 
 test('strip keeps length and newlines so positions line up across views', () => {

@@ -27,7 +27,12 @@ export function renderGate(ledger, { snippets = [] } = {}) {
     out.push('', 'FACTS');
     for (const f of ledger.facts) out.push(`- ${f.key}: ${f.value}`);
   }
-  if (bans.length) {
+  if (bans.length && h.render === 'brief') {
+    // Generated ledgers (myelin derive) carry hundreds of machine-made regexes. A model needs the
+    // sentence, not the pattern; the checker still has the pattern.
+    out.push('', 'MUST NOT (do not write any of these; each line names the API and what to use instead):');
+    for (const r of bans) out.push(`- ${r.message}`);
+  } else if (bans.length) {
     out.push('', 'MUST NOT (your output must not match):');
     for (const r of bans) {
       let line = `- ${r.id}: ${lit(r)} - ${r.message}`;
