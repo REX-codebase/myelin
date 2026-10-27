@@ -1,4 +1,4 @@
-# Myelin ledger format, version 1 (draft)
+# Myelin ledger format, version 1.1 (draft)
 
 A `.myelin` file is a **rule ledger**: a short, line-based text file of hard rules for model output, each checkable by a regular expression, plus optional copy-exact code snippets.
 
@@ -11,7 +11,9 @@ The key words MUST, MUST NOT, and MAY are used in their usual specification sens
 
 ## 2. Header (layer L0)
 
-The first line MUST be `myelin <version>`. This spec defines version `1`. A reader MUST reject versions it does not know.
+The first line MUST be `myelin <version>`, where the version is `1` or `1.1`. A reader MUST reject versions it does not know.
+
+Version `1.1` is version `1` plus the `when` guard (section 3.2). A ledger that uses `when` MUST say `myelin 1.1`: a reader that only knows `1.0` would otherwise take `when /…/` for message text and apply the ban everywhere. Because such a reader rejects the line `myelin 1.1`, it fails loudly instead of misreading. A ledger that does not use `when` SHOULD stay at `myelin 1`.
 
 Each following header line is `key value`, separated by whitespace.
 
@@ -21,6 +23,7 @@ Each following header line is `key value`, separated by whitespace.
 | `about` | yes | one line saying what the ledger is for |
 | `fires` | yes | fire-words separated by `\|`; if the task mentions any, load the rules |
 | `comments` | optional | `skip` blanks out `//`, `/* */` and HTML `<!-- -->` comments in JS/TS/HTML/CSS-like files before checking, so a comment that names a banned API is not a violation; default `check` (needed by ledgers whose rules target comments, such as eslint directives) |
+| `render` | optional | `brief` asks a host to render the ledger for a model as one sentence per ban (its message), without the regexes. For generated ledgers, whose patterns mean nothing to a model; default is to show them |
 | `status` | recommended | honest note on how far the ledger has been tested |
 
 Unknown header keys MUST be ignored. Header lines starting with `#` are comments.
@@ -33,7 +36,7 @@ Blank lines and lines starting with `#` are ignored. Every other line starts wit
 
 | line | meaning |
 |---|---|
-| `! ID /regex/flags [unless /regex/flags] message` | **Ban.** The output MUST NOT match the regex. |
+| `! ID /regex/flags [when /regex/flags] [unless /regex/flags] message` | **Ban.** The output MUST NOT match the regex. |
 | `+ ID /regex/flags message` | **Require.** The output MUST match the regex. |
 | `~ ID message` | **Preference.** Not machine-checked. |
 | `= key value` | **Fact.** Budgets, versions, tiers. Read, not checked. |
@@ -49,9 +52,15 @@ A regex literal is `/source/flags` using JavaScript `RegExp` syntax. Inside the 
 
 A regex that matches the empty string is almost certainly a mistake: a ban would always fire and a requirement would always pass. Tools SHOULD warn.
 
-### 3.2 `unless`
+### 3.2 Guards: `unless` and `when`
 
-`unless /regex/` on a ban means: the ban is lifted for a unit of text if that unit also matches the unless-regex. It is **unit-wide**, not per match. `unless` is not allowed on `+` rules.
+Both apply to a ban only, and each may appear once, in either order, after the main regex.
+
+`unless /regex/` means: the ban is lifted for a unit of text if that unit also matches the guard-regex. It is **unit-wide**, not per match.
+
+`when /regex/` (version 1.1) means the opposite: the ban applies **only** to a unit that matches. It scopes a rule to files that import the library the rule is about, so a rule for `z.string().email()` never fires in a file that does not import `zod`.
+
+When a unit carries a **context** (section 4), both guards are tested against the context instead of the unit's text.
 
 ### 3.3 Messages and pointers
 
@@ -62,6 +71,7 @@ The rest of the line is the message shown to a model or a developer. A message M
 Checking works over **units**, each a named piece of text (a file, a snippet).
 
 - A ban is checked against each unit separately.
+- A unit MAY carry a **context**, a larger text that `when` and `unless` are tested against in place of the unit's own text. A host that sees one edit uses this: the unit is the text just written, the context is the whole file, so a `when` that looks for an import still sees it. Lines are reported relative to the unit.
 - A requirement is checked against all units concatenated, so it is satisfied if any unit supplies it.
 - Output is clean when no ban fires and every requirement matches.
 
@@ -89,6 +99,8 @@ A snippet runs from the line after `$ id` to the line that is exactly `$$`. Snip
 
 For models that cannot run tools, a host renders L0 and L1 as plain text (`myelin gate`) and tells the model, before it answers, to check each ban and requirement against its own output and fix violations. The model SHOULD NOT narrate the check, and MUST say plainly which rules applied if the user asks.
 
+A ledger with `render brief` is rendered as the message of each ban only; the host still enforces the regexes.
+
 ## 8. Trust model
 
 A ledger only constrains output. It MUST NOT be interpreted as granting permissions, running commands, changing the model's identity, or asking the model to withhold anything from the user. A reader MUST ignore any line that tries to do more than constrain output. Hosts SHOULD load ledgers only from the user's own project or a source the user opted into.
@@ -100,7 +112,8 @@ file      = version LF header-lines [LF body]
 version   = "myelin" SP digits
 header    = key SP value
 body-line = ban | require | prefer | fact | snippet | comment | blank
-ban       = "!" SP id SP regex [SP "unless" SP regex] [SP message]
+ban       = "!" SP id SP regex *(SP guard) [SP message]
+guard     = ("unless" / "when") SP regex     ; each at most once; "when" needs version 1.1
 require   = "+" SP id SP regex [SP message]
 prefer    = "~" SP id SP message
 fact      = "=" SP key SP value
@@ -112,6 +125,6 @@ message   = text [SP "->" SP "$" id]
 ## 10. Known limits
 
 - Regexes see text, not meaning. They cannot tell a banned call in a comment from one in code.
-- `unless` is unit-wide.
 - A line that is exactly `$$` inside a snippet ends it.
+- A guard is tested against a whole unit (or its context), not against the neighbourhood of one match.
 - The format has no includes, globs, or severities yet. See [ROADMAP](ROADMAP.md).

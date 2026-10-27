@@ -14,6 +14,8 @@ myelin init my-rules.myelin
 - Anchor with `\b` and escape dots and parentheses so `random` in a variable name does not fire.
 - Put the **fix in the message**, and point at a snippet: `Use the seeded rng. -> $rng`. A ban without an alternative just makes the model guess.
 - Use `unless` for "allowed only with": `! B7 /new THREE\.DirectionalLight\(/ unless /shadow\.bias\s*=\s*-0\.0005/`. Remember it is **unit-wide**: one match anywhere in the file exempts the whole file.
+- Use `when` (needs `myelin 1.1` on the first line) to scope a rule to files about one library: `! B3 /\.email\(/ when /from\s+['"]zod['"]/`. The rule then cannot fire on a `.email(` call in a file that never imports zod. Combine both: `when` says where the rule applies, `unless` says where it is lifted.
+- Do not hand-write rules for something `myelin derive` can read from the library's own `@deprecated` tags. Write the ones it cannot: removed APIs, changed behaviour, config and CSS.
 
 ## Requirements
 

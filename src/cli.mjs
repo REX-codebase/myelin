@@ -6,10 +6,13 @@ import { renderGate, renderHeader } from './gate.mjs';
 import { fixPlan } from './fix.mjs';
 import { watchLoop } from './watch.mjs';
 import { libPath, listLibs, detectLibs, benchAll, benchTable, benchCross } from './libs.mjs';
-import { CliError, DEFAULT_EXT, collect, pkgVersion } from './util.mjs';
+import { CliError, DEFAULT_EXT, collect, pkgVersion, projectDir } from './util.mjs';
 import { helpText, suggest } from './help.mjs';
 import { setup, needsSetup } from './setup.mjs';
 import { doctor } from './doctor.mjs';
+import { deriveCommand } from './derive-cli.mjs';
+import { hookCommand } from './hook.mjs';
+import { derivedPath, hasDerived } from './derive.mjs';
 
 const SHORT_FLAGS = { y: 'yes', v: 'version', h: 'help' };
 
@@ -46,11 +49,36 @@ function parseArgs(argv) {
   return { pos, flags };
 }
 
-function resolveLedger(path) {
-  if (existsSync(path)) return path;
-  const lib = libPath(path);
+// The project that "derived" and .myelin/ignore belong to: --dir, else the working directory.
+let PROJECT = process.cwd();
+
+function ledgerFile(name) {
+  if (existsSync(name)) return name;
+  const lib = libPath(name);
   if (lib) return lib;
+  if (name === 'derived' && existsSync(derivedPath(PROJECT))) return derivedPath(PROJECT);
+  return null;
+}
+
+function resolveLedger(path) {
+  const found = ledgerFile(path);
+  if (found) return found;
+  if (path === 'derived') throw new CliError('no .myelin/derived.myelin here; run "myelin derive" first');
   throw new CliError(`cannot read ${path} (not a file or a bundled lib; run "myelin libs")`);
+}
+
+// Rule ids a project has chosen to leave out: one per line in .myelin/ignore, and --ignore=A,B.
+function ignoreSet(flags) {
+  if (flags.ignore === true) throw new CliError('--ignore needs rule ids, e.g. --ignore=react-B3,zod-ZodString-email');
+  const ids = new Set(String(flags.ignore || '').split(',').map((s) => s.trim()).filter(Boolean));
+  const file = join(PROJECT, '.myelin', 'ignore');
+  if (existsSync(file)) {
+    for (const line of readFileSync(file, 'utf8').split(/\r?\n/)) {
+      const id = line.replace(/#.*/, '').trim();
+      if (id) ids.add(id);
+    }
+  }
+  return ids;
 }
 
 function load(path) {
@@ -133,12 +161,12 @@ function lintInputs(args, flags) {
   const files = collect(targets, exts);
   if (!files.length) throw new CliError('no files to check');
   const units = files.map((f) => ({ name: f, text: readFileSync(f, 'utf8') }));
-  return { names, ledgers, units, targets };
+  return { names, ledgers, units, targets, ignore: ignoreSet(flags) };
 }
 
 function runLint(args, flags, log) {
-  const { ledgers, units } = lintInputs(args, flags);
-  const results = ledgers.map(([n, l]) => ({ ledger: n, ...check(l, units) }));
+  const { ledgers, units, ignore } = lintInputs(args, flags);
+  const results = ledgers.map(([n, l]) => ({ ledger: n, ...check(l, units, { ignore }) }));
   const ok = results.every((r) => r.ok);
   if (flags.json) log(JSON.stringify(results.length === 1 ? results[0] : { ok, results }, null, 2));
   else
@@ -153,7 +181,7 @@ function runLint(args, flags, log) {
 // reported and the watch keeps going, since the author is probably mid-edit.
 async function watchLint(args, flags, log) {
   const { names, targets } = lintInputs(args, flags);
-  const ledgerFiles = names.map((n) => (existsSync(n) ? n : libPath(n))).filter(Boolean);
+  const ledgerFiles = names.map(ledgerFile).filter(Boolean);
   const job = () => {
     log(`\n[${new Date().toLocaleTimeString()}] lint`);
     runLint(args, flags, log);
@@ -173,6 +201,7 @@ export async function main(argv) {
   const log = (s) => console.log(s);
 
   try {
+    PROJECT = projectDir(flags);
     if (cmd === undefined && wantsWizard(flags)) return await setup(flags);
 
     switch (cmd) {
@@ -186,6 +215,12 @@ export async function main(argv) {
 
       case 'doctor':
         return doctor(flags);
+
+      case 'derive':
+        return deriveCommand(flags, log);
+
+      case 'hook':
+        return await hookCommand(args, flags, log);
 
       case 'validate': {
         const ledger = load(args[0]);
@@ -237,8 +272,8 @@ export async function main(argv) {
       }
 
       case 'fix': {
-        const { ledgers, units } = lintInputs(args, flags);
-        const runs = ledgers.map(([name, ledger]) => ({ name, ledger, result: check(ledger, units) }));
+        const { ledgers, units, ignore } = lintInputs(args, flags);
+        const runs = ledgers.map(([name, ledger]) => ({ name, ledger, result: check(ledger, units, { ignore }) }));
         const ok = runs.every((r) => r.result.ok);
         if (flags.json) {
           const results = runs.map(({ name, ledger, result }) => ({ ledger: name, ...result, fixes: fixPlan(ledger, result) }));
@@ -269,16 +304,18 @@ export async function main(argv) {
       case 'detect': {
         const dir = args[0] || '.';
         const { found } = detectLibs(dir);
+        // The ledger `myelin derive` wrote is part of the project, so it is part of what to lint with.
+        const all = hasDerived(dir) ? [...found, { id: 'derived', matched: ['.myelin/derived.myelin'] }] : found;
         if (flags.json) {
-          log(JSON.stringify(found.map((f) => ({ id: f.id, matched: f.matched })), null, 2));
+          log(JSON.stringify(all.map((f) => ({ id: f.id, matched: f.matched })), null, 2));
           return 0;
         }
-        if (!found.length) {
+        if (!all.length) {
           log('no bundled libs match this project');
           return 0;
         }
-        for (const f of found) log(`${f.id}  (${f.matched.join(', ')})`);
-        log(`\nlint with: myelin lint ${found.map((f) => f.id).join(',')} src/`);
+        for (const f of all) log(`${f.id}  (${f.matched.join(', ')})`);
+        log(`\nlint with: myelin lint ${all.map((f) => f.id).join(',')} src/`);
         return 0;
       }
 

@@ -20,6 +20,15 @@ Add [`integrations/AGENTS.md.snippet`](../integrations/AGENTS.md.snippet) to you
 
 Drop [`integrations/skill-bridge/SKILL.md`](../integrations/skill-bridge/SKILL.md) into your skills folder. It carries no rules itself; it tells the model to find the matching ledger, run `gate`, and `lint` the result.
 
+## 3b. Claude Code hooks
+
+Instructions in `AGENTS.md` are advice. A hook is code the host runs every time. `myelin hook install` adds two to `.claude/settings.json`:
+
+- **PostToolUse** on `Edit`, `MultiEdit` and `Write`: checks only the text the agent just wrote against the project's ledgers (including the derived one) and, on a hit, prints the findings to stderr and exits 2, which Claude Code returns to the model. The edit has already happened; the message says so.
+- **SessionStart**: prints the rules for the packages the project uses, as context.
+
+Details, the escape hatch (`.myelin/ignore`) and what the hooks refuse to do are in [DERIVE.md](DERIVE.md#agent-hooks). The payload this reads is Claude Code's own: `tool_name`, `tool_input.file_path` and `new_string` or `content`, `cwd`. For another agent, call `myelin lint` from its hook mechanism, a pre-commit hook or CI.
+
 ## 4. CI
 
 Reject generated code that breaks a ledger. This GitHub Actions job assumes the ledger and the `myelin` repo are checked out:
@@ -46,7 +55,7 @@ The repository root has a composite action, [`action.yml`](../action.yml). It ru
     ext: js,ts                       # optional; default is the CLI's list
 ```
 
-`libs: detect` reads the project's `package.json` and checks the bundled libs that match. Use `paths` to limit the scan to generated code.
+`libs: detect` reads the project's `package.json` and checks the bundled libs that match, plus `derived` when `.myelin/derived.myelin` is committed. Use `paths` to limit the scan to generated code. To fail CI when the committed derived ledger has fallen behind `node_modules`, add `run: myelin derive --check` after the install step.
 
 ## 5. Building a host
 

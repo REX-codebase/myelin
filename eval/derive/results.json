@@ -1,0 +1,574 @@
+{
+  "derive": {
+    "ms": 2502,
+    "rules": 389,
+    "deprecatedApis": 810,
+    "leftOut": 403,
+    "packages": 25,
+    "files": 2968
+  },
+  "labelled": {
+    "libs": [
+      {
+        "lib": "ai-sdk",
+        "stale": 8,
+        "staleFlagged": 1,
+        "current": 6,
+        "currentFlagged": 1
+      },
+      {
+        "lib": "angular",
+        "stale": 10,
+        "staleFlagged": 0,
+        "current": 7,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "astro",
+        "stale": 9,
+        "staleFlagged": 0,
+        "current": 7,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "drizzle",
+        "stale": 10,
+        "staleFlagged": 1,
+        "current": 7,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "eslint",
+        "stale": 8,
+        "staleFlagged": 0,
+        "current": 6,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "express",
+        "stale": 7,
+        "staleFlagged": 0,
+        "current": 5,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "mongoose",
+        "stale": 9,
+        "staleFlagged": 0,
+        "current": 7,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "nextjs",
+        "stale": 12,
+        "staleFlagged": 0,
+        "current": 8,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "openai",
+        "stale": 10,
+        "staleFlagged": 0,
+        "current": 6,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "prisma",
+        "stale": 7,
+        "staleFlagged": 0,
+        "current": 7,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "react",
+        "stale": 10,
+        "staleFlagged": 1,
+        "current": 7,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "react-router",
+        "stale": 10,
+        "staleFlagged": 0,
+        "current": 6,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "svelte",
+        "stale": 11,
+        "staleFlagged": 3,
+        "current": 8,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "tailwind",
+        "stale": 9,
+        "staleFlagged": 0,
+        "current": 7,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "tanstack-query",
+        "stale": 9,
+        "staleFlagged": 2,
+        "current": 7,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "three",
+        "stale": 11,
+        "staleFlagged": 2,
+        "current": 7,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "vitest",
+        "stale": 9,
+        "staleFlagged": 0,
+        "current": 7,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "vue",
+        "stale": 10,
+        "staleFlagged": 1,
+        "current": 8,
+        "currentFlagged": 0
+      },
+      {
+        "lib": "zod",
+        "stale": 8,
+        "staleFlagged": 4,
+        "current": 6,
+        "currentFlagged": 0
+      }
+    ],
+    "stale": 177,
+    "staleFlagged": 15,
+    "current": 129,
+    "currentFlagged": 1,
+    "currentHits": [
+      {
+        "file": "ai-sdk/good/chat-page.tsx",
+        "line": 5,
+        "rule": "react-React-FormEvent",
+        "text": "import { useState, type FormEvent } from 'react';"
+      }
+    ],
+    "ceilingStaleFlagged": 48,
+    "ceilingCurrentFlagged": 33
+  },
+  "wild": [
+    {
+      "label": "three.js r150 examples (2023)",
+      "kind": "old",
+      "files": 408,
+      "derivedFlagged": 85,
+      "curatedFlagged": 399,
+      "both": 85,
+      "derivedOnly": 0,
+      "derivedByRule": {
+        "three-Clock": 79,
+        "three-PCFSoftShadowMap": 7,
+        "three-Matrix3-rotate": 1
+      }
+    },
+    {
+      "label": "three.js r186 WebGPU examples",
+      "kind": "current",
+      "files": 230,
+      "derivedFlagged": 0,
+      "curatedFlagged": 0,
+      "both": 0,
+      "derivedOnly": 0,
+      "derivedByRule": {},
+      "derivedHits": []
+    },
+    {
+      "label": "Next.js 14.2 App Router examples",
+      "kind": "old",
+      "files": 252,
+      "derivedFlagged": 1,
+      "curatedFlagged": 32,
+      "both": 0,
+      "derivedOnly": 1,
+      "derivedByRule": {
+        "react-React-FormEventHandler": 1
+      }
+    },
+    {
+      "label": "Next.js 16.4.3 App Router examples",
+      "kind": "current",
+      "files": 401,
+      "derivedFlagged": 3,
+      "curatedFlagged": 20,
+      "both": 0,
+      "derivedOnly": 3,
+      "derivedByRule": {
+        "react-React-FormEvent": 2,
+        "react-React-FormEventHandler": 1
+      },
+      "derivedHits": [
+        {
+          "file": "next-16/examples/with-google-analytics/app/contact/page.tsx",
+          "line": 2,
+          "rule": "react-React-FormEvent",
+          "text": "import { useRef, type FormEvent } from \"react\";"
+        },
+        {
+          "file": "next-16/examples/with-plausible/app/contact/page.tsx",
+          "line": 3,
+          "rule": "react-React-FormEvent",
+          "text": "import { FormEvent, useState } from \"react\";"
+        },
+        {
+          "file": "next-16/examples/with-stripe-typescript/app/components/ElementsForm.tsx",
+          "line": 73,
+          "rule": "react-React-FormEventHandler",
+          "text": "const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {"
+        }
+      ]
+    }
+  ],
+  "apps": [
+    {
+      "app": "taxonomy",
+      "commit": "298a8857c712",
+      "files": 129,
+      "filesFlagged": 26,
+      "hits": [
+        {
+          "file": "components/ui/accordion.tsx",
+          "line": 12,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof AccordionPrimitive.Item>,"
+        },
+        {
+          "file": "components/ui/alert-dialog.tsx",
+          "line": 27,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof AlertDialogPrimitive.Overlay>,"
+        },
+        {
+          "file": "components/ui/avatar.tsx",
+          "line": 9,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof AvatarPrimitive.Root>,"
+        },
+        {
+          "file": "components/ui/checkbox.tsx",
+          "line": 10,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof CheckboxPrimitive.Root>,"
+        },
+        {
+          "file": "components/ui/command.tsx",
+          "line": 12,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof CommandPrimitive>,"
+        },
+        {
+          "file": "components/ui/context-menu.tsx",
+          "line": 22,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof ContextMenuPrimitive.SubTrigger>,"
+        },
+        {
+          "file": "components/ui/dialog.tsx",
+          "line": 27,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof DialogPrimitive.Overlay>,"
+        },
+        {
+          "file": "components/ui/dropdown-menu.tsx",
+          "line": 22,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof DropdownMenuPrimitive.SubTrigger>,"
+        },
+        {
+          "file": "components/ui/hover-card.tsx",
+          "line": 13,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof HoverCardPrimitive.Content>,"
+        },
+        {
+          "file": "components/ui/label.tsx",
+          "line": 14,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof LabelPrimitive.Root>,"
+        },
+        {
+          "file": "components/ui/menubar.tsx",
+          "line": 20,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof MenubarPrimitive.Root>,"
+        },
+        {
+          "file": "components/ui/navigation-menu.tsx",
+          "line": 9,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof NavigationMenuPrimitive.Root>,"
+        },
+        {
+          "file": "components/ui/popover.tsx",
+          "line": 13,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof PopoverPrimitive.Content>,"
+        },
+        {
+          "file": "components/ui/progress.tsx",
+          "line": 9,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof ProgressPrimitive.Root>,"
+        },
+        {
+          "file": "components/ui/radio-group.tsx",
+          "line": 10,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof RadioGroupPrimitive.Root>,"
+        },
+        {
+          "file": "components/ui/scroll-area.tsx",
+          "line": 9,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof ScrollAreaPrimitive.Root>,"
+        },
+        {
+          "file": "components/ui/select.tsx",
+          "line": 16,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof SelectPrimitive.Trigger>,"
+        },
+        {
+          "file": "components/ui/separator.tsx",
+          "line": 9,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof SeparatorPrimitive.Root>,"
+        },
+        {
+          "file": "components/ui/sheet.tsx",
+          "line": 43,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof SheetPrimitive.Overlay>,"
+        },
+        {
+          "file": "components/ui/slider.tsx",
+          "line": 9,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof SliderPrimitive.Root>,"
+        },
+        {
+          "file": "components/ui/switch.tsx",
+          "line": 9,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof SwitchPrimitives.Root>,"
+        },
+        {
+          "file": "components/ui/tabs.tsx",
+          "line": 11,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof TabsPrimitive.List>,"
+        },
+        {
+          "file": "components/ui/toast.tsx",
+          "line": 11,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof ToastPrimitives.Viewport>,"
+        },
+        {
+          "file": "components/ui/toggle.tsx",
+          "line": 32,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof TogglePrimitive.Root>,"
+        },
+        {
+          "file": "components/ui/tooltip.tsx",
+          "line": 15,
+          "rule": "react-React-ElementRef",
+          "text": "React.ElementRef<typeof TooltipPrimitive.Content>,"
+        },
+        {
+          "file": "lib/validations/auth.ts",
+          "line": 4,
+          "rule": "zod-ZodString-email",
+          "text": "email: z.string().email(),"
+        }
+      ],
+      "byRule": {
+        "react-React-ElementRef": 25,
+        "zod-ZodString-email": 1
+      }
+    },
+    {
+      "app": "ai-chatbot",
+      "commit": "c2f8235e1f3e",
+      "files": 154,
+      "filesFlagged": 3,
+      "hits": [
+        {
+          "file": "components/ai-elements/prompt-input.tsx",
+          "line": 9,
+          "rule": "react-React-FormEvent",
+          "text": "FormEvent,"
+        },
+        {
+          "file": "components/ai-elements/prompt-input.tsx",
+          "line": 10,
+          "rule": "react-React-FormEventHandler",
+          "text": "FormEventHandler,"
+        },
+        {
+          "file": "components/chat/multimodal-input.tsx",
+          "line": 621,
+          "rule": "react-React-MutableRefObject",
+          "text": "fileInputRef: React.MutableRefObject<HTMLInputElement | null>;"
+        },
+        {
+          "file": "lib/editor/config.ts",
+          "line": 7,
+          "rule": "react-React-MutableRefObject",
+          "text": "import type { MutableRefObject } from \"react\";"
+        }
+      ],
+      "byRule": {
+        "react-React-FormEvent": 1,
+        "react-React-FormEventHandler": 1,
+        "react-React-MutableRefObject": 2
+      }
+    },
+    {
+      "app": "shadcn-ui",
+      "commit": "96da9cc7f1aa",
+      "files": 1515,
+      "filesFlagged": 15,
+      "hits": [
+        {
+          "file": "apps/v4/registry/bases/aria/examples/code-block-example.tsx",
+          "line": 95,
+          "rule": "ai-StreamTextResult-toUIMessageStreamResponse",
+          "text": "return result.toUIMessageStreamResponse()"
+        },
+        {
+          "file": "apps/v4/registry/bases/aria/examples/combobox-example.tsx",
+          "line": 786,
+          "rule": "react-React-FormEvent",
+          "text": "const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {"
+        },
+        {
+          "file": "apps/v4/registry/bases/aria/examples/message-scroller-example.tsx",
+          "line": 131,
+          "rule": "react-React-FormEvent",
+          "text": "function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {"
+        },
+        {
+          "file": "apps/v4/registry/bases/aria/examples/questionnaire-example.tsx",
+          "line": 457,
+          "rule": "react-React-FormEvent",
+          "text": "function handleSubmit(event: React.FormEvent<HTMLFormElement>) {"
+        },
+        {
+          "file": "apps/v4/registry/bases/base/examples/code-block-example.tsx",
+          "line": 96,
+          "rule": "ai-StreamTextResult-toUIMessageStreamResponse",
+          "text": "return result.toUIMessageStreamResponse()"
+        },
+        {
+          "file": "apps/v4/registry/bases/base/examples/combobox-example.tsx",
+          "line": 774,
+          "rule": "react-React-FormEvent",
+          "text": "const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {"
+        },
+        {
+          "file": "apps/v4/registry/bases/base/examples/message-scroller-example.tsx",
+          "line": 131,
+          "rule": "react-React-FormEvent",
+          "text": "function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {"
+        },
+        {
+          "file": "apps/v4/registry/bases/base/examples/questionnaire-example.tsx",
+          "line": 460,
+          "rule": "react-React-FormEvent",
+          "text": "function handleSubmit(event: React.FormEvent<HTMLFormElement>) {"
+        },
+        {
+          "file": "apps/v4/registry/bases/radix/blocks/preview-03/components/prompt-input.tsx",
+          "line": 43,
+          "rule": "react-React-FormEvent",
+          "text": "function handleFormSubmit(event: React.FormEvent<HTMLFormElement>) {"
+        },
+        {
+          "file": "apps/v4/registry/bases/radix/examples/code-block-example.tsx",
+          "line": 96,
+          "rule": "ai-StreamTextResult-toUIMessageStreamResponse",
+          "text": "return result.toUIMessageStreamResponse()"
+        },
+        {
+          "file": "apps/v4/registry/bases/radix/examples/combobox-example.tsx",
+          "line": 737,
+          "rule": "react-React-FormEvent",
+          "text": "const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {"
+        },
+        {
+          "file": "apps/v4/registry/bases/radix/examples/message-scroller-example.tsx",
+          "line": 131,
+          "rule": "react-React-FormEvent",
+          "text": "function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {"
+        },
+        {
+          "file": "apps/v4/registry/bases/radix/examples/questionnaire-example.tsx",
+          "line": 460,
+          "rule": "react-React-FormEvent",
+          "text": "function handleSubmit(event: React.FormEvent<HTMLFormElement>) {"
+        },
+        {
+          "file": "apps/v4/registry/new-york-v4/examples/form-rhf-array.tsx",
+          "line": 39,
+          "rule": "zod-ZodString-email",
+          "text": "address: z.string().email(\"Enter a valid email address.\"),"
+        },
+        {
+          "file": "apps/v4/registry/new-york-v4/examples/form-tanstack-array.tsx",
+          "line": 39,
+          "rule": "zod-ZodString-email",
+          "text": "address: z.string().email(\"Enter a valid email address.\"),"
+        }
+      ],
+      "byRule": {
+        "ai-StreamTextResult-toUIMessageStreamResponse": 3,
+        "react-React-FormEvent": 10,
+        "zod-ZodString-email": 2
+      }
+    },
+    {
+      "app": "tanstack-query",
+      "commit": "2941a23d5796",
+      "files": 243,
+      "filesFlagged": 2,
+      "hits": [
+        {
+          "file": "examples/react/nextjs-app-optimistic-updates/components/TodoListCache.tsx",
+          "line": 67,
+          "rule": "react-React-FormEvent",
+          "text": "function handleSubmit(e: React.FormEvent) {"
+        },
+        {
+          "file": "examples/react/nextjs-app-optimistic-updates/components/TodoListUI.tsx",
+          "line": 23,
+          "rule": "react-React-FormEvent",
+          "text": "function handleSubmit(e: React.FormEvent) {"
+        }
+      ],
+      "byRule": {
+        "react-React-FormEvent": 2
+      }
+    },
+    {
+      "app": "openai-node",
+      "commit": "60224b376e25",
+      "files": 56,
+      "filesFlagged": 0,
+      "hits": [],
+      "byRule": {}
+    }
+  ]
+}

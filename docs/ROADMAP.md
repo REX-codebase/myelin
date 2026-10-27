@@ -11,11 +11,21 @@ Ideas, not promises. Order is rough priority.
 
 ## Format v1.1 (backward compatible)
 
+- Done (unreleased): `when /re/` on a ban, `render brief`, and a unit `context`. See [SPEC](SPEC.md).
 - `scope` header key: file globs a ledger applies to.
 - Per-rule severity: `error` and `warn`.
 - `unless` that applies per match instead of per unit.
 - Comment and string stripping before matching, so a banned token in a comment does not fire.
 - `include` of another ledger, with shared rule packs.
+
+## Derived ledgers and agent hooks
+
+- Done (unreleased): `myelin derive` and `myelin hook` (Claude Code). See [DERIVE](DERIVE.md).
+- Hooks for other agents once their payload formats are verified against the real tools (Cursor, Codex, Gemini CLI). Today they call `myelin lint`.
+- A ratchet for existing code: fail only on findings that are new since a recorded baseline, so a derived ledger can gate CI on a codebase that already uses deprecated APIs.
+- Derive from places other than `.d.ts`: Python (`warnings.warn(..., DeprecationWarning)`, `typing_extensions.deprecated`), and `deprecated` fields in package manifests.
+- Alias-aware matching: a namespace import (`import * as ns`) makes `ns.render(` unambiguous even when `.render(` is not, which would recover rules that are dropped today.
+- An MCP server (`myelin mcp`) exposing `gate` and `lint` to any host that speaks MCP, with `lint` taking code as a string so a model can check a draft before writing it.
 
 ## Tooling
 

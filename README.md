@@ -170,9 +170,40 @@ Missing yours? [Add a ledger](docs/AUTHORING.md). Every rule needs a source link
 
 <br>
 
+## Beyond the 19
+
+Your project has more dependencies than Myelin has ledgers, and it is not on the latest version of any of them. But library authors already say what is deprecated, in the types they ship. `myelin derive` reads those tags from the versions in your `node_modules` and writes them as a ledger:
+
+```bash
+myelin derive                       # .myelin/derived.myelin, exact to what you have installed
+myelin lint derived,react src/
+myelin hook install                 # Claude Code checks every edit it makes, without being asked
+```
+
+Run on five open-source code bases (2,097 files), read as text, with nothing set up:
+
+```
+FAIL react-React-ElementRef  components/ui/dialog.tsx:27  `React.ElementRef` is deprecated in @types/react@19.3.0. Use `ComponentRef<T>` instead.
+FAIL zod-ZodString-email     lib/validations/auth.ts:4    `ZodString.email()` is deprecated in zod@4.6.7. Use `z.email()` instead.
+FAIL react-React-FormEvent   components/ai-elements/prompt-input.tsx:9  `React.FormEvent` is deprecated in @types/react@19.3.0. Use one of `ChangeEvent`, `InputEvent`, `SubmitEvent` or `SyntheticEvent` instead.
+```
+
+47 findings in 46 files, every one a real use of a deprecated API and none a compile error, so `tsc` says nothing. Even the maintained shadcn/ui registry and TanStack Query's own examples still use `React.FormEvent`. It is built to miss a rule rather than raise a false alarm: each rule is gated on the file importing the package, there is never a bare-name match, and a name that is also live somewhere else is dropped or narrowed (`z.string().email()` is flagged; `z.email()` is not). `myelin derive --explain` lists every API it left out and why.
+
+| | curated ledgers | derived ledger |
+|---|---|---|
+| Covers | 19 libraries | any library with types |
+| Version | the one researched | **the one installed** |
+| Knows | removed and changed APIs, config, CSS | APIs that still work but are deprecated |
+| Stale files caught, of the 177 in this repo's corpus | 100% | 8.5% (no approach built on deprecation tags can pass 27%) |
+
+They find different things. On Next.js 16.4.3's own examples they flag different files, with none in common. Use both. How it works, what it cannot do, and the safety model: **[docs/DERIVE.md](docs/DERIVE.md)**.
+
+<br>
+
 ## Evidence
 
-Five tests, all reproducible from this repo. The first three ask: does a ledger flag stale code and leave current code alone? The last two ask: does a model given a ledger write less of it?
+Seven tests, all reproducible from this repo. The first three ask: does a ledger flag stale code and leave current code alone? The next two ask: does a model given a ledger write less of it? The last two are about derived ledgers and hooks.
 
 <p align="center"><img src="assets/bench.svg" alt="Benchmark results" width="100%"></p>
 
@@ -183,6 +214,8 @@ Five tests, all reproducible from this repo. The first three ask: does a ledger 
 | **Official examples, untouched**<br><sub>upstream repos, old release vs current</sub> | three.js r150: 97.8% flagged. three.js r186: 0.4% flagged (1 of 230, an old API in a comment). Next.js 16.4.3's own examples: 19 genuine pre-16 patterns. |
 | **Agent A/B**<br><sub>bonfire scene, GLM 5.3, 2 agents per arm</sub> | Unguided: both used two removed APIs. Guided: neither did. |
 | **Agent A/B**<br><sub>lighthouse + neon street, Claude Haiku 5.5, 6 agents per arm</sub> | Unguided: 5 of 6 used a stale API. Prose skill and Myelin: 0 of 6 each. Lint matched three.js's runtime warnings on all 18 pages. |
+| **Derived ledger**<br><sub>corpus, official examples, 5 real code bases (2,097 files)</sub> | Catches 15 of 177 stale files (no deprecation-based approach can pass 48), flags 1 of 129 current files, a genuine deprecation. On real code: 47 findings, all read, all genuine. 0 on current three.js r186 examples. |
+| **Hook A/B**<br><sub>real Claude Code, 3 tasks, 9 runs per arm</sub> | Unguided: 9 of 9 final files used a deprecated API. With the hook: 0 of 9. With the hook and the session brief: 0 of 9 first drafts. |
 
 <p align="center"><img src="assets/bonfire-ab.png" alt="The same bonfire task, built by agents with no guidance, a prose skill, and the Myelin gate plus lint" width="100%"></p>
 
@@ -203,6 +236,7 @@ Myelin is deliberately small. These are its edges, stated plainly.
 | **Comments can trip it** | A banned token in a comment can fire a rule. | Ledgers set `comments skip` to blank out comments before matching. Only the three.js ledger does so far. |
 | **Version-pinned** | Every ledger targets one release and a research date. Libraries move on. | Check the `= version` line. Re-verify before trusting a ledger on a newer major. |
 | **Lift is measured on three.js only** | Across 24 agents and two model families, 7 of 8 unguided runs wrote a stale three.js API and 0 of 16 guided runs did. The other 18 ledgers have detection benchmarks but no agent runs yet. A well-written prose skill matched the gate on stale-API rate; the gate's edge is that the same file verifies the output. | Run [`eval/agent-ab/`](eval/agent-ab/README.md) against your own model and library. |
+| **Derived rules match names, not types** | `.page()` on your analytics object is not `NextRequest.page()`, and a regex cannot tell. `derive` avoids names where that can happen, and pays for it in recall. A rule that is wrong for you goes in `.myelin/ignore`. | See [docs/DERIVE.md](docs/DERIVE.md#limits). |
 | **Narrow by design** | The three.js ledger targets WebGPU + TSL, not WebGL-only projects. `unless` lifts a ban for a whole file, not a single match. No globs or severities yet. | See the [roadmap](docs/ROADMAP.md). |
 | **Output only** | A ledger can constrain what a model writes. It cannot grant permissions, run commands, or change instructions. Readers ignore any line that tries. | Load ledgers only from your own project or a source you trust. |
 
@@ -213,6 +247,7 @@ Myelin is deliberately small. These are its edges, stated plainly.
 | Where | How |
 |---|---|
 | **Claude Code, Cursor, Codex, any shell agent** | Add [`integrations/AGENTS.md.snippet`](integrations/AGENTS.md.snippet). The agent runs `gate` before coding and `lint` after. |
+| **Claude Code, automatically** | `myelin hook install`. A hook checks the text the agent just wrote after every edit and returns findings to the model, and a second one briefs it at session start. No instruction for the model to forget. |
 | **Chat with no tools** | Paste the output of `myelin gate <lib> --all` into the prompt. |
 | **Claude skills** | Drop in [`integrations/skill-bridge/SKILL.md`](integrations/skill-bridge/SKILL.md). |
 | **CI** | `npx github:REX-codebase/myelin lint nextjs,react app/` fails the build on stale code. |
@@ -230,6 +265,8 @@ More in [docs/HOSTS.md](docs/HOSTS.md).
 | `lint <lib or ledger>[,more] <files>` | Check code. Exit 1 on any violation. |
 | `gate <lib or ledger> [--all]` | Print the rules as plain text for a model. |
 | `use <lib>` | Copy a bundled ledger into `.myelin/` to customise. |
+| `derive` | Write `.myelin/derived.myelin` from the `@deprecated` tags of your installed packages. `--explain`, `--check`, `--only=a,b`. |
+| `hook install` · `hook uninstall` | Add or remove the Claude Code hooks. |
 | `bench [lib...] [--cross] [--md]` | Score ledgers on their labelled corpus. |
 | `validate` · `self` · `snippet` · `header` · `init` | Author your own ledgers. |
 

@@ -68,8 +68,13 @@ myelin init my-rules.myelin                             # start a new ledger
 | `header <ledger>` | Print only the short L0 header. |
 | `snippet <ledger> <id>` | Print one snippet. |
 | `init <path>` | Write a starter ledger. |
+| `derive` | Read the `@deprecated` tags of the packages in `node_modules` and write `.myelin/derived.myelin`. `--only=a,b` restricts it, `--check` exits 1 when the file is older than `node_modules`, `--explain[=name]` says why a deprecated API did not become a rule, `--stdout` prints instead of writing. See [DERIVE.md](DERIVE.md). |
+| `hook install` · `hook uninstall` | Add or remove Myelin's Claude Code hooks in `.claude/settings.json` (`--local` for `settings.local.json`, `--dry-run` to preview). |
+| `hook post` · `hook session` | The hooks themselves: they read Claude Code's hook payload on stdin. `post` exits 2 with the findings on stderr; `session` prints the project's rules as context. |
 
-Add `--json` to `validate`, `self`, `lint`, and `fix` for machine-readable output. Exit codes: `0` clean, `1` rule failures or invalid ledger, `2` usage or file error.
+The ledger name `derived` stands for `.myelin/derived.myelin` in `lint`, `fix` and `gate`: `myelin lint derived,react src/`. `lint` and `fix` also take `--ignore=<ids>` and read `.myelin/ignore` (one rule id per line) to leave rules out.
+
+Add `--json` to `validate`, `self`, `lint`, `fix` and `derive` for machine-readable output. Exit codes: `0` clean, `1` rule failures or invalid ledger, `2` usage or file error.
 
 ## How it differs from a skill
 
@@ -81,6 +86,7 @@ Read [docs/WHY.md](WHY.md) for an honest comparison, including where a skill is 
 
 - **Chat with no tools:** paste the output of `myelin gate <ledger> --all` into the prompt.
 - **Agent with a shell:** add [`integrations/AGENTS.md.snippet`](../integrations/AGENTS.md.snippet) to your project, so the agent runs `gate` before coding and `lint` after.
+- **Claude Code:** `myelin hook install` makes the check automatic: after every edit, and again as context at session start. See [DERIVE.md](DERIVE.md#agent-hooks).
 - **CI:** run `myelin lint` on generated files; it exits non-zero on any violation. A composite GitHub Action is in [`action.yml`](../action.yml).
 - **Fixing failures:** `myelin fix` prints, for each failing rule, its message and the copy-exact snippet it points at. It does not edit files.
 
@@ -90,18 +96,18 @@ Details and a CI workflow are in [docs/HOSTS.md](HOSTS.md).
 
 ```
 bin/            the myelin command
-src/            parser, checker, gate renderer (library: import from src/index.mjs)
-test/           node:test suite (37 tests)
+src/            parser, checker, gate renderer, derive and hook (library: import from src/index.mjs)
+test/           node:test suite
 examples/       three-webgpu-hut, node-esm-lib, python-requests
 integrations/   AGENTS.md snippet, system-prompt template, SKILL.md bridge
 eval/           harness that scores saved model outputs per model and condition
-docs/           SPEC, WHY, AUTHORING, HOSTS, ROADMAP
+docs/           SPEC, WHY, AUTHORING, HOSTS, DERIVE, ROADMAP
 ```
 
 ## Known limits
 
 - Checks are regular expressions. They catch banned names and missing patterns, not wrong logic.
-- `unless` exempts a whole file, not a single call.
+- `unless` and `when` look at a whole file, not at the neighbourhood of a single call.
 - Passing the lint does not mean the code runs. The Three.js snippets in particular are unverified on hardware.
 - A model can ignore a ledger. The linter is what makes the rules enforceable.
 

@@ -1,0 +1,29 @@
+name: derive-benchmark
+
+# `myelin derive` is judged by what it flags in real code. Installing the pinned libraries takes a
+# minute or two and about 1 GB, so this runs only when something that can change the result changes.
+# It fails if any figure differs from eval/derive/results.json.
+on:
+  pull_request:
+    paths:
+      - "src/derive*.mjs"
+      - "src/dts.mjs"
+      - "src/surface.mjs"
+      - "src/check.mjs"
+      - "src/parse.mjs"
+      - "libs/**"
+      - "eval/derive/**"
+  workflow_dispatch:
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install the pinned libraries and fetch the example corpora
+        run: sh eval/derive/fetch.sh
+      - name: Run the benchmark and compare with the committed results
+        run: node eval/derive/run.mjs --check

@@ -2,6 +2,9 @@ import { readRegexLiteral } from './regex.mjs';
 
 const REQUIRED_HEADER = ['id', 'about', 'fires'];
 const REF = /\s*->\s*\$([\w-]+)\s*$/;
+// 1.1 adds `when`. A 1.0 reader would take "when /re/" for message text and fire the ban
+// everywhere, so the feature needs the version line to say 1.1; 1.0 readers reject that line.
+const MAX_MINOR = 1;
 
 // Parse a .myelin file into a ledger object. Never throws on bad input:
 // problems are collected in ledger.problems, and ledger.ok is false when any is an error.
@@ -25,14 +28,15 @@ export function parse(text) {
   };
 
   // ---- L0 header -------------------------------------------------------
-  const first = lines[0].match(/^myelin\s+(\d+)\s*$/);
+  const first = lines[0].match(/^myelin\s+(\d+)(?:\.(\d+))?\s*$/);
   if (!first) {
     problem('error', 1, 'first line must be "myelin <version>", for example "myelin 1"');
     return done();
   }
   ledger.version = Number(first[1]);
-  if (ledger.version !== 1) {
-    problem('error', 1, `unsupported version ${ledger.version}`);
+  ledger.minor = Number(first[2] || 0);
+  if (ledger.version !== 1 || ledger.minor > MAX_MINOR) {
+    problem('error', 1, `unsupported version ${first[1]}${first[2] ? '.' + first[2] : ''}`);
     return done();
   }
 
@@ -87,19 +91,24 @@ export function parse(text) {
       return;
     }
     let tail = m[3].slice(lit.end).trim();
-    let unless = null;
-    const um = tail.match(/^unless\s+(\/.*)$/);
-    if (um) {
-      const ul = readRegexLiteral(um[1], 0);
-      if (!ul) {
-        problem('error', n, '"unless" regex is not closed with "/"');
+    // Optional guards, in either order: `unless /re/` lifts the ban for a unit that matches,
+    // `when /re/` limits the ban to units that match.
+    const guards = { unless: null, when: null };
+    for (let gm; (gm = tail.match(/^(unless|when)\s+(\/.*)$/)); ) {
+      const word = gm[1];
+      const gl = readRegexLiteral(gm[2], 0);
+      if (!gl) {
+        problem('error', n, `"${word}" regex is not closed with "/"`);
         return;
       }
-      if (kind === 'require') problem('error', n, '"unless" is only allowed on ! rules');
-      const ure = compile(ul, n);
-      if (ure) unless = { source: ul.source, flags: ul.flags.replace(/[gy]/g, ''), re: ure };
-      tail = um[1].slice(ul.end).trim();
+      tail = gm[2].slice(gl.end).trim();
+      if (kind === 'require') problem('error', n, `"${word}" is only allowed on ! rules`);
+      else if (word === 'when' && ledger.minor < 1) problem('error', n, '"when" needs the version line "myelin 1.1"');
+      else if (guards[word]) problem('error', n, `rule ${id} has "${word}" twice`);
+      const gre = compile(gl, n);
+      if (gre && !guards[word]) guards[word] = { source: gl.source, flags: gl.flags.replace(/[gy]/g, ''), re: gre };
     }
+    const { unless, when } = guards;
     claim(id, n);
     const re = compile(lit, n);
     if (!re) return;
@@ -123,6 +132,7 @@ export function parse(text) {
       flags: lit.flags.replace(/[gy]/g, ''),
       re,
       unless,
+      when,
       message,
       ref,
       line: n,

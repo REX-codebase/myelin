@@ -2,7 +2,7 @@
 import * as ui from './ui.mjs';
 
 export const COMMANDS = [
-  'setup', 'doctor', 'libs', 'detect', 'use', 'bench', 'validate', 'self',
+  'setup', 'doctor', 'libs', 'detect', 'derive', 'hook', 'use', 'bench', 'validate', 'self',
   'lint', 'fix', 'gate', 'header', 'snippet', 'init', 'version', 'help',
 ];
 
@@ -14,12 +14,19 @@ const SECTIONS = [
     ['myelin doctor', 'check Node, this install and the project'],
     ['myelin detect [dir]', 'suggest bundled libs from package.json'],
     ['myelin libs', 'list bundled library ledgers'],
+    ['myelin derive', 'read the deprecations of your installed packages into a ledger'],
   ]],
   ['Everyday', [
     ['myelin lint <ledger> <path>...', 'check files; several ledgers comma-separated'],
     ['myelin fix <ledger> <path>...', 'lint, plus the fix and snippet for each rule'],
     ['myelin gate <ledger>', 'print the rules as text for a model'],
     ['myelin self <ledger|dir>...', 'run a ledger\'s own snippets through its rules'],
+  ]],
+  ['Agents', [
+    ['myelin hook install', 'check every edit Claude Code makes; brief it at session start'],
+    ['myelin hook uninstall', 'remove those hooks again'],
+    ['myelin derive --explain [name]', 'say why a deprecated API did not become a rule'],
+    ['myelin derive --check', 'exit 1 if the derived ledger is older than node_modules'],
   ]],
   ['Authoring', [
     ['myelin init <path>', 'write a starter ledger'],
@@ -36,6 +43,7 @@ const EXAMPLES = [
   ['myelin lint react,tailwind src/', 'check src/ against two ledgers'],
   ['myelin lint react src/ --watch', 're-run as files change'],
   ['myelin doctor --json', 'machine-readable health check'],
+  ['myelin lint derived,react src/', 'derived is the ledger written by myelin derive'],
 ];
 
 const FLAGS = [
@@ -45,7 +53,11 @@ const FLAGS = [
   ['--target=<t>', 'setup: agents (AGENTS.md), claude (CLAUDE.md) or none'],
   ['--libs=<a,b>', 'setup: choose ledgers instead of detecting them'],
   ['--dry-run', 'setup: print what would change, write nothing'],
-  ['--dir=<path>', 'setup, doctor: project directory (default: .)'],
+  ['--dir=<path>', 'setup, doctor, derive, hook: project directory (default: .)'],
+  ['--ignore=<ids>', 'lint, fix: leave these rule ids out (also .myelin/ignore)'],
+  ['--only=<pkgs>', 'derive: restrict to these packages'],
+  ['--derive, --hook', 'setup: also derive a ledger / install the Claude Code hook'],
+  ['--no-derive, --no-hook', 'setup: skip them'],
   ['--version, -v', 'print the version and nothing else'],
 ];
 
