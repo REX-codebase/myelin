@@ -73,13 +73,19 @@ const ceiling = looseLedger();
 
 // ---- 1 + 2: the labelled corpus ------------------------------------------------------------------
 
+// Only the libraries this benchmark installs (eval/derive/package.json). A ledger for a package that is not
+// installed here (Firebase) or that is not on npm at all (Blender) would only add files derive cannot see.
+const installed = Object.keys(JSON.parse(read(join(ROOT, 'eval', 'derive', 'package.json'))).dependencies);
+const libIndex = JSON.parse(read(join(ROOT, 'libs', 'index.json')));
+const isInstalled = (lib) => (libIndex[lib]?.packages || []).some((p) => installed.includes(p) || (p.endsWith('*') && installed.some((d) => d.startsWith(p.slice(0, -1)))));
+
 function corpus(ledger) {
   const libs = [];
   let bad = 0, badHit = 0, good = 0, goodHit = 0;
   const goodHits = [];
   for (const lib of readdirSync(join(ROOT, 'libs')).sort()) {
     const exp = join(ROOT, 'libs', lib, 'bench', 'expected.json');
-    if (!existsSync(exp)) continue;
+    if (!existsSync(exp) || !isInstalled(lib)) continue;
     const row = { lib, stale: 0, staleFlagged: 0, current: 0, currentFlagged: 0 };
     for (const rel of Object.keys(JSON.parse(read(exp)))) {
       const text = read(join(ROOT, 'libs', lib, 'bench', rel));

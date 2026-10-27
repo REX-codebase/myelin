@@ -48,7 +48,7 @@ The repository root has a composite action, [`action.yml`](../action.yml). It ru
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: REX-codebase/myelin@v0.3.0  # pin a release; @main tracks unreleased changes
+- uses: REX-codebase/myelin@v0.4.0  # pin a release; @main tracks unreleased changes
   with:
     libs: detect                     # or: three,react  or  .myelin/rules.myelin
     paths: src                       # space-separated; default "."

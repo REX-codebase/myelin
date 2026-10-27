@@ -11,7 +11,7 @@ libs/<id>/
   bench/expected.json  which rules must fire on each bench file
 ```
 
-`index.json` maps each id to the npm packages that trigger it (`myelin detect`).
+`index.json` maps each id to the packages that trigger it (`myelin detect`, which reads `package.json`). `pins.json` records the version each ledger targets for the weekly drift check; a pin with `"registry": "pypi"` is compared with PyPI instead of npm.
 
 | id | library | targets | verified |
 |---|---|---|---|
@@ -34,6 +34,8 @@ libs/<id>/
 | `vitest` | Vitest | 5.0 | 2026-10-26 |
 | `drizzle` | Drizzle ORM | 0.45 + kit 0.31 (v1 is RC, not targeted) | 2026-10-26 |
 | `astro` | Astro | 7.4 | 2026-10-26 |
+| `firebase` | Firebase JS SDK + Admin + Functions | 13.1 + admin 14.5 + functions 7.4 | 2026-10-27 |
+| `blender` | Blender Python API (bpy) | 5.2 (bpy 5.2.3) | 2026-10-27 |
 
 ## Scope notes
 
@@ -42,6 +44,8 @@ libs/<id>/
 - **svelte** K1-K10 target SvelteKit 3 and will fire on correct SvelteKit 2 code.
 - **react** bans `forwardRef` and `Context.Provider`, which still run in 19.x but are on their way out. Libraries that support React 18 may keep them.
 - **vitest** V17 flags `jest.*` globals; in a repo that still runs Jest alongside Vitest, keep it off Jest-only files (or import from `@jest/globals`, which exempts the file).
+- **firebase** B1 and B2 ban the namespaced v8 SDK and `firebase/compat`, which still ship in firebase 13; turn them off (`.myelin/ignore`) in an app that is deliberately mid-migration. B12 to B14 target firebase-functions 7, where `functions.config()` and the v1 builders are gone from the package root; they do not apply below v7. The docs site was unreachable when this was researched, so every rule rests on the published packages and the firebase-js-sdk changelogs (see `libs/firebase/SOURCES.md`).
+- **blender** is Python: lint it with `--ext py` (`myelin lint blender --ext py scripts/`). Python `#` comments are not skipped, so a comment that names a banned API fires. It targets Blender 5.2; B4, B5 and B6 are wrong for a project pinned to 4.2 LTS. `myelin detect` reads `package.json` only and does not detect it. Rules rest on API stubs from eight Blender releases diffed name by name and the 5.2.3 sources, because the docs and release notes were unreachable (`libs/blender/SOURCES.md`).
 - **drizzle** targets the npm `latest` (0.45). The docs site already describes the v1 RC; `relations()` and `db.query` are not banned because `defineRelations` is v1-only.
 
 ## Adding or updating a library

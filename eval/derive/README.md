@@ -4,7 +4,7 @@ Measures what `myelin derive` is worth, and where it is not. Four measurements, 
 
 | # | measurement | misleads when |
 |---|---|---|
-| 1 | **Labelled corpus.** The derived ledger against the 177 stale and 129 current files in `libs/*/bench`. | the corpus is mostly removed or changed APIs, which no deprecation tag can describe. Low recall here is expected, and it is why curated ledgers still matter. |
+| 1 | **Labelled corpus.** The derived ledger against the 177 stale and 129 current files in `libs/*/bench` of the 19 libraries this benchmark installs (the Firebase and Blender ledgers are left out: Firebase is not installed here and Blender is not on npm). | the corpus is mostly removed or changed APIs, which no deprecation tag can describe. Low recall here is expected, and it is why curated ledgers still matter. |
 | 2 | **Ceiling.** The same corpus against *every* deprecated name, matched loosely. | it is an upper bound for any approach built on `@deprecated`, not something derive tries to reach: it flags a quarter of the current files. |
 | 3 | **Official examples.** Old and current example code from `eval/wild`, derived against curated ledgers. | the curated ledger is the one place a derived finding can be called "extra". Neither is ground truth. |
 | 4 | **Real code bases.** Five open-source repositories, each pinned to a commit and linted as text. Every finding printed with its line, to be read. | five repositories are five repositories. They show what kind of thing it finds, not how often. |

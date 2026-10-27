@@ -1,0 +1,169 @@
+myelin 1.1
+id      blender
+about   Blender 5.2 Python API (bpy, Python 3.13): bans scripts that a model wrote for Blender 2.7x to 4.x and that now fail or do nothing (bgl, use_auto_smooth, EEVEE Next ids, Action.fcurves, NodeTree.inputs, Principled socket names, operator context overrides, the old OBJ/PLY/STL operators)
+fires   blender | bpy | blender python | blender script | blender addon | bmesh | mathutils | eevee | cycles | geometry nodes | shader nodes | principled bsdf | grease pencil | gpu shader | render script
+status  Researched 2026-10-27 against bpy 5.2.3 (PyPI) and Blender v5.2.3 sources on GitHub: API stubs generated from Blender (fake-bpy-module) for 2.93, 3.6, 4.0, 4.1, 4.2, 4.5, 5.0 and 5.2 diffed name by name, plus the 5.2.3 sources for the Principled BSDF sockets and the Python scripts. docs.blender.org and developer.blender.org were not reachable, so no release note page was read; see SOURCES.md. Regex-level checks on Python text; `#` comments are not skipped. Snippets not executed in Blender.
+
+= version     Blender 5.2 (bpy 5.2.3 on PyPI; Blender 5.2.3 builds against Python 3.13)
+= verified    2026-10-27
+= python      Python 3.13; run scripts with blender --background --python script.py, or import bpy from the bpy wheel (cp313 only)
+= engines     scene.render.engine: 'BLENDER_EEVEE' (EEVEE), 'CYCLES', 'BLENDER_WORKBENCH'. 'BLENDER_EEVEE_NEXT' existed only in 4.2 to 4.5.
+= objects     obj = bpy.data.objects.new(name, data); bpy.context.collection.objects.link(obj); bpy.context.view_layer.objects.active = obj; obj.select_set(True); bpy.context.view_layer.update()
+= context     with bpy.context.temp_override(window=..., area=..., region=...): bpy.ops...   (operators no longer take a context dict)
+= io          bpy.ops.wm.obj_import/obj_export, wm.ply_import/ply_export, wm.stl_import/stl_export, wm.usd_import/usd_export, import_scene.gltf/export_scene.gltf, import_scene.fbx/export_scene.fbx
+= nodes       node_group.interface.new_socket(name=, in_out='INPUT'|'OUTPUT', socket_type='NodeSocketFloat'); compositor: scene.compositing_node_group
+= animation   slotted actions: channelbag = bpy_extras.anim_utils.animdata_get_channelbag_for_assigned_slot(obj.animation_data); channelbag.fcurves
+
+! B1 /^[ \t]*(?:import\s+bgl\b|from\s+bgl\s+import)|\bbgl\.gl[A-Z]\w*\(/m   The bgl module was removed in Blender 5.0. Draw with the gpu module (gpu.shader.from_builtin, gpu_extras.batch.batch_for_shader, gpu.state) and blf for text. -> $gpu
+! B2 /\b(?:use_auto_smooth|auto_smooth_angle)\b/ when /\bbpy\b/   Mesh.use_auto_smooth and auto_smooth_angle were removed in Blender 4.1 (auto smooth is now a Smooth by Angle modifier). Call bpy.ops.object.shade_smooth_by_angle(angle=radians(30)) or bpy.ops.object.shade_auto_smooth(angle=...). -> $smooth
+! B3 /\.(?:calc_normals_split|calc_normals|free_normals_split)\(/ when /\bbpy\b/   Mesh.calc_normals() went in 4.0 and calc_normals_split()/free_normals_split() in 4.1: normals are always up to date. Read mesh.corner_normals, mesh.vertex_normals or mesh.polygon_normals. -> $smooth
+! B4 /['"]BLENDER_EEVEE_NEXT['"]/   'BLENDER_EEVEE_NEXT' was the EEVEE id in Blender 4.2 to 4.5 only. In 5.x it is scene.render.engine = 'BLENDER_EEVEE' again.
+! B5 /\beevee\.(?:use_ssr\w*|ssr_\w+|use_bloom|bloom_\w+|use_soft_shadows|shadow_cube_size|shadow_cascade_size|use_gtao|gtao_\w+|use_motion_blur)\b/ when /\bbpy\b/   These legacy EEVEE settings no longer exist (bloom, screen space reflections and soft shadows went in 4.5, GTAO in 5.0). Motion blur is scene.render.use_motion_blur. Reflections and AO come from ray tracing: scene.eevee.use_raytracing and scene.eevee.ray_tracing_options.
+! B6 /\.shadow_method\b/ when /\bbpy\b/   Material.shadow_method was removed in Blender 4.5. For transparent shadows set material.use_transparent_shadow; blending is material.surface_render_method ('DITHERED' or 'BLENDED').
+! B7 /\b\w*[Aa]ction\.(?:fcurves|groups)\b/ when /\bbpy\b/   Action.fcurves and Action.groups were removed in Blender 5.0 (slotted actions). F-curves live in a channelbag: bpy_extras.anim_utils.animdata_get_channelbag_for_assigned_slot(obj.animation_data).fcurves (or action_ensure_channelbag_for_slot(action, slot) to create one). -> $anim
+! B8 /\bscene\.node_tree\b/ when /\bbpy\b/   Scene.node_tree was removed in Blender 5.0. The compositor tree is scene.compositing_node_group (a node group you create with bpy.data.node_groups.new(name, "CompositorNodeTree")); scene.use_nodes no longer does anything.
+! B9 /\b\w*(?:mat|material|world|light|scene)\w*\.use_nodes\s*=\s*True\b/ when /\bbpy\b/   use_nodes = True has no effect in Blender 5.x: Material, World, Light and Scene.use_nodes are kept for compatibility, always read True and are slated for removal in 6.0. Delete the line; mat.node_tree is there. -> $material
+! B10 /\.inputs\s*\[\s*["'](?:Subsurface|Specular|Transmission|Emission|Sheen|Clearcoat|Clearcoat Roughness|Clearcoat Normal|Transmission Roughness|Subsurface Color)["']\s*\]/ when /\bbpy\b/   Principled BSDF sockets were renamed in Blender 4.0. Use 'Subsurface Weight', 'Specular IOR Level', 'Transmission Weight', 'Emission Color' (with 'Emission Strength'), 'Sheen Weight', 'Coat Weight', 'Coat Roughness' and 'Coat Normal'. -> $material
+! B11 /\b(?:\w*(?:tree|group)\w*|ng|\w+_ng)\.(?:inputs|outputs)\.(?:new|remove|clear|move)\(/ when /\bbpy\b/   NodeTree.inputs and .outputs were removed in Blender 4.0. Add group sockets through the interface: group.interface.new_socket(name="Value", in_out='INPUT', socket_type='NodeSocketFloat'). -> $interface
+! B12 /\bbpy\.ops\.\w+\.\w+\(\s*(?:override|ctx|context_override|override_context|context_dict)\s*[,)]|\boverride\s*=\s*(?:bpy\.)?context\.copy\(\)/   Operators no longer take a context dict (removed in Blender 4.0). Wrap the call: with bpy.context.temp_override(window=window, area=area, region=region): bpy.ops.... -> $override
+! B13 /\bbpy\.ops\.(?:import_scene|export_scene)\.obj\b|\bbpy\.ops\.(?:import_mesh|export_mesh)\.(?:ply|stl)\b/   The Python OBJ and PLY operators went in Blender 4.0 and the STL ones in 4.2. Use bpy.ops.wm.obj_import/obj_export, wm.ply_import/ply_export and wm.stl_import/stl_export. -> $export
+! B14 /\bbpy\.ops\.wm\.collada_(?:import|export)\b/   Collada import and export are not in the Blender 5.x API. Exchange scenes as glTF (bpy.ops.export_scene.gltf), USD (bpy.ops.wm.usd_export) or FBX.
+! B15 /\bfrom_builtin\(\s*['"][23]D_/   The '2D_' and '3D_' prefixes on built-in shader names were removed in Blender 4.0. Use 'UNIFORM_COLOR', 'FLAT_COLOR', 'SMOOTH_COLOR' or 'IMAGE'. -> $gpu
+! B16 /\.bindcode\b/ when /\bbpy\b/   Image.bindcode was removed in Blender 5.0. Get a GPUTexture with gpu.texture.from_image(image).
+! B17 /\.layers\[\s*\d+\s*\]\s*=(?!=)|\.use_inherit_scale\b/ when /\bbpy\b/   Layers were removed: object and scene layers in 2.8 (use collections), armature and bone layers in 4.0 (use bone collections: armature.collections.new(name) and collection.assign(bone)). Bone.use_inherit_scale is now the enum Bone.inherit_scale ('FULL', 'NONE', ...).
+! B18 /\.(?:vertex_colors|uv_textures|tessfaces|tessface_uv_textures)\b/ when /\bbpy\b/   Mesh.vertex_colors is deprecated: use mesh.color_attributes.new(name="Col", type='BYTE_COLOR', domain='CORNER'). Mesh.uv_textures and tessfaces went in 2.8: use mesh.uv_layers and mesh.polygons.
+! B19 /\bscene\.objects\.(?:link|unlink|active)\b|\bscene\.update\(\)|\bscene\.cursor_location\b|\bcontext\.user_preferences\b|\bbpy\.data\.(?:groups|lamps)\b|\bbpy\.ops\.object\.lamp_add\b|\b(?:obj\w*|ob|object)\.select\s*=(?!=)/ when /\bbpy\b/   This is the Blender 2.7x API, gone since 2.8: collection.objects.link(obj), bpy.context.view_layer.objects.active = obj, obj.select_set(True), bpy.context.view_layer.update(), scene.cursor.location, bpy.context.preferences, bpy.data.collections, bpy.data.lights, bpy.ops.object.light_add. -> $objects
+! B20 /^[ \t]+\w+\s*=\s*(?:bpy\.props\.)?(?:Bool|Int|Float|String|Enum|Pointer|Collection|FloatVector|IntVector|BoolVector)Property\(/m when /\bclass\s+\w+\(\s*(?:bpy\.types\.)?(?:Operator|PropertyGroup|Panel|Menu|Header|AddonPreferences)\b/   Blender registers properties from class annotations, not from assignments. Write `count: bpy.props.IntProperty(name="Count")` with a colon; `count = bpy.props.IntProperty(...)` is never registered. -> $props
+
+~ P1 Prefer bpy.data (bpy.data.objects.new, meshes.new, materials.new) and mesh/bmesh data access over bpy.ops for building scenes: operators depend on context (active object, mode, area) and fail in background mode.
+~ P2 Import with `import bpy` only. Do not pip-install bpy into a Python other than 3.13: the 5.x wheels are built for cp313.
+~ P3 Set the render engine and samples explicitly (scene.render.engine = 'CYCLES'; scene.cycles.samples = 128) and write the output with bpy.ops.render.render(write_still=True) after setting scene.render.filepath, so a script produces a visible result.
+
+$ objects
+import bpy
+
+mesh = bpy.data.meshes.new("Quad")
+obj = bpy.data.objects.new("Quad", mesh)
+bpy.context.collection.objects.link(obj)
+
+bpy.context.view_layer.objects.active = obj
+obj.select_set(True)
+bpy.context.view_layer.update()
+
+bpy.ops.object.light_add(type='SUN', location=(0, 0, 5))
+bpy.context.scene.cursor.location = (0, 0, 0)
+$$
+
+$ material
+import bpy
+
+mat = bpy.data.materials.new("Gold")
+bsdf = mat.node_tree.nodes["Principled BSDF"]
+bsdf.inputs["Base Color"].default_value = (0.9, 0.7, 0.2, 1.0)
+bsdf.inputs["Metallic"].default_value = 1.0
+bsdf.inputs["Roughness"].default_value = 0.25
+bsdf.inputs["Specular IOR Level"].default_value = 0.5
+bsdf.inputs["Coat Weight"].default_value = 0.2
+bsdf.inputs["Emission Color"].default_value = (1.0, 0.4, 0.1, 1.0)
+bsdf.inputs["Emission Strength"].default_value = 2.0
+$$
+
+$ smooth
+import math
+
+import bpy
+
+obj = bpy.context.object
+bpy.ops.object.shade_smooth_by_angle(angle=math.radians(30))
+
+normals = [tuple(n.vector) for n in obj.data.corner_normals]
+$$
+
+$ anim
+import bpy
+from bpy_extras import anim_utils
+
+obj = bpy.context.object
+obj.location = (0, 0, 0)
+obj.keyframe_insert(data_path="location", frame=1)
+obj.location = (0, 0, 3)
+obj.keyframe_insert(data_path="location", frame=48)
+
+channelbag = anim_utils.animdata_get_channelbag_for_assigned_slot(obj.animation_data)
+for fcurve in channelbag.fcurves:
+    for point in fcurve.keyframe_points:
+        point.interpolation = 'BEZIER'
+$$
+
+$ interface
+import bpy
+
+group = bpy.data.node_groups.new("Wave", "GeometryNodeTree")
+group.interface.new_socket(name="Geometry", in_out='INPUT', socket_type='NodeSocketGeometry')
+group.interface.new_socket(name="Amplitude", in_out='INPUT', socket_type='NodeSocketFloat')
+group.interface.new_socket(name="Geometry", in_out='OUTPUT', socket_type='NodeSocketGeometry')
+$$
+
+$ override
+import bpy
+
+window = bpy.context.window_manager.windows[0]
+area = next(a for a in window.screen.areas if a.type == 'VIEW_3D')
+region = next(r for r in area.regions if r.type == 'WINDOW')
+
+with bpy.context.temp_override(window=window, area=area, region=region):
+    bpy.ops.view3d.view_selected()
+$$
+
+$ export
+import bpy
+
+bpy.ops.wm.obj_export(filepath="/tmp/scene.obj", export_selected_objects=True)
+bpy.ops.wm.ply_export(filepath="/tmp/scene.ply")
+bpy.ops.wm.stl_export(filepath="/tmp/scene.stl")
+bpy.ops.wm.obj_import(filepath="/tmp/incoming.obj")
+bpy.ops.export_scene.gltf(filepath="/tmp/scene.glb")
+$$
+
+$ props
+import bpy
+
+
+class OBJECT_OT_scatter(bpy.types.Operator):
+    bl_idname = "object.scatter"
+    bl_label = "Scatter"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    count: bpy.props.IntProperty(name="Count", default=10, min=1)
+    spacing: bpy.props.FloatProperty(name="Spacing", default=2.0)
+
+    def execute(self, context):
+        for i in range(self.count):
+            bpy.ops.mesh.primitive_cube_add(location=(i * self.spacing, 0, 0))
+        return {'FINISHED'}
+
+
+def register():
+    bpy.utils.register_class(OBJECT_OT_scatter)
+
+
+def unregister():
+    bpy.utils.unregister_class(OBJECT_OT_scatter)
+$$
+
+$ gpu
+import bpy
+import gpu
+from gpu_extras.batch import batch_for_shader
+
+shader = gpu.shader.from_builtin('UNIFORM_COLOR')
+batch = batch_for_shader(shader, 'LINES', {"pos": [(0, 0, 0), (0, 0, 2)]})
+
+
+def draw():
+    shader.uniform_float("color", (1.0, 0.0, 0.0, 1.0))
+    batch.draw(shader)
+
+
+handle = bpy.types.SpaceView3D.draw_handler_add(draw, (), 'WINDOW', 'POST_VIEW')
+$$

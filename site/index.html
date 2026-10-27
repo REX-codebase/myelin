@@ -192,13 +192,13 @@ html:not(.js) .rv{opacity:1;transform:none}
 /* ---------- libraries (glass over the arbor) ---------- */
 .libs{list-style:none;margin:48px 0 0;padding:0 26px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;background:rgba(7,8,13,.52);-webkit-backdrop-filter:blur(16px) saturate(1.3);backdrop-filter:blur(16px) saturate(1.3)}
 .libs li{border-bottom:1px solid var(--line)}
-.libs li:nth-last-child(-n+4){border-bottom:0}
+.libs li:nth-last-child(-n+2){border-bottom:0}
 .libs a{display:block;padding:20px 20px 20px 0;text-decoration:none;height:100%}
 .libs strong{display:block;font-weight:400;font-size:clamp(18px,1.8vw,24px);line-height:1.2;letter-spacing:-.012em;transition:color .2s}
 .libs span{display:block;margin-top:6px;font:400 12.5px/1.4 var(--mono);color:var(--mute)}
 .libs a:hover strong,.libs a:focus-visible strong{color:var(--acc)}
 .libs .add strong{color:var(--acc)}
-@media (max-width:980px){.libs{grid-template-columns:repeat(2,minmax(0,1fr))}.libs li:nth-last-child(-n+4){border-bottom:1px solid var(--line)}.libs li:nth-last-child(-n+2){border-bottom:0}.libs a{padding-right:12px}}
+@media (max-width:980px){.libs{grid-template-columns:repeat(2,minmax(0,1fr))}.libs a{padding-right:12px}}
 
 /* ---------- evidence ---------- */
 .nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:64px 0 0;padding:0;list-style:none;border-top:1px solid var(--line)}
@@ -445,10 +445,10 @@ html.gl .install .cmdbox,html.gl .install .then,html.gl .install details pre{pos
       <a class="btn ghost" href="#how">How it works</a>
     </div>
     <ul class="spec" aria-label="At a glance">
-      <li><b>19</b><span>libraries, each pinned to one release</span></li>
-      <li><b>324</b><span>machine-checked bans</span></li>
+      <li><b>21</b><span>libraries, each pinned to one release</span></li>
+      <li><b>358</b><span>machine-checked bans</span></li>
       <li><b>0</b><span>dependencies</span></li>
-      <li><b>100%</b><span>of 177 labelled stale files caught</span></li>
+      <li><b>100%</b><span>of 207 labelled stale files caught</span></li>
     </ul>
   </div>
 </section>
@@ -524,7 +524,7 @@ since r181. Initialise once, then call render() …</span></span></span></pre>
 <!-- ============ LIBRARIES (light) ============ -->
 <section class="s" id="libraries" aria-labelledby="libs-h">
   <div class="wrap">
-    <h2 class="h2 rv" id="libs-h">Nineteen libraries.<br>One release each.</h2>
+    <h2 class="h2 rv" id="libs-h">Twenty-one libraries.<br>One release each.</h2>
     <p class="lede rv d1">Each ledger was researched against live documentation on 2026-10-26 and targets a named release. Every rule links to the migration guide or changelog it came from.</p>
     <ul class="libs rv d2">
       <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/three"><strong>three.js</strong><span>r186 · WebGPU + TSL · 21 bans</span></a></li>
@@ -546,6 +546,8 @@ since r181. Initialise once, then call render() …</span></span></span></pre>
       <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/mongoose"><strong>Mongoose</strong><span>9.11 · 17 bans</span></a></li>
       <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/openai"><strong>OpenAI Node SDK</strong><span>7.43 · 16 bans</span></a></li>
       <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/vitest"><strong>Vitest</strong><span>5.0 · 17 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/firebase"><strong>Firebase</strong><span>13.1 · admin 14.5 · fns 7.4 · 14 bans</span></a></li>
+      <li><a href="https://github.com/REX-codebase/myelin/tree/main/libs/blender"><strong>Blender (bpy)</strong><span>5.2 · Python · 20 bans</span></a></li>
       <li class="add"><a class="add" href="https://github.com/REX-codebase/myelin/blob/main/docs/AUTHORING.md"><strong>Add yours</strong><span>every rule needs a source link</span></a></li>
     </ul>
   </div>
@@ -556,11 +558,11 @@ since r181. Initialise once, then call render() …</span></span></span></pre>
   <div class="wrap">
     <h2 class="h2 rv" id="ev-h">What the tests say.</h2>
     <ul class="nums">
-      <li class="rv"><b>100%</b><p>of 177 labelled stale files caught, with 0 false alarms on 129 current ones. Across every other library's correct code: 2,322 checks, 0 false positives.</p></li>
+      <li class="rv"><b>100%</b><p>of 207 labelled stale files caught, with 0 false alarms on 151 current ones. Across every other library's correct code: 3,020 checks, 0 false positives.</p></li>
       <li class="rv d1"><b>97.8%</b><p>of three.js r150's own examples flagged. Against r186 the same ledger flags 0.4%: one file of 230, an old API inside a comment.</p></li>
       <li class="rv d2"><b>5 → 0</b><p>of 6 agents wrote a stale API with no guidance. With Myelin, none did. Claude Haiku 5.5 on three.js scenes, 6 agents per arm.</p></li>
     </ul>
-    <p class="honest rv d2"><strong>Where the lift is measured.</strong> Across 24 agents and two model families, 7 of 8 unguided runs wrote a stale three.js API and 0 of 16 guided runs did. The other eighteen ledgers have detection benchmarks but no agent runs yet, and a well-written prose skill matched the gate on stale-API rate. The gate's edge is that the same file verifies the output. <a href="https://github.com/REX-codebase/myelin/blob/main/BENCHMARKS.md">Read the method and per-library tables.</a></p>
+    <p class="honest rv d2"><strong>Where the lift is measured.</strong> Across 24 agents and two model families, 7 of 8 unguided runs wrote a stale three.js API and 0 of 16 guided runs did. The other twenty ledgers have detection benchmarks but no agent runs yet, and a well-written prose skill matched the gate on stale-API rate. The gate's edge is that the same file verifies the output. <a href="https://github.com/REX-codebase/myelin/blob/main/BENCHMARKS.md">Read the method and per-library tables.</a></p>
   </div>
 </section>
 
@@ -574,7 +576,7 @@ since r181. Initialise once, then call render() …</span></span></span></pre>
       <li><h3>Clean is not correct.</h3><p>A pass means no known-stale pattern was found. It does not mean the code runs.</p></li>
       <li><h3>Comments can trip it.</h3><p>A banned token inside a comment can fire a rule. A ledger can set <code>comments skip</code> to blank comments first; so far only three.js does.</p></li>
       <li><h3>Every ledger is pinned.</h3><p>Each targets one release and a research date. Check its <code>= version</code> line before trusting it on a newer major.</p></li>
-      <li><h3>The lift is measured on three.js.</h3><p>The other eighteen ledgers have detection benchmarks but no agent runs yet.</p></li>
+      <li><h3>The lift is measured on three.js.</h3><p>The other twenty ledgers have detection benchmarks but no agent runs yet.</p></li>
       <li><h3>It is narrow on purpose.</h3><p>The three.js ledger covers WebGPU and TSL, not WebGL-only projects. <code>unless</code> lifts a ban for a whole file, not one match. No globs or severities yet.</p></li>
       <li><h3>It only constrains output.</h3><p>A ledger cannot grant permissions, run commands or change instructions, and readers ignore any line that tries. Load ledgers only from sources you trust.</p></li>
     </ul>

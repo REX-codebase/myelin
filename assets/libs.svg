@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="648" viewBox="0 0 1280 648" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="768" viewBox="0 0 1280 768" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif">
   <style>
     .n{font:600 17px Inter, Segoe UI, Helvetica, Arial, sans-serif;fill:#e9eef7}
     .v{font:500 14px JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace;fill:#5ff4ff}
@@ -6,7 +6,7 @@
     .c{opacity:0;animation:in .45s ease-out forwards}
     @keyframes in{from{opacity:0}to{opacity:1}}
   </style>
-  <rect x=".5" y=".5" width="1279" height="647" rx="12" fill="#0b0f19" stroke="#1d2638"/>
+  <rect x=".5" y=".5" width="1279" height="767" rx="12" fill="#0b0f19" stroke="#1d2638"/>
   <g class="c" style="animation-delay:0.00s">
     <rect x="32" y="32" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
     <text x="52" y="70" class="n">Vercel AI SDK</text>
@@ -27,103 +27,115 @@
   </g>
   <g class="c" style="animation-delay:0.15s">
     <rect x="956" y="32" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="976" y="70" class="n">Drizzle ORM</text>
-    <text x="976" y="94" class="v">0.45.4</text>
-    <text x="976" y="116" class="m">13 bans · 9 snippets</text>
+    <text x="976" y="70" class="n">Blender (bpy)</text>
+    <text x="976" y="94" class="v">5.2</text>
+    <text x="976" y="116" class="m">20 bans · 9 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.20s">
     <rect x="32" y="152" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="52" y="190" class="n">ESLint</text>
-    <text x="52" y="214" class="v">10.13.0</text>
-    <text x="52" y="236" class="m">19 bans · 3 snippets</text>
+    <text x="52" y="190" class="n">Drizzle ORM</text>
+    <text x="52" y="214" class="v">0.45.4</text>
+    <text x="52" y="236" class="m">13 bans · 9 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.25s">
     <rect x="340" y="152" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="360" y="190" class="n">Express</text>
-    <text x="360" y="214" class="v">5.3.0</text>
-    <text x="360" y="236" class="m">14 bans · 3 snippets</text>
+    <text x="360" y="190" class="n">ESLint</text>
+    <text x="360" y="214" class="v">10.13.0</text>
+    <text x="360" y="236" class="m">19 bans · 3 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.30s">
     <rect x="648" y="152" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="668" y="190" class="n">Mongoose</text>
-    <text x="668" y="214" class="v">9.11.4</text>
-    <text x="668" y="236" class="m">17 bans · 8 snippets</text>
+    <text x="668" y="190" class="n">Express</text>
+    <text x="668" y="214" class="v">5.3.0</text>
+    <text x="668" y="236" class="m">14 bans · 3 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.35s">
     <rect x="956" y="152" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="976" y="190" class="n">Next.js</text>
-    <text x="976" y="214" class="v">16.4.3</text>
-    <text x="976" y="236" class="m">20 bans · 7 snippets</text>
+    <text x="976" y="190" class="n">Firebase</text>
+    <text x="976" y="214" class="v">13.1.0</text>
+    <text x="976" y="236" class="m">14 bans · 7 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.40s">
     <rect x="32" y="272" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="52" y="310" class="n">OpenAI Node SDK</text>
-    <text x="52" y="334" class="v">7.43.0</text>
-    <text x="52" y="356" class="m">16 bans · 6 snippets</text>
+    <text x="52" y="310" class="n">Mongoose</text>
+    <text x="52" y="334" class="v">9.11.4</text>
+    <text x="52" y="356" class="m">17 bans · 8 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.45s">
     <rect x="340" y="272" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="360" y="310" class="n">Prisma ORM</text>
-    <text x="360" y="334" class="v">7.10.1</text>
-    <text x="360" y="356" class="m">15 bans · 7 snippets</text>
+    <text x="360" y="310" class="n">Next.js</text>
+    <text x="360" y="334" class="v">16.4.3</text>
+    <text x="360" y="356" class="m">20 bans · 7 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.50s">
     <rect x="648" y="272" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="668" y="310" class="n">React</text>
-    <text x="668" y="334" class="v">19.3.0</text>
-    <text x="668" y="356" class="m">20 bans · 6 snippets</text>
+    <text x="668" y="310" class="n">OpenAI Node SDK</text>
+    <text x="668" y="334" class="v">7.43.0</text>
+    <text x="668" y="356" class="m">16 bans · 6 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.55s">
     <rect x="956" y="272" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="976" y="310" class="n">React Router</text>
-    <text x="976" y="334" class="v">8.5.0</text>
-    <text x="976" y="356" class="m">17 bans · 6 snippets</text>
+    <text x="976" y="310" class="n">Prisma ORM</text>
+    <text x="976" y="334" class="v">7.10.1</text>
+    <text x="976" y="356" class="m">15 bans · 7 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.60s">
     <rect x="32" y="392" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="52" y="430" class="n">Svelte + SvelteKit</text>
-    <text x="52" y="454" class="v">5.57.2</text>
-    <text x="52" y="476" class="m">22 bans · 9 snippets</text>
+    <text x="52" y="430" class="n">React</text>
+    <text x="52" y="454" class="v">19.3.0</text>
+    <text x="52" y="476" class="m">20 bans · 6 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.65s">
     <rect x="340" y="392" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="360" y="430" class="n">Tailwind CSS</text>
-    <text x="360" y="454" class="v">4.3.3</text>
-    <text x="360" y="476" class="m">10 bans · 5 snippets</text>
+    <text x="360" y="430" class="n">React Router</text>
+    <text x="360" y="454" class="v">8.5.0</text>
+    <text x="360" y="476" class="m">17 bans · 6 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.70s">
     <rect x="648" y="392" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="668" y="430" class="n">TanStack Query</text>
-    <text x="668" y="454" class="v">5.104.5</text>
-    <text x="668" y="476" class="m">16 bans · 7 snippets</text>
+    <text x="668" y="430" class="n">Svelte + SvelteKit</text>
+    <text x="668" y="454" class="v">5.57.2</text>
+    <text x="668" y="476" class="m">22 bans · 9 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.75s">
     <rect x="956" y="392" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="976" y="430" class="n">three.js</text>
-    <text x="976" y="454" class="v">r186</text>
-    <text x="976" y="476" class="m">21 bans · 9 snippets</text>
+    <text x="976" y="430" class="n">Tailwind CSS</text>
+    <text x="976" y="454" class="v">4.3.3</text>
+    <text x="976" y="476" class="m">10 bans · 5 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.80s">
     <rect x="32" y="512" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="52" y="550" class="n">Vitest</text>
-    <text x="52" y="574" class="v">5.0.5</text>
-    <text x="52" y="596" class="m">17 bans · 8 snippets</text>
+    <text x="52" y="550" class="n">TanStack Query</text>
+    <text x="52" y="574" class="v">5.104.5</text>
+    <text x="52" y="596" class="m">16 bans · 7 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.85s">
     <rect x="340" y="512" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="360" y="550" class="n">Vue + Nuxt</text>
-    <text x="360" y="574" class="v">3.5.44</text>
-    <text x="360" y="596" class="m">20 bans · 6 snippets</text>
+    <text x="360" y="550" class="n">three.js</text>
+    <text x="360" y="574" class="v">r186</text>
+    <text x="360" y="596" class="m">21 bans · 9 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.90s">
     <rect x="648" y="512" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
-    <text x="668" y="550" class="n">Zod</text>
-    <text x="668" y="574" class="v">4.6.7</text>
-    <text x="668" y="596" class="m">17 bans · 5 snippets</text>
+    <text x="668" y="550" class="n">Vitest</text>
+    <text x="668" y="574" class="v">5.0.5</text>
+    <text x="668" y="596" class="m">17 bans · 8 snippets</text>
   </g>
   <g class="c" style="animation-delay:0.95s">
-    <rect x="956" y="512" width="292" height="104" rx="10" fill="none" stroke="#1d2638" stroke-dasharray="4 5"/>
-    <text x="1102" y="560" text-anchor="middle" class="n" style="fill:#8a96aa">+ your library</text>
-    <text x="1102" y="584" text-anchor="middle" class="m">source link + bench file = PR</text>
+    <rect x="956" y="512" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
+    <text x="976" y="550" class="n">Vue + Nuxt</text>
+    <text x="976" y="574" class="v">3.5.44</text>
+    <text x="976" y="596" class="m">20 bans · 6 snippets</text>
+  </g>
+  <g class="c" style="animation-delay:1.00s">
+    <rect x="32" y="632" width="292" height="104" rx="10" fill="#0f1523" stroke="#1d2638"/>
+    <text x="52" y="670" class="n">Zod</text>
+    <text x="52" y="694" class="v">4.6.7</text>
+    <text x="52" y="716" class="m">17 bans · 5 snippets</text>
+  </g>
+  <g class="c" style="animation-delay:1.05s">
+    <rect x="340" y="632" width="292" height="104" rx="10" fill="none" stroke="#1d2638" stroke-dasharray="4 5"/>
+    <text x="486" y="680" text-anchor="middle" class="n" style="fill:#8a96aa">+ your library</text>
+    <text x="486" y="704" text-anchor="middle" class="m">source link + bench file = PR</text>
   </g>
 </svg>

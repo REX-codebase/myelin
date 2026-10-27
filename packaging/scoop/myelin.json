@@ -1,12 +1,12 @@
 {
-    "version": "0.3.0",
+    "version": "0.4.0",
     "description": "Rule ledgers that keep AI-written code on current library versions",
     "homepage": "https://github.com/REX-codebase/myelin",
     "license": "MIT",
     "depends": "nodejs",
-    "url": "https://github.com/REX-codebase/myelin/archive/refs/tags/v0.3.0.zip",
+    "url": "https://github.com/REX-codebase/myelin/archive/refs/tags/v0.4.0.zip",
     "hash": "REPLACE_WITH_RELEASE_SHA256",
-    "extract_dir": "myelin-0.3.0",
+    "extract_dir": "myelin-0.4.0",
     "installer": {
         "script": [
             "Set-Content -Path (Join-Path $dir 'myelin.cmd') -Encoding ASCII -Value @('@echo off', 'node \"%~dp0bin\\myelin.mjs\" %*')"

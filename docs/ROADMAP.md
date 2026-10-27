@@ -38,7 +38,7 @@ Ideas, not promises. Order is rough priority.
 
 - Publish to npm once the format has settled.
 - ~~A small registry of community ledgers~~ Bundled library ledgers shipped in 0.2.0 (`libs/`). Next: a monthly re-verification pass per library, and community-contributed libs.
-- Done (unreleased): Angular, Astro, Drizzle, Mongoose, Vitest and OpenAI SDK ledgers. Next: Playwright, LangChain.js, and a Drizzle v1 ledger once v1 is `latest`.
+- Done: Angular, Astro, Drizzle, Mongoose, Vitest and OpenAI SDK ledgers (0.3.0); Firebase (JS SDK, Admin, Functions) and Blender (bpy) ledgers (0.4.0). Next: Playwright, LangChain.js, Supabase, and a Drizzle v1 ledger once v1 is `latest`. Blender is the first non-JavaScript ledger; detection for Python projects (`requirements.txt`, `pyproject.toml`) is not built yet, so use `myelin lint blender --ext py`.
 
 ## Out of scope
 
