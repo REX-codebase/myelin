@@ -13,7 +13,7 @@ import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path
 import { parse } from './parse.mjs';
 import { check } from './check.mjs';
 import { detectLibs, libPath } from './libs.mjs';
-import { CliError, DEFAULT_EXT, collect, projectDir } from './util.mjs';
+import { CliError, DEFAULT_EXT, collect, projectDir, within } from './util.mjs';
 import { derivedPath } from './derive.mjs';
 
 const HOOK_EXT = new Set([...DEFAULT_EXT.split(','), 'css', 'scss', 'svelte', 'vue', 'astro', 'mdx']);
@@ -45,10 +45,14 @@ export function readStdin(stream = process.stdin, timeoutMs = 5000) {
 
 // ---- finding what applies -----------------------------------------------------------------------
 
-/** The nearest directory at or above `from` that has a .myelin/ folder, else `fallback`. */
+/**
+ * The nearest directory at or above `from` that has a .myelin/ folder, else `fallback`. A ledger is
+ * read by the model, so only the session's own project counts: the folder must be the working
+ * directory, below it (a package in a monorepo) or above it (the session began in a subfolder).
+ */
 export function projectRoot(from, fallback) {
   for (let d = resolve(from); ; d = dirname(d)) {
-    if (existsSync(join(d, '.myelin'))) return d;
+    if (existsSync(join(d, '.myelin')) && (within(d, fallback) || within(fallback, d))) return d;
     if (dirname(d) === d) return fallback;
   }
 }
@@ -160,6 +164,7 @@ export async function hookPost(payload, { stderr = (s) => console.error(s) } = {
     const texts = writtenTexts(payload.tool_name, input);
     if (!texts.length) return 0;
     const root = projectRoot(dirname(file), cwd);
+    if (!within(file, root)) return 0; // an edit outside the project is not this project's business
     const ledgers = projectLedgers(root);
     if (!ledgers.length) return 0;
     const { violations, name } = checkWritten({ root, file, texts, ledgers });
@@ -198,14 +203,41 @@ export function importsOf(root, { maxFiles = 2500, maxBytes = 400_000 } = {}) {
 }
 
 /**
+ * How often each rule already fires on the project's own source. Models imitate the code around
+ * them, so a deprecated API the project already uses is the one most likely to be written again.
+ * Bounded, and silently skipped for a repository too large to read at session start.
+ */
+export function projectUsage(root, ledgers, { maxFiles = 800, maxBytes = 1_500_000 } = {}) {
+  const usage = new Map();
+  try {
+    const units = [];
+    let bytes = 0;
+    for (const f of collect([root], [...HOOK_EXT]).slice(0, maxFiles)) {
+      const size = statSync(f).size;
+      if (size > 200_000 || bytes + size > maxBytes) continue;
+      bytes += size;
+      units.push({ name: f, text: readFileSync(f, 'utf8') });
+    }
+    for (const l of ledgers) {
+      for (const v of check(l.ledger, units, { bansOnly: true }).violations) usage.set(v.id, (usage.get(v.id) || 0) + 1);
+    }
+  } catch (e) {
+    quiet(e);
+  }
+  return usage;
+}
+
+/**
  * The context to give a model at session start: the bans that apply to this project, as sentences.
- * Rules gated on a package the project does not use are left out, then the list is cut to `budget`
- * characters with a pointer to the rest.
+ * Rules gated on a package the project does not use are left out. What is left is ordered by what
+ * the project's own code already does wrong, then by whether the rule says what to use instead, then
+ * by the ledger's own order, and cut to `budget` characters with a pointer to the rest.
  */
 export function sessionBrief(root, { budget = 4000 } = {}) {
   const ledgers = projectLedgers(root);
   if (!ledgers.length) return '';
   const imports = importsOf(root);
+  const usage = projectUsage(root, ledgers);
   // One queue per ledger, and per package inside a derived ledger, so a short budget is shared out
   // instead of being spent on whichever package sorts first.
   const queues = new Map();
@@ -214,25 +246,27 @@ export function sessionBrief(root, { budget = 4000 } = {}) {
       if (r.kind !== 'ban' || (r.when && !r.when.re.test(imports))) continue;
       const key = l.derived ? `${l.name}|${r.id.split('-')[0]}` : l.name;
       if (!queues.has(key)) queues.set(key, []);
-      queues.get(key).push(r.message);
+      queues.get(key).push({ message: r.message, used: usage.get(r.id) || 0, advice: / (?:Use|Import it from) /.test(r.message) ? 1 : 0 });
     }
   }
-  // Rules that say what to use instead are the useful ones; they go first within a queue.
-  for (const q of queues.values()) q.sort((a, b) => Number(/ Use /.test(b)) - Number(/ Use /.test(a)));
+  for (const q of queues.values()) q.sort((a, b) => b.used - a.used || b.advice - a.advice); // stable: ledger order breaks ties
   const lines = [];
   const seen = new Set();
   let used = 0;
   let hidden = 0;
   const lists = [...queues.values()];
-  for (let i = 0; lists.some((q) => i < q.length); i++) {
-    for (const q of lists) {
-      if (i >= q.length || seen.has(q[i])) continue;
-      seen.add(q[i]);
-      if (used + q[i].length + 3 > budget) hidden++;
-      else {
-        lines.push(`- ${q[i]}`);
-        used += q[i].length + 3;
-      }
+  // Rules the project already breaks go first whatever package they belong to; the rest share the budget fairly.
+  const order = [];
+  for (const q of lists) for (const r of q) if (r.used) order.push(r);
+  order.sort((a, b) => b.used - a.used);
+  for (let i = 0; lists.some((q) => i < q.length); i++) for (const q of lists) if (i < q.length && !q[i].used) order.push(q[i]);
+  for (const r of order) {
+    if (seen.has(r.message)) continue;
+    seen.add(r.message);
+    if (used + r.message.length + 3 > budget) hidden++;
+    else {
+      lines.push(`- ${r.message}`);
+      used += r.message.length + 3;
     }
   }
   if (!lines.length) return '';
@@ -275,36 +309,45 @@ export function mergeSettings(settings, { remove = false } = {}) {
   return next;
 }
 
-export function hookInstall(flags, log = (s) => console.log(s)) {
-  const dir = projectDir(flags);
-  const remove = !!flags.uninstall;
-  const file = join(dir, '.claude', flags.local ? 'settings.local.json' : 'settings.json');
+/** What installing (or removing) the hooks would do to a project's Claude settings, without doing it. */
+export function planHooks(dir, { local = false, remove = false } = {}) {
+  const file = join(dir, '.claude', local ? 'settings.local.json' : 'settings.json');
   let settings = {};
-  if (existsSync(file)) {
+  const exists = existsSync(file);
+  if (exists) {
     try {
       settings = JSON.parse(readFileSync(file, 'utf8'));
     } catch {
       throw new CliError(`${file} is not valid JSON; fix it by hand and re-run`, 1);
     }
     if (!settings || typeof settings !== 'object' || Array.isArray(settings)) throw new CliError(`${file} is not a JSON object`, 1);
-  } else if (remove) {
-    log(`nothing to remove: ${relative(dir, file)} does not exist`);
-    return 0;
   }
   const next = mergeSettings(settings, { remove });
-  const text = JSON.stringify(next, null, 2) + '\n';
-  const same = existsSync(file) && JSON.stringify(settings) === JSON.stringify(next);
-  if (flags['dry-run']) {
-    log(text.trimEnd());
+  return { file, exists, next, text: JSON.stringify(next, null, 2) + '\n', same: exists && JSON.stringify(settings) === JSON.stringify(next) };
+}
+
+export function applyHooks(plan) {
+  if (plan.same) return;
+  mkdirSync(dirname(plan.file), { recursive: true });
+  writeFileSync(plan.file, plan.text);
+}
+
+export function hookInstall(flags, log = (s) => console.log(s)) {
+  const dir = projectDir(flags);
+  const remove = !!flags.uninstall;
+  const plan = planHooks(dir, { local: !!flags.local, remove });
+  if (remove && !plan.exists) {
+    log(`nothing to remove: ${relative(dir, plan.file)} does not exist`);
     return 0;
   }
-  if (!same) {
-    mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, text);
+  if (flags['dry-run']) {
+    log(plan.text.trimEnd());
+    return 0;
   }
-  const shown = relative(dir, file);
-  if (remove) log(same ? `no Myelin hooks in ${shown}` : `removed the Myelin hooks from ${shown}`);
-  else log(same ? `Myelin hooks already in ${shown}` : `added the Myelin hooks to ${shown}: a PostToolUse check after every edit, and the rules at session start`);
+  applyHooks(plan);
+  const shown = relative(dir, plan.file);
+  if (remove) log(plan.same ? `no Myelin hooks in ${shown}` : `removed the Myelin hooks from ${shown}`);
+  else log(plan.same ? `Myelin hooks already in ${shown}` : `added the Myelin hooks to ${shown}: a PostToolUse check after every edit, and the rules at session start`);
   if (!remove) log('Hooks run only where the myelin command is on PATH; elsewhere they do nothing.');
   return 0;
 }

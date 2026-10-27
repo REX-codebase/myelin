@@ -12,7 +12,7 @@ import { setup, needsSetup } from './setup.mjs';
 import { doctor } from './doctor.mjs';
 import { deriveCommand } from './derive-cli.mjs';
 import { hookCommand } from './hook.mjs';
-import { derivedPath } from './derive.mjs';
+import { derivedPath, hasDerived } from './derive.mjs';
 
 const SHORT_FLAGS = { y: 'yes', v: 'version', h: 'help' };
 
@@ -304,16 +304,18 @@ export async function main(argv) {
       case 'detect': {
         const dir = args[0] || '.';
         const { found } = detectLibs(dir);
+        // The ledger `myelin derive` wrote is part of the project, so it is part of what to lint with.
+        const all = hasDerived(dir) ? [...found, { id: 'derived', matched: ['.myelin/derived.myelin'] }] : found;
         if (flags.json) {
-          log(JSON.stringify(found.map((f) => ({ id: f.id, matched: f.matched })), null, 2));
+          log(JSON.stringify(all.map((f) => ({ id: f.id, matched: f.matched })), null, 2));
           return 0;
         }
-        if (!found.length) {
+        if (!all.length) {
           log('no bundled libs match this project');
           return 0;
         }
-        for (const f of found) log(`${f.id}  (${f.matched.join(', ')})`);
-        log(`\nlint with: myelin lint ${found.map((f) => f.id).join(',')} src/`);
+        for (const f of all) log(`${f.id}  (${f.matched.join(', ')})`);
+        log(`\nlint with: myelin lint ${all.map((f) => f.id).join(',')} src/`);
         return 0;
       }
 

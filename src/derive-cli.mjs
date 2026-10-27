@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import * as ui from './ui.mjs';
 import { derive, derivedPath, fingerprint, rootsOf } from './derive.mjs';
-import { CliError, projectDir } from './util.mjs';
+import { CliError, projectDir, cmp } from './util.mjs';
 
 /**
  * Is the derived ledger in `dir` still the one for what is installed?
@@ -47,7 +47,7 @@ export function deriveCommand(flags, log = (s) => console.log(s)) {
 
   if (flags.explain) {
     const q = flags.explain === true ? '' : String(flags.explain).toLowerCase();
-    const rows = stats.skips.filter((s) => s.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name));
+    const rows = stats.skips.filter((s) => s.name.toLowerCase().includes(q)).sort((a, b) => cmp(a.name, b.name));
     if (flags.json) log(JSON.stringify(rows, null, 2));
     else {
       for (const s of rows) log(`${s.name.padEnd(44)} ${s.reason.padEnd(10)} ${s.detail}`);
@@ -68,7 +68,7 @@ export function deriveCommand(flags, log = (s) => console.log(s)) {
   const rel = relative(dir, out);
   const shown = rel && !rel.startsWith('..') ? rel : out;
 
-  const packages = [...stats.packages].map(([name, p]) => ({ name, version: p.version, rules: p.rules })).sort((a, b) => b.rules - a.rules || a.name.localeCompare(b.name));
+  const packages = [...stats.packages].map(([name, p]) => ({ name, version: p.version, rules: p.rules })).sort((a, b) => b.rules - a.rules || cmp(a.name, b.name));
   if (flags.json) {
     log(JSON.stringify({ file: shown, rules: stats.rules, deprecated: stats.decls, merged: stats.merged, skipped: stats.skipped, packages, notes: res.notes }, null, 2));
     return 0;

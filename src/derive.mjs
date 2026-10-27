@@ -11,12 +11,12 @@
 //   - a name that is also declared, live, somewhere in the same public surface is narrowed to
 //     the one syntax that cannot mean the live thing, or dropped;
 //   - ubiquitous names (`map`, `name`, `type`, `then`) are never turned into rules.
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { builtinModules } from 'node:module';
 import { surface, findPackage, typesNameFor, typesTarget, pkgNameOf, SAFE_SPEC } from './surface.mjs';
-import { pkgVersion } from './util.mjs';
+import { pkgVersion, cmp } from './util.mjs';
 import { parse } from './parse.mjs';
 
 // ---- which names are too common to match by name --------------------------------------------
@@ -77,7 +77,7 @@ function importForm(name, specs) {
 
 // ---- messages: never copy a package's prose into a model's context ----------------------------
 
-const CODE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*(?:\([\w$., ]{0,30}\))?$/;
+const CODE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*(?:<[\w$., ]{1,30}>)?(?:\([\w$., ]{0,30}\))?$/;
 const SAFE_PKG = /^(?:@[\w.~-]+\/)?[\w.~-]+$/;
 const SAFE_VER = /^[\w.+-]{1,32}$/;
 
@@ -91,16 +91,18 @@ export function suggestions(note, own) {
   const push = (t) => {
     if (!t) return;
     const tok = t.trim().replace(/^typeof\s+/, '');
-    if (CODE.test(tok) && tok.length <= 60 && tok.replace(/\(.*\)$/, '') !== own && !found.includes(tok)) found.push(tok);
+    if (CODE.test(tok) && tok.length <= 60 && tok.replace(/[(<].*$/, '') !== own && !found.includes(tok)) found.push(tok);
   };
   // "Use `x` from `pkg` instead": the replacement is the same name, imported from somewhere else.
   const from = note.match(/\bfrom\s+[`'"]((?:@[\w.-]+\/)?[\w.-]+(?:\/[\w.-]+){0,3})[`'"]/);
   if (from) return { names: [], module: from[1] };
   for (const m of note.matchAll(/\{@link(?:code|plain)?\s+([^\s}]+)/g)) push(m[1]);
   for (const m of note.matchAll(/`([^`\n]{1,60})`/g)) push(m[1]);
-  const m = note.match(/\b(?:use|prefer|see|replaced by|replace with|switch to|migrate to)\s+(?:the\s+)?([A-Za-z_$][\w$.]*(?:\([\w$., ]{0,30}\))?)/i);
+  const m = note.match(/\b(?:use|prefer|see|replaced by|replace with|switch to|migrate to)\s+(?:the\s+)?([A-Za-z_$][\w$.]*(?:<[\w$., ]{1,30}>)?(?:\([\w$., ]{0,30}\))?)/i);
   if (m) push(m[1]);
-  return { names: found.slice(0, 2), module: null };
+  // A note often lists alternatives for different situations ("ChangeEvent, InputEvent, SubmitEvent, or
+  // SyntheticEvent depending on the event type"). Cutting the list short can drop the one that applies.
+  return { names: found.slice(0, 4), module: null };
 }
 
 /** How a deprecated API is written in code: `ZodString.email()`, `React.LegacyRef`, `fs.exists()`. */
@@ -110,10 +112,25 @@ export function labelFor(decl) {
   return (lead ? lead + '.' : '') + decl.name + (callable ? '()' : '');
 }
 
-export function messageFor(decl, pkg) {
+/**
+ * The sentence for a deprecated API. `known` is every name the scanned declarations declare: a
+ * replacement the note points at is kept only if it is a real API of these packages, which drops
+ * prose that happens to sit in backticks and leaves a hostile note almost nothing to say.
+ */
+export function messageFor(decl, pkg, known = null) {
   const where = pkg && SAFE_PKG.test(pkg.name) && SAFE_VER.test(pkg.version) ? ` in ${pkg.name}@${pkg.version}` : '';
-  const { names, module } = suggestions(decl.note, decl.name);
-  const advice = module ? ` Import it from \`${module}\` instead.` : names.length ? ` Use ${names.map((r) => '`' + r + '`').join(' or ')} instead.` : '';
+  const found = suggestions(decl.note, decl.name);
+  const real = (tok) => !known || known.has(tok.replace(/[(<].*$/, '').split('.').pop());
+  const names = found.names.filter(real);
+  const module = found.module && (!known || known.has('\0module:' + pkgNameOf(found.module))) ? found.module : null;
+  const quoted = names.map((r) => '`' + r + '`');
+  const advice = module
+    ? ` Import it from \`${module}\` instead.`
+    : quoted.length === 1
+      ? ` Use ${quoted[0]} instead.`
+      : quoted.length
+        ? ` Use one of ${quoted.slice(0, -1).join(', ')} or ${quoted[quoted.length - 1]} instead.`
+        : '';
   return `\`${labelFor(decl)}\` is deprecated${where}.${advice}`;
 }
 
@@ -127,16 +144,43 @@ const readJson = (p) => {
   }
 };
 
+// Workspace members of a monorepo root: npm and yarn list them in package.json, pnpm in pnpm-workspace.yaml.
+// Only plain `dir` and `dir/*` patterns are understood; anything cleverer is skipped, not guessed at.
+function workspaceManifests(dir, pkg) {
+  let patterns = Array.isArray(pkg.workspaces) ? pkg.workspaces : Array.isArray(pkg.workspaces?.packages) ? pkg.workspaces.packages : [];
+  try {
+    const yaml = readFileSync(join(dir, 'pnpm-workspace.yaml'), 'utf8');
+    const block = yaml.split(/^packages\s*:\s*$/m)[1] || '';
+    for (const line of block.split('\n')) {
+      if (/^\S/.test(line) && line.trim()) break;
+      const m = line.match(/^\s*-\s*['"]?([^'"#\s]+)['"]?/);
+      if (m) patterns.push(m[1]);
+    }
+  } catch {}
+  const dirs = [];
+  for (const p of patterns) {
+    if (typeof p !== 'string' || p.startsWith('!') || p.includes('**') || p.includes('..')) continue;
+    if (p.endsWith('/*') && !p.slice(0, -2).includes('*')) {
+      try {
+        for (const e of readdirSync(join(dir, p.slice(0, -2)), { withFileTypes: true })) if (e.isDirectory()) dirs.push(join(dir, p.slice(0, -2), e.name));
+      } catch {}
+    } else if (!p.includes('*')) dirs.push(join(dir, p));
+  }
+  return dirs.map((d) => readJson(join(d, 'package.json'))).filter(Boolean);
+}
+
 /** The packages a project can import, with the directory whose declarations describe each. */
 export function rootsOf(dir) {
   const pkg = readJson(join(dir, 'package.json'));
   if (!pkg) return { error: `no package.json in ${dir}`, roots: [] };
   const names = new Set();
-  for (const k of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
-    for (const n of Object.keys(pkg[k] || {})) names.add(n.startsWith('@types/') ? typesTarget(n) : n);
+  for (const m of [pkg, ...workspaceManifests(dir, pkg)]) {
+    for (const k of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+      for (const n of Object.keys(m[k] || {})) names.add(n.startsWith('@types/') ? typesTarget(n) : n);
+    }
   }
   const roots = [];
-  for (const name of [...names].sort()) {
+  for (const name of [...names].sort(cmp)) {
     if (!SAFE_PKG.test(name)) continue;
     const own = findPackage(dir, name);
     const types = findPackage(dir, typesNameFor(name));
@@ -149,7 +193,7 @@ export function rootsOf(dir) {
 /** A short hash of what is installed, so a stale derived ledger can be noticed without rescanning. */
 export function fingerprint(roots) {
   const h = createHash('sha256');
-  for (const r of [...roots].sort((a, b) => (a.name + a.types).localeCompare(b.name + b.types))) h.update(`${r.types ? '@types/' : ''}${r.name}@${r.version}\n`);
+  for (const r of [...roots].sort((a, b) => cmp(a.name + a.types, b.name + b.types))) h.update(`${r.types ? '@types/' : ''}${r.name}@${r.version}\n`);
   return h.digest('hex').slice(0, 12);
 }
 
@@ -303,12 +347,17 @@ export function derive(dir, { only = null } = {}) {
   const { roots: all, error } = rootsOf(dir);
   if (error) return { error };
   const roots = only ? all.filter((r) => only.includes(r.name)) : all;
-  if (!roots.length) return { error: all.length ? 'none of those packages are installed' : 'no dependencies are installed here (run your package manager first)' };
+  if (!roots.length) return { error: all.length ? 'none of those packages are installed' : `no dependencies are installed here (run your package manager first${existsSync(join(dir, '.pnp.cjs')) ? "; Yarn Plug'n'Play keeps no node_modules, so set nodeLinker: node-modules" : ''})` };
 
   const surf = surface(roots);
   const { merged } = mergeDeclarations(surf);
   const live = liveness(surf);
   const rootNames = new Set(roots.map((r) => r.name));
+  // Every name these declarations declare, and every package they can be imported as.
+  const known = new Set();
+  for (const sc of surf.scans.values()) if (sc) for (const n of sc.counts.keys()) known.add(n);
+  for (const g of surf.scope.keys()) known.add('\0module:' + pkgNameOf(g));
+  for (const n of rootNames) known.add('\0module:' + n);
   const stats = { files: surf.gates.size, decls: merged.size, rules: 0, merged: 0, skipped: { common: 0, short: 0, ambiguous: 0, unusable: 0 }, skips: [], packages: new Map() };
   const skip = (d, reason, detail) => {
     stats.skipped[reason]++;
@@ -318,7 +367,7 @@ export function derive(dir, { only = null } = {}) {
   const rules = [];
   const ids = new Set();
   const order = (d) => d.pkg.name + (d.container || '') + d.name;
-  for (const d of [...merged.values()].sort((a, b) => order(a).localeCompare(order(b)))) {
+  for (const d of [...merged.values()].sort((a, b) => cmp(order(a), order(b)))) {
     const name = d.name;
     if (!/^[A-Za-z_$][\w$]*$/.test(name) || name.startsWith('_')) { skip(d, 'unusable', 'internal or not an identifier'); continue; } // `_x` is internal by convention
     const family = d.kind === 'enum-member' ? 'enum-member' : d.member ? (d.kind === 'method' ? 'method' : 'property') : 'symbol';
@@ -349,7 +398,7 @@ export function derive(dir, { only = null } = {}) {
       re: shape.re,
       when: importGate(d.specs),
       unless: others.size || stepAside.length ? importGate(stepAside, others) : null,
-      message: messageFor(d, d.pkg),
+      message: messageFor(d, d.pkg, known),
       specs: [...d.specs].sort(),
       pkg: d.pkg,
     });
@@ -363,7 +412,7 @@ export function derive(dir, { only = null } = {}) {
     if (!prior) byShape.set(key, r);
     else if (/ (?:Use|Import it from) /.test(r.message) && !/ (?:Use|Import it from) /.test(prior.message)) byShape.set(key, { ...r, id: prior.id });
   }
-  const unique = [...byShape.values()].sort((a, b) => a.id.localeCompare(b.id));
+  const unique = [...byShape.values()].sort((a, b) => cmp(a.id, b.id));
   stats.rules = unique.length;
   stats.merged = rules.length - unique.length;
   for (const r of unique) {

@@ -6,4 +6,5 @@ results.csv
 outputs/
 *.zip
 .wild
+.derive
 !eval/bonfire-ab/outputs/

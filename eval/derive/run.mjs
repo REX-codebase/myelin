@@ -16,6 +16,7 @@
 import { readFileSync, readdirSync, statSync, existsSync, writeFileSync } from 'node:fs';
 import { join, extname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { parse } from '../../src/parse.mjs';
 import { check } from '../../src/check.mjs';
 import { libPath } from '../../src/libs.mjs';
@@ -155,7 +156,7 @@ const apps = APPS.map((name) => {
   const root = join(DIR, 'apps', name);
   const files = walk(root, ['ts', 'tsx', 'js', 'jsx'], null);
   const d = hitsOf(derived, files, root);
-  return { app: name, commit: existsSync(join(root, '.git')) ? read(join(root, '.git', 'HEAD')).trim().slice(0, 12) : '', files: files.length, filesFlagged: d.flagged.size, hits: d.lines, byRule: d.byRule };
+  return { app: name, commit: existsSync(join(root, '.git')) ? (spawnSync('git', ['-C', root, 'rev-parse', '--short=12', 'HEAD'], { encoding: 'utf8' }).stdout || '').trim() : '', files: files.length, filesFlagged: d.flagged.size, hits: d.lines, byRule: d.byRule };
 });
 
 // ---- report --------------------------------------------------------------------------------------

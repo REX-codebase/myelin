@@ -8,6 +8,8 @@ import { listLibs, libPath, detectLibs } from './libs.mjs';
 import { parse } from './parse.mjs';
 import { check } from './check.mjs';
 import { CliError, ROOT, collect, DEFAULT_EXT, projectDir } from './util.mjs';
+import { derive, derivedPath } from './derive.mjs';
+import { planHooks, applyHooks } from './hook.mjs';
 
 export const START = '<!-- myelin:start -->';
 export const END = '<!-- myelin:end -->';
@@ -170,6 +172,36 @@ function firstLint(dir, ledgers) {
   else ui.note(`setup did not fail on this. See the details: myelin fix ${failed.join(',')} src/`);
 }
 
+// The derived ledger is offered whenever the project has installed dependencies. Under --yes (and with
+// no terminal) it is written, because it only adds a file inside .myelin/. Returns the result or null.
+async function planDerive(dir, flags, { yes }) {
+  if (flags['no-derive']) return null;
+  const installed = existsSync(join(dir, 'package.json')) && existsSync(join(dir, 'node_modules'));
+  if (!installed) {
+    if (flags.derive) ui.warn('--derive needs installed dependencies; run your package manager first');
+    return null;
+  }
+  const want = flags.derive || yes || !ui.interactive() ? true : await ui.confirm('Read the deprecations of your installed packages into .myelin/derived.myelin?', true);
+  if (!want) return null;
+  const res = derive(dir);
+  if (res.error) {
+    ui.warn(`derive: ${res.error}`);
+    return null;
+  }
+  if (!res.rules.length) {
+    ui.note('your installed packages carry no usable @deprecated tags, so no derived ledger was written');
+    return null;
+  }
+  return res;
+}
+
+// Hooks edit the agent's own settings, so --yes never installs them; only --hook or a "yes" does.
+async function planHookInstall(dir, flags, { yes }) {
+  if (flags['no-hook']) return null;
+  const want = flags.hook ? true : !yes && ui.interactive() ? await ui.confirm('Check every edit Claude Code makes (adds hooks to .claude/settings.json)?', true) : false;
+  return want ? planHooks(dir) : null;
+}
+
 function doneCard(ids) {
   const cmds = [
     [`myelin lint ${ids.join(',')} src/`, 'check code against the rules'],
@@ -209,10 +241,15 @@ export async function setup(flags) {
       ui.step('Choose the ledgers. Detected ones are pre-checked.');
       ids = await pickLibs(found);
     }
-    if (!ids.length) {
+    const derived = await planDerive(dir, flags, { yes });
+    if (!ids.length && !derived) {
       ui.warn('no ledgers selected, so nothing to write. See them with: myelin libs');
       return 0;
     }
+    const hooks = await planHookInstall(dir, flags, { yes });
+    // The agent block names every ledger it should run, the derived one included.
+    const withDerived = derived || existsSync(derivedPath(dir));
+    const blockIds = withDerived ? [...ids, 'derived'] : ids;
 
     const where = target ?? (ui.interactive() && !yes ? await pickTarget() : 'agents');
     const mdir = join(dir, '.myelin');
@@ -224,16 +261,23 @@ export async function setup(flags) {
         : readFileSync(dest, 'utf8') === readFileSync(src, 'utf8') ? 'same' : 'kept';
       return { id, src, dest, action };
     });
-    const agent = TARGETS[where] ? planAgent(dir, TARGETS[where], ids) : null;
+    const agent = TARGETS[where] ? planAgent(dir, TARGETS[where], blockIds) : null;
 
     const rows = ledgers.map((l) => {
       const [label, note] = LEDGER_LABEL[l.action];
       return [label, relative(dir, l.dest), l.action === 'kept' ? `${note}; myelin use ${l.id} --force replaces it` : note];
     });
+    const dfile = derivedPath(dir);
+    const dAction = !derived ? null : !existsSync(dfile) ? 'create' : readFileSync(dfile, 'utf8') === derived.text ? 'same' : 'update';
+    if (derived) {
+      const n = derived.stats.packages.size;
+      rows.push([dAction === 'same' ? 'unchanged' : dAction, relative(dir, dfile), `${derived.rules.length} rules read from ${n} installed package${n === 1 ? '' : 's'}`]);
+    }
     if (agent) {
       const [label, note] = AGENT_LABEL[agent.action];
       rows.push([label, basename(agent.file), note]);
     }
+    if (hooks) rows.push([hooks.same ? 'unchanged' : 'add hooks', relative(dir, hooks.file), 'check each edit; brief the agent at session start']);
     console.log(ui.table(rows, { head: ['action', 'file', 'note'] }));
 
     if (dry) {
@@ -242,11 +286,16 @@ export async function setup(flags) {
       const creating = ledgers.filter((l) => l.action === 'create');
       if (creating.length) mkdirSync(mdir, { recursive: true });
       for (const l of creating) copyFileSync(l.src, l.dest);
+      if (derived && dAction !== 'same') {
+        mkdirSync(mdir, { recursive: true });
+        writeFileSync(dfile, derived.text);
+      }
       if (agent && agent.action !== 'same') writeFileSync(agent.file, agent.text);
+      if (hooks) applyHooks(hooks);
     }
 
     const pkg = readPkg(dir);
-    const lintCmd = `myelin lint ${ids.join(',')} ${existsSync(join(dir, 'src')) ? 'src/' : '.'}`;
+    const lintCmd = `myelin lint ${blockIds.join(',')} ${existsSync(join(dir, 'src')) ? 'src/' : '.'}`;
     if (pkg && !(pkg.scripts || {})['myelin:lint']) {
       console.log('');
       ui.step('Optional: add this to "scripts" in package.json (setup never edits it):');
@@ -255,13 +304,13 @@ export async function setup(flags) {
 
     if (existsSync(join(dir, 'src'))) {
       console.log('');
-      if (dry) ui.note(`would lint src/ against ${ids.join(', ')}`);
-      else firstLint(dir, ledgers);
+      if (dry) ui.note(`would lint src/ against ${blockIds.join(', ')}`);
+      else firstLint(dir, withDerived ? [...ledgers, { id: 'derived', src: dfile, dest: dfile }] : ledgers);
     }
 
     console.log('');
     if (dry) ui.note('dry run complete');
-    else console.log(doneCard(ids));
+    else console.log(doneCard(blockIds));
     return 0;
   } finally {
     ui.closePrompts();

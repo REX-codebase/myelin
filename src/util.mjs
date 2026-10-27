@@ -1,6 +1,6 @@
 // Helpers shared by the CLI commands: errors, package metadata, file collection.
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { join, extname, resolve } from 'node:path';
+import { join, extname, resolve, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -40,4 +40,13 @@ export function collect(paths, exts) {
   };
   for (const p of paths) visit(p, true);
   return out;
+}
+
+// A sort comparator that does not depend on the machine's locale, so a committed file comes out the same everywhere.
+export const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+
+/** Is `child` the same path as `parent`, or somewhere below it? */
+export function within(child, parent) {
+  const r = relative(resolve(parent), resolve(child));
+  return r === '' || (!r.startsWith('..') && !isAbsolute(r));
 }

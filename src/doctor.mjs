@@ -7,6 +7,8 @@ import { listLibs } from './libs.mjs';
 import { parse } from './parse.mjs';
 import { pkgVersion, projectDir } from './util.mjs';
 import { blockState } from './setup.mjs';
+import { derivedState } from './derive-cli.mjs';
+import { hooksInstalled } from './hook.mjs';
 
 const MARK = { ok: ui.green, warn: ui.yellow, fail: ui.red };
 const cell = (s) => `${MARK[s](ui.glyph(s))} ${s}`;
@@ -51,6 +53,19 @@ export function checks(dir) {
   if (good.length) add('agent file', 'ok', `${good.join(', ')} has the myelin block`);
   else if (states.some(([, s]) => s === 'broken')) add('agent file', 'warn', 'myelin markers are unbalanced; fix by hand, then run myelin setup');
   else add('agent file', 'warn', 'no AGENTS.md or CLAUDE.md with a myelin block (run myelin setup)');
+
+  // Only a project with a package.json and installed dependencies can have a derived ledger.
+  if (existsSync(join(dir, 'package.json')) && existsSync(join(dir, 'node_modules'))) {
+    const d = derivedState(dir);
+    if (d.state === 'current') {
+      const ledger = parse(readFileSync(d.file, 'utf8'));
+      add('derived ledger', ledger.ok ? 'ok' : 'fail', ledger.ok ? `${ledger.rules.length} rules, matches node_modules` : 'invalid; run myelin derive');
+    } else if (d.state === 'stale') add('derived ledger', 'warn', 'older than node_modules (run myelin derive)');
+    else add('derived ledger', 'warn', 'not written yet (run myelin derive to read your packages\' deprecations)');
+  }
+  const hook = hooksInstalled(dir);
+  if (hook) add('agent hook', 'ok', `checking every Claude Code edit (.claude/${hook})`);
+  else if (existsSync(join(dir, '.claude')) || existsSync(join(dir, 'CLAUDE.md'))) add('agent hook', 'warn', 'not installed (run myelin hook install)');
 
   return out;
 }

@@ -30,6 +30,7 @@
     "libs",
     "integrations",
     "eval",
+    "!eval/derive/package-lock.json",
     "README.md",
     "CHANGELOG.md",
     "SECURITY.md",
@@ -40,6 +41,7 @@
     "self": "node bin/myelin.mjs self examples libs",
     "bench": "node bin/myelin.mjs bench && node bin/myelin.mjs bench --cross",
     "bench:wild": "sh eval/wild/fetch.sh && node eval/wild/run.mjs",
+    "bench:derive": "sh eval/derive/fetch.sh && node eval/derive/run.mjs",
     "assets": "node scripts/make-assets.mjs",
     "drift": "node scripts/drift.mjs",
     "check": "npm test && npm run self && npm run bench"
@@ -60,7 +62,12 @@
     "nextjs",
     "tailwind",
     "migration",
-    "ai-coding"
+    "ai-coding",
+    "deprecation",
+    "deprecated-api",
+    "claude-code",
+    "hooks",
+    "typescript"
   ],
   "license": "MIT"
 }

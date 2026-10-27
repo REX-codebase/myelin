@@ -150,12 +150,24 @@ test('a long list of findings is cut with a count', () => {
   assert.match(out, /\.\.\. and 3 more/);
 });
 
-test('projectRoot finds the nearest .myelin/ and falls back', () => {
+test('projectRoot finds the nearest .myelin/, but only inside the session\'s own project', () => {
   const root = project();
   mkdirSync(join(root, 'packages/web/src'), { recursive: true });
-  assert.equal(projectRoot(join(root, 'packages/web/src'), '/fallback'), root);
+  assert.equal(projectRoot(join(root, 'packages/web/src'), root), root);
   mkdirSync(join(root, 'packages/web/.myelin'), { recursive: true });
-  assert.equal(projectRoot(join(root, 'packages/web/src'), '/fallback'), join(root, 'packages/web'));
+  assert.equal(projectRoot(join(root, 'packages/web/src'), root), join(root, 'packages/web'), 'a package below the working directory');
+  assert.equal(projectRoot(join(root, 'packages/web/src'), join(root, 'packages/web/src')), join(root, 'packages/web'), 'a session started in a subfolder');
+  const elsewhere = mkdtempSync(join(tmpdir(), 'myelin-elsewhere-'));
+  tmps.push(elsewhere);
+  assert.equal(projectRoot(join(root, 'packages/web/src'), elsewhere), elsewhere, 'another project\'s ledger is never loaded');
+});
+
+test('an edit outside the session\'s project is not checked, even if that other project has ledgers', async () => {
+  const mine = project();
+  const theirs = project();
+  const file = write(theirs, 'src/a.ts', FILE);
+  const r = await post(payload(mine, 'Edit', { file_path: file, old_string: 'x', new_string: 'export const legacy = z.string().email();' }));
+  assert.deepEqual(r, { code: 0, out: '' });
 });
 
 test('the session brief names only rules for packages the project imports, within a budget', () => {
