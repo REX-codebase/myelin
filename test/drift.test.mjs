@@ -60,11 +60,13 @@ function registry(overrides) {
     const server = createServer((req, res) => {
       const accept = req.headers.accept || '';
       const path = decodeURIComponent(new URL(req.url, 'http://r').pathname.slice(1));
-      const name = path.replace(/\/latest$/, '');
-      const entry = Object.values(pins).find((p) => p.package === name);
+      const pypi = /^pypi\/(.+)\/json$/.exec(path);
+      const name = pypi ? pypi[1] : path.replace(/\/latest$/, '');
+      const entry = Object.values(pins).find((p) => p.package === name && (p.registry === 'pypi') === Boolean(pypi));
       const o = overrides[name];
       if (!entry || o === 500) { res.writeHead(o === 500 ? 500 : 404); return res.end(); }
       res.writeHead(200, { 'content-type': 'application/json' });
+      if (pypi) return res.end(JSON.stringify({ info: { version: o?.latest || entry.version }, releases: Object.fromEntries((o?.versions || [entry.version]).map((v) => [v, []])) }));
       if (path.endsWith('/latest')) return res.end(JSON.stringify({ version: o?.latest || entry.version }));
       // the packument, only asked for when `latest` is a prerelease
       res.end(JSON.stringify({ versions: Object.fromEntries((o?.versions || [entry.version]).map((v) => [v, {}])), accept }));
@@ -76,7 +78,7 @@ function registry(overrides) {
 function runScript(url, args) {
   // async on purpose: the registry lives in this process, so spawnSync would deadlock it
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, [SCRIPT, ...args], { cwd: ROOT, env: { ...process.env, MYELIN_NPM_REGISTRY: url } });
+    const child = spawn(process.execPath, [SCRIPT, ...args], { cwd: ROOT, env: { ...process.env, MYELIN_NPM_REGISTRY: url, MYELIN_PYPI_REGISTRY: url } });
     let stdout = '', stderr = '';
     child.stdout.on('data', (d) => (stdout += d));
     child.stderr.on('data', (d) => (stderr += d));
@@ -105,6 +107,25 @@ test('against a registry: current, minor, 0.x major, scoped names, a prerelease 
     assert.equal(rows.zod.status, 'unknown');
     assert.match(rows.zod.error, /500/);
   } finally { server.close(); }
+});
+
+test('a PyPI pin (bpy) is compared with PyPI, not npm, and a prerelease is not drift', async () => {
+  const { server, url } = await registry({
+    bpy: { latest: '5.3.0' },                                            // minor, from the PyPI json API
+    firebase: { latest: '13.1.0' }
+  });
+  const pre = await registry({ bpy: { latest: '5.3.0rc1', versions: ['5.2.2', '5.2.3', '5.3.0rc1'] } });
+  try {
+    const rows = Object.fromEntries(JSON.parse((await runScript(url, ['--json'])).stdout).map((x) => [x.id, x]));
+    assert.equal(rows.blender.status, 'minor');
+    assert.equal(rows.blender.registry, 'pypi');
+    assert.equal(rows.firebase.status, 'current');
+    const prerelease = Object.fromEntries(JSON.parse((await runScript(pre.url, ['--json'])).stdout).map((x) => [x.id, x]));
+    assert.equal(prerelease.blender.status, 'current', 'a release candidate must not count as drift');
+    assert.equal(prerelease.blender.latest, '5.2.3');
+    const md = (await runScript(url, ['--md'])).stdout;
+    assert.match(md, /`bpy` \(PyPI\)/);
+  } finally { server.close(); pre.server.close(); }
 });
 
 test('--strict fails on drift and passes when everything is current', async () => {

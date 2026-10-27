@@ -1,6 +1,6 @@
 {
   "name": "myelin-ledger",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Myelin: a model-agnostic, machine-checkable rule ledger format for LLM-generated code.",
   "type": "module",
   "author": "REX-codebase",

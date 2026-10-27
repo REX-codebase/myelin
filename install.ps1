@@ -10,7 +10,7 @@
 #
 # From a file:  .\install.ps1 [-Ref <ref>] [-NoModifyPath] [-Uninstall] [-Yes]
 # Piped to iex you cannot pass parameters, so set these environment variables first:
-#   $env:MYELIN_REF = 'v0.3.0'          same as -Ref. A release tag is verified; a branch or commit is not.
+#   $env:MYELIN_REF = 'v0.4.0'          same as -Ref. A release tag is verified; a branch or commit is not.
 #   $env:MYELIN_NO_MODIFY_PATH = '1'    same as -NoModifyPath
 #   $env:MYELIN_UNINSTALL = '1'         same as -Uninstall
 #   $env:MYELIN_YES = '1'               same as -Yes
@@ -276,7 +276,7 @@ function Install-Myelin {
                 try {
                     Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $zip
                 } catch {
-                    throw "Could not download Myelin ($gitRef) from GitHub.`n    Check your internet connection and try again.`n    To install a release instead, set `$env:MYELIN_REF to a tag such as v0.3.0, then run this again."
+                    throw "Could not download Myelin ($gitRef) from GitHub.`n    Check your internet connection and try again.`n    To install a release instead, set `$env:MYELIN_REF to a tag such as v0.4.0, then run this again."
                 }
                 Say-Ok "Downloaded Myelin ($gitRef)"
                 $installSource = "ref $gitRef, not verified"

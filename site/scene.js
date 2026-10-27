@@ -36,7 +36,7 @@ const MathU = THREE.MathUtils;
 const L = 150;                       // length of the myelinated axon, world units
 const CORE_R = 0.16;                 // naked axon radius
 const SHEATH_R = 1.0;                // myelin radius
-const N_BRANCH = 20;                 // 19 libraries + "add yours"
+const N_BRANCH = 22;                 // 21 libraries + "add yours"
 
 const curve = new THREE.CatmullRomCurve3([
   [-14, 0, 0], [8, 0.8, -3], [32, -1.4, -1], [58, 1.6, -5], [84, -0.6, -1.5], [110, 1.2, -4.5], [134, 0, -2], [156, 0.4, -3]

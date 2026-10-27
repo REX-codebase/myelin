@@ -1,6 +1,6 @@
 # Derived ledgers and agent hooks
 
-Myelin ships 19 hand-researched ledgers. Your project has more than 19 dependencies, and it is not on the latest version of any of them.
+Myelin ships 21 hand-researched ledgers. Your project has more than 21 dependencies, and it is not on the latest version of any of them.
 
 `myelin derive` closes that gap. Library authors already say which APIs are deprecated, in the type declarations they ship (`@deprecated` in a JSDoc block). `derive` reads those tags **from the versions installed in your `node_modules`** and writes them as an ordinary ledger. `myelin hook` then runs the ledger on every edit an AI agent makes, whether or not the agent remembers to ask.
 
@@ -17,7 +17,7 @@ A curated ledger and a derived ledger know different things.
 | | curated (`libs/`) | derived (`.myelin/derived.myelin`) |
 |---|---|---|
 | Source | a research pass over migration guides | `@deprecated` tags in the installed types |
-| Covers | 19 libraries | any library that ships types or has `@types/` |
+| Covers | 21 libraries | any library that ships types or has `@types/` |
 | Version | the one it was researched against | **exactly the one installed** |
 | Knows about | removed and changed APIs, config, CSS, semantics | APIs that are **still there but deprecated** |
 | Catches | code that breaks | code that **works and warns, or works and rots** |

@@ -20,6 +20,6 @@ body:
     id: env
     attributes:
       label: Myelin, Node and OS versions
-      description: For example `myelin 0.3.0, node 22.12, macOS 15`.
+      description: For example `myelin 0.4.0, node 22.12, macOS 15`.
     validations:
       required: true

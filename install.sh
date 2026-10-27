@@ -129,7 +129,7 @@ Usage:
   sh install.sh [options]
 
 Options:
-  --ref <ref>     install a specific version. A release tag such as v0.3.0 is
+  --ref <ref>     install a specific version. A release tag such as v0.4.0 is
                   verified against its published SHA-256. Any other ref (a
                   branch or commit) is installed as is and is NOT verified.
                   Default: the latest release, verified.
@@ -160,7 +160,7 @@ parse_args() {
   while [ $# -gt 0 ]; do
     case "$1" in
       --ref)
-        [ $# -ge 2 ] || usage_error "--ref needs a value, for example --ref v0.3.0"
+        [ $# -ge 2 ] || usage_error "--ref needs a value, for example --ref v0.4.0"
         REF="$2"
         shift 2
         ;;
@@ -344,7 +344,7 @@ get_ref() {
   if ! fetch "$URL" "$TMP_DIR/myelin.tar.gz"; then
     fail "Could not download Myelin ($1) from GitHub."
     info "Check your internet connection and try again."
-    info "To install a release instead, run with --ref <tag>, for example --ref v0.3.0."
+    info "To install a release instead, run with --ref <tag>, for example --ref v0.4.0."
     exit 1
   fi
   SOURCE_LABEL="ref $1, not verified"

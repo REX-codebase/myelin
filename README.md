@@ -19,7 +19,7 @@
 
 <p align="center">
   <img alt="zero dependencies" src="https://img.shields.io/badge/dependencies-0-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
-  <img alt="19 libraries" src="https://img.shields.io/badge/libraries-19-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
+  <img alt="21 libraries" src="https://img.shields.io/badge/libraries-21-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
   <img alt="node 18+" src="https://img.shields.io/badge/node-%E2%89%A518-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
   <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-0b0f19?style=flat-square&labelColor=0b0f19&color=5ff4ff">
 </p>
@@ -49,11 +49,11 @@ Pick the line for your system. Each one installs the `myelin` command. Myelin is
 The installers fetch the **latest release** and check it against the SHA-256 that release publishes before installing anything. A mismatch stops the install and writes nothing. To pin a version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh -s -- --ref v0.3.0   # macOS, Linux, WSL
+curl -fsSL https://raw.githubusercontent.com/REX-codebase/myelin/main/install.sh | sh -s -- --ref v0.4.0   # macOS, Linux, WSL
 ```
 
 ```powershell
-$env:MYELIN_REF = 'v0.3.0'; irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1 | iex   # Windows
+$env:MYELIN_REF = 'v0.4.0'; irm https://raw.githubusercontent.com/REX-codebase/myelin/main/install.ps1 | iex   # Windows
 ```
 
 A release tag is verified. A branch or commit is installed as is and labelled unverified.
@@ -142,7 +142,7 @@ node bin/myelin.mjs lint three eval/agent-ab/showcase/*/index.html
 
 ## Libraries
 
-Nineteen ledgers ship in the box, each pinned to a released version and researched against live docs on **2026-10-26**. Every rule links to the migration guide or changelog it came from in `libs/<id>/SOURCES.md`.
+Twenty-one ledgers ship in the box, each pinned to a released version and researched on **2026-10-26** (the first nineteen, against live docs) and **2026-10-27** (Firebase and Blender, against the published packages and sources, because their docs sites were unreachable). Every rule links to the migration guide, changelog or package file it came from in `libs/<id>/SOURCES.md`.
 
 | Library | Targets | Bans | Snippets |
 |---|---|--:|--:|
@@ -165,12 +165,14 @@ Nineteen ledgers ship in the box, each pinned to a released version and research
 | Mongoose | 9.11 | 17 | 8 |
 | OpenAI Node SDK | 7.43 | 16 | 6 |
 | Vitest | 5.0 | 17 | 8 |
+| Firebase (JS SDK · Admin · Functions) | 13.1 · 14.5 · 7.4 | 14 | 7 |
+| Blender (bpy, Python) | 5.2 | 20 | 9 |
 
 Missing yours? [Add a ledger](docs/AUTHORING.md). Every rule needs a source link and a bench file.
 
 <br>
 
-## Beyond the 19
+## Beyond the 21
 
 Your project has more dependencies than Myelin has ledgers, and it is not on the latest version of any of them. But library authors already say what is deprecated, in the types they ship. `myelin derive` reads those tags from the versions in your `node_modules` and writes them as a ledger:
 
@@ -192,10 +194,10 @@ FAIL react-React-FormEvent   components/ai-elements/prompt-input.tsx:9  `React.F
 
 | | curated ledgers | derived ledger |
 |---|---|---|
-| Covers | 19 libraries | any library with types |
+| Covers | 21 libraries | any library with types |
 | Version | the one researched | **the one installed** |
 | Knows | removed and changed APIs, config, CSS | APIs that still work but are deprecated |
-| Stale files caught, of the 177 in this repo's corpus | 100% | 8.5% (no approach built on deprecation tags can pass 27%) |
+| Stale files caught, of the 177 npm-library files in this repo's corpus | 100% | 8.5% (no approach built on deprecation tags can pass 27%) |
 
 They find different things. On Next.js 16.4.3's own examples they flag different files, with none in common. Use both. How it works, what it cannot do, and the safety model: **[docs/DERIVE.md](docs/DERIVE.md)**.
 
@@ -209,8 +211,8 @@ Seven tests, all reproducible from this repo. The first three ask: does a ledger
 
 | Test | Result |
 |---|---|
-| **Labelled corpus**<br><sub>177 stale files, 129 current files</sub> | 100% of stale files caught. 0 false alarms on current files. |
-| **Cross-library sweep**<br><sub>every ledger over every other library's correct code</sub> | 2,322 checks, 0 false positives. |
+| **Labelled corpus**<br><sub>207 stale files, 151 current files</sub> | 100% of stale files caught. 0 false alarms on current files. |
+| **Cross-library sweep**<br><sub>every ledger over every other library's correct code</sub> | 3,020 checks, 0 false positives. |
 | **Official examples, untouched**<br><sub>upstream repos, old release vs current</sub> | three.js r150: 97.8% flagged. three.js r186: 0.4% flagged (1 of 230, an old API in a comment). Next.js 16.4.3's own examples: 19 genuine pre-16 patterns. |
 | **Agent A/B**<br><sub>bonfire scene, GLM 5.3, 2 agents per arm</sub> | Unguided: both used two removed APIs. Guided: neither did. |
 | **Agent A/B**<br><sub>lighthouse + neon street, Claude Haiku 5.5, 6 agents per arm</sub> | Unguided: 5 of 6 used a stale API. Prose skill and Myelin: 0 of 6 each. Lint matched three.js's runtime warnings on all 18 pages. |

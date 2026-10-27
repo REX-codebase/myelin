@@ -1,0 +1,160 @@
+myelin 1.1
+id      firebase
+about   Firebase JS SDK 13 (modular), firebase-admin 14 (per-service entry points), Cloud Functions 7 (v2 API at the package root): bans the namespaced v8 API, the removed vertexai and Imagen APIs, admin.firestore()-style access and functions.config()
+fires   firebase | firestore | firebase auth | firebase storage | firebase functions | cloud functions | firebase admin | firebase-admin | fcm | firebase ai | app check | realtime database | firebase hosting
+comments skip
+status  Researched 2026-10-27 against firebase 13.1.0, firebase-admin 14.5.0 and firebase-functions 7.4.0: the published packages (types, exports maps), the firebase-js-sdk changelogs on GitHub. firebase.google.com was not reachable from the research environment, so no docs page was read; see SOURCES.md. Regex-level checks. Snippets not executed or type-checked.
+
+= version     firebase 13.1.0 (JS SDK, modular), firebase-admin 14.5.0 (Node >=22), firebase-functions 7.4.0 (v2 API at the root, v1 under firebase-functions/v1)
+= verified    2026-10-27
+= imports     import { initializeApp } from "firebase/app"; import { getFirestore, collection, doc, getDoc, onSnapshot } from "firebase/firestore"; import { getAuth, signInWithEmailAndPassword } from "firebase/auth"; one entry point per product
+= admin       import { initializeApp, cert } from "firebase-admin/app"; import { getFirestore, FieldValue } from "firebase-admin/firestore"; import { getAuth } from "firebase-admin/auth"; firebase-admin's root exports only initializeApp, getApp, getApps, deleteApp, cert, applicationDefault, refreshToken
+= functions   import { onRequest, onCall } from "firebase-functions/https"; import { onDocumentCreated } from "firebase-functions/firestore"; import { onSchedule } from "firebase-functions/scheduler"; import { defineString, defineSecret } from "firebase-functions/params"; setGlobalOptions({ region })
+= ai          import { getAI, getGenerativeModel, GoogleAIBackend } from "firebase/ai"; AgentPlatformBackend replaces VertexAIBackend; Imagen is gone (use Gemini image models)
+= cache       Firestore offline: initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) })
+
+! B1 /\bimport\s+(?:\*\s+as\s+)?firebase\s+from\s+['"]firebase(?:\/app)?['"]|\bfrom\s+['"]firebase\/compat\b|\brequire\(\s*['"]firebase\/compat\b|^\s*import\s+['"]firebase\/(?:auth|firestore|database|storage|functions|messaging|analytics|performance|remote-config|app-check)['"]/m   The namespaced (v8) SDK and firebase/compat are the legacy API. Import named functions from one entry point per product: import { initializeApp } from "firebase/app"; import { getFirestore } from "firebase/firestore". -> $app
+! B2 /\bfirebase\.(?:initializeApp|apps?|auth|firestore|database|storage|functions|messaging|analytics|performance|remoteConfig|appCheck)\b/   firebase.initializeApp(), firebase.auth() and firebase.firestore.FieldValue are the v8 namespace. Use initializeApp(config), getAuth(app), getFirestore(app) and named imports such as serverTimestamp(). -> $app
+! B3 /\.(?:collection|doc|onSnapshot)\(/ when /['"]firebase(?:\/[\w\/-]*)?['"]/ unless /firebase-admin/   Method chaining (db.collection("x").doc(id).get(), ref.onSnapshot(cb)) is the namespaced API. In the modular SDK the functions take the instance first: collection(db, "x"), doc(db, "x", id), await getDoc(ref), onSnapshot(ref, cb). -> $firestore
+! B4 /\bauth(?:\(\))?\.(?:signInWithEmailAndPassword|createUserWithEmailAndPassword|signInWithPopup|signInWithRedirect|signInAnonymously|signInWithCredential|signInWithCustomToken|signInWithPhoneNumber|sendPasswordResetEmail|fetchSignInMethodsForEmail)\(/ when /['"]firebase(?:\/[\w\/-]*)?['"]/   Auth sign-in methods are functions that take the Auth instance first: signInWithEmailAndPassword(auth, email, password), signInWithPopup(auth, new GoogleAuthProvider()). -> $auth
+! B5 /\benable(?:MultiTab)?IndexedDbPersistence\b/   enableIndexedDbPersistence() and enableMultiTabIndexedDbPersistence() are deprecated and will be removed in a future major. Set localCache when you initialise Firestore: initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }). -> $cache
+! B6 /\bfirebase\/vertexai(?:-preview)?['"]|\bgetVertexAI\b|\bVertexAIBackend\b|\bBackendType\.VERTEX_AI\b/   The firebase/vertexai import path was removed in 12.0.0 and VertexAIBackend in 13.0.0. Import from "firebase/ai": getAI(app, { backend: new GoogleAIBackend() }), or new AgentPlatformBackend(location) (default location "global"). -> $ai
+! B7 /\b(?:getImagenModel|ImagenModelParams|ImagenGenerationConfig|ImagenSafetySettings|ImagenAspectRatio|ImagenPersonFilterLevel|ImagenModel)\b/   Imagen methods and types were removed from firebase/ai (Imagen models were shut down). Use a Gemini image model through getGenerativeModel() with image response modalities.
+! B8 /\binitializeAppCheck\(\s*\w+\s*\)/   initializeAppCheck() can no longer be called without a provider. Pass one: initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(siteKey), isTokenAutoRefreshEnabled: true }).
+! B9 /\bdynamicLinkDomain\b/   Firebase Dynamic Links is shut down. Use ActionCodeSettings.linkDomain to set the custom domain for mobile email links.
+! B10 /\bsetCurrentScreen\(/   setCurrentScreen() is deprecated. Call logEvent(analytics, "screen_view", { firebase_screen: name, firebase_screen_class: name }).
+! B11 /\badmin\.(?:firestore|auth|database|storage|messaging|remoteConfig|appCheck|credential|apps?|installations|instanceId|securityRules|projectManagement|machineLearning|extensions)\b/ when /['"]firebase-admin(?:\/[\w-]+)?['"]/   firebase-admin 14 has no service namespaces on its root export (admin.firestore(), admin.auth(), admin.credential.cert() do not exist). Import per service: getFirestore() from "firebase-admin/firestore", getAuth() from "firebase-admin/auth", cert() from "firebase-admin/app". -> $admin
+! B12 /\bfunctions\.config\(\)/ when /['"]firebase-functions['"]/   functions.config() was removed in firebase-functions 7 (its type is `never`). Use params: defineString("NAME"), defineSecret("NAME"), defineInt(...) from "firebase-functions/params", and read .value() inside the function. -> $fn
+! B13 /\bfunctions\s*\.\s*(?:region|runWith)\s*\(|\bfunctions\.(?:firestore\.document|database\.ref|pubsub\.(?:schedule|topic)|auth\.user|storage\.(?:object|bucket)|analytics\.event|remoteConfig\.onUpdate)\s*\(/ when /['"]firebase-functions['"]/ unless /firebase-functions\/v1/   The package root of firebase-functions 7 is the v2 API: there is no functions.region()/runWith(), no functions.firestore.document() and no functions.pubsub.schedule(). Use onDocumentCreated(...) from "firebase-functions/firestore", onSchedule(...) from "firebase-functions/scheduler", and setGlobalOptions({ region }). Only import "firebase-functions/v1" to keep an existing v1 function. -> $fn
+! B14 /\bonCall\(\s*(?:async\s*)?\(\s*data\s*,\s*(?:context|ctx)\s*\)/ when /['"]firebase-functions(?:\/https)?['"]/ unless /firebase-functions\/v1/   A v2 callable receives one argument: onCall((request) => ...) with request.data and request.auth. The (data, context) signature is v1. -> $fn
+
+~ P1 Initialise once and share the instances: export const app = initializeApp(config); export const db = getFirestore(app); export const auth = getAuth(app).
+~ P2 Use the per-product entry points (firebase/firestore, firebase/auth, ...) and named imports: modular code can be tree-shaken, so a page pays only for what it uses.
+~ P3 firebase-admin 14 needs Node 22 or newer. firebase-functions 7 accepts Node 18+ and has a peer dependency on firebase-admin 11 to 14.
+~ P4 Set shared Cloud Functions options once with setGlobalOptions({ region, maxInstances }) instead of repeating them on every function.
+
+$ app
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+};
+
+export const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+$$
+
+$ firestore
+import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, serverTimestamp, where } from "firebase/firestore";
+import { db } from "./firebase";
+
+export async function addPost(authorId, text) {
+  return addDoc(collection(db, "posts"), { authorId, text, createdAt: serverTimestamp() });
+}
+
+export async function loadPost(id) {
+  const snap = await getDoc(doc(db, "posts", id));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
+export async function loadPostsBy(authorId) {
+  const q = query(collection(db, "posts"), where("authorId", "==", authorId), orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export function watchPosts(callback) {
+  return onSnapshot(query(collection(db, "posts"), orderBy("createdAt", "desc")), (snap) => {
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  });
+}
+$$
+
+$ auth
+import { GoogleAuthProvider, createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut } from "firebase/auth";
+import { auth } from "./firebase";
+
+export const signUp = (email, password) => createUserWithEmailAndPassword(auth, email, password);
+export const signIn = (email, password) => signInWithEmailAndPassword(auth, email, password);
+export const signInWithGoogle = () => signInWithPopup(auth, new GoogleAuthProvider());
+export const logOut = () => signOut(auth);
+export const watchUser = (callback) => onAuthStateChanged(auth, callback);
+$$
+
+$ cache
+import { initializeApp } from "firebase/app";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
+
+const app = initializeApp({ projectId: "my-project" });
+
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+});
+$$
+
+$ ai
+import { initializeApp } from "firebase/app";
+import { GoogleAIBackend, getAI, getGenerativeModel } from "firebase/ai";
+
+const app = initializeApp({ projectId: "my-project", apiKey: "..." });
+const ai = getAI(app, { backend: new GoogleAIBackend() });
+const model = getGenerativeModel(ai, { model: "gemini-3.5-flash-lite" });
+
+export async function summarize(text) {
+  const result = await model.generateContent(`Summarize in one sentence: ${text}`);
+  return result.response.text();
+}
+$$
+
+$ admin
+import { cert, getApps, initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
+
+if (!getApps().length) {
+  initializeApp({ credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)) });
+}
+
+export const db = getFirestore();
+
+export async function markSeen(uid) {
+  await db.collection("users").doc(uid).set({ lastSeen: FieldValue.serverTimestamp() }, { merge: true });
+  return getAuth().getUser(uid);
+}
+$$
+
+$ fn
+import { onCall, onRequest } from "firebase-functions/https";
+import { onDocumentCreated } from "firebase-functions/firestore";
+import { onSchedule } from "firebase-functions/scheduler";
+import { defineSecret, defineString } from "firebase-functions/params";
+import { setGlobalOptions } from "firebase-functions/options";
+import * as logger from "firebase-functions/logger";
+
+setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
+
+const greeting = defineString("GREETING", { default: "Hello" });
+const apiKey = defineSecret("THIRD_PARTY_API_KEY");
+
+export const hello = onRequest((req, res) => {
+  res.send(`${greeting.value()} from Firebase`);
+});
+
+export const whoAmI = onCall((request) => {
+  return { uid: request.auth?.uid ?? null, echoed: request.data };
+});
+
+export const onPostCreated = onDocumentCreated("posts/{postId}", (event) => {
+  logger.info("new post", event.params.postId, event.data?.data());
+});
+
+export const nightly = onSchedule({ schedule: "every day 03:00", secrets: [apiKey] }, async () => {
+  logger.info("running with a key of length", apiKey.value().length);
+});
+$$

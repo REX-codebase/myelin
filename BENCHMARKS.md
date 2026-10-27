@@ -17,9 +17,11 @@ npm run bench
 | ai-sdk | 20 | 8 | 100.0% | 6 | 100.0% | 100.0% | 100.0% |
 | angular | 16 | 10 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | astro | 14 | 9 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
+| blender | 20 | 16 | 100.0% | 12 | 100.0% | 100.0% | 100.0% |
 | drizzle | 13 | 10 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | eslint | 19 | 8 | 100.0% | 6 | 100.0% | 100.0% | 100.0% |
 | express | 14 | 7 | 100.0% | 5 | 100.0% | 100.0% | 100.0% |
+| firebase | 14 | 14 | 100.0% | 10 | 100.0% | 100.0% | 100.0% |
 | mongoose | 17 | 9 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | nextjs | 20 | 12 | 100.0% | 8 | 100.0% | 100.0% | 100.0% |
 | openai | 16 | 10 | 100.0% | 6 | 100.0% | 100.0% | 100.0% |
@@ -33,7 +35,7 @@ npm run bench
 | vitest | 17 | 9 | 100.0% | 7 | 100.0% | 100.0% | 100.0% |
 | vue | 20 | 10 | 100.0% | 8 | 100.0% | 100.0% | 100.0% |
 | zod | 17 | 8 | 100.0% | 6 | 100.0% | 100.0% | 100.0% |
-| **TOTAL** | **324** | **177** | **100.0%** | **129** | **100.0%** | **100.0%** | **100.0%** |
+| **TOTAL** | **358** | **207** | **100.0%** | **151** | **100.0%** | **100.0%** | **100.0%** |
 
 - **caught**: stale files with at least one rule firing. **clean**: current files with no rule firing.
 - **rule recall / precision**: per-rule, against `expected.json`. A rule that fires where it shouldn't, or stays quiet where it should fire, counts against these.
@@ -47,9 +49,9 @@ Every ledger is run over every **other** library's current (`good/`) files. A le
 node bin/myelin.mjs bench --cross
 ```
 
-Result: **19 ledgers x other libs' good files: 2322 checks, 0 cross-library false positive(s)**
+Result: **21 ledgers x other libs' good files: 3020 checks, 0 cross-library false positive(s)**
 
-This test found real problems during development (Next.js's `params.x` rule firing on React Router and SvelteKit loaders, ESLint's `plugins: [` rule firing on Vite configs, Svelte's `<slot>` rule firing on Vue). Each was fixed in the rule, not the corpus.
+This test found real problems during development (Next.js's `params.x` rule firing on React Router and SvelteKit loaders, ESLint's `plugins: [` rule firing on Vite configs, Svelte's `<slot>` rule firing on Vue, and Next.js's `params.x` rule firing on Firebase Functions' `event.params.postId`). Each was fixed in the rule, not the corpus.
 
 ## 3. In the wild: official example code
 
@@ -100,7 +102,7 @@ Lint and three.js agreed on all 18 pages: every runtime deprecation warning matc
 npm run bench:derive     # installs ~1 GB of pinned libraries and clones the example corpora into .derive/
 ```
 
-**Against the labelled corpus** (test 1's files):
+**Against the labelled corpus** (test 1's files for the 19 npm libraries installed here: 177 stale, 129 current; the Firebase and Blender ledgers are not part of it):
 
 | | stale files caught | current files flagged |
 |---|---|---|
