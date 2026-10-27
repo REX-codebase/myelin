@@ -468,3 +468,42 @@ test('output order does not depend on the machine\'s locale', () => {
   const src = readFileSync(new URL('../src/derive.mjs', import.meta.url), 'utf8') + readFileSync(new URL('../src/derive-cli.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(src, /localeCompare/);
 });
+
+test('a re-export chain tens of thousands of files long cannot overflow the stack', () => {
+  const root = mkdtempSync(join(tmpdir(), 'myelin-chain-'));
+  tmps.push(root);
+  write(root, 'package.json', { name: 'app', dependencies: { chain: '1' } });
+  const files = {};
+  const N = 30000;
+  for (let i = 0; i < N; i++) files[`f${i}.d.ts`] = i === N - 1 ? '/** @deprecated Use `x`. */\nexport declare function deep(): void;' : `export * from './f${i + 1}';`;
+  pkg(root, 'chain', { types: './f0.d.ts' }, files);
+  const r = derive(root);
+  assert.ok(!r.error, r.error);
+  assert.ok(r.notes.truncated.includes('chain'), 'it stops at its budget and says so');
+});
+
+test('the same name deprecated in two ambient modules gives two rules, each gated on its own module', () => {
+  const root = mkdtempSync(join(tmpdir(), 'myelin-ambient-'));
+  tmps.push(root);
+  write(root, 'package.json', { name: 'app', dependencies: { twin: '1' } });
+  pkg(root, 'twin', { types: 'index.d.ts' }, {
+    'index.d.ts': `
+declare module "alpha" {
+    /** @deprecated Use \`fresh\`. */
+    function legacyCall(): void;
+    function fresh(): void;
+}
+declare module "beta" {
+    /** @deprecated Use \`fresh\`. */
+    function legacyCall(): void;
+}
+`,
+  });
+  const r = derive(root);
+  assert.ok(!r.error, r.error);
+  assert.deepEqual(r.rules.map((x) => x.id).sort(), ['alpha-legacyCall', 'beta-legacyCall']);
+  const l = parse(r.text);
+  assert.deepEqual(check(l, [{ name: 'a.js', text: "const a = require('alpha');\na.legacyCall();" }]).violations.map((v) => v.id), ['alpha-legacyCall']);
+  assert.deepEqual(check(l, [{ name: 'a.js', text: "const b = require('beta');\nb.legacyCall();" }]).violations.map((v) => v.id), ['beta-legacyCall']);
+  assert.match(r.rules.find((x) => x.id === 'beta-legacyCall').message, /^`beta\.legacyCall\(\)`/, 'the label names the module it is deprecated in');
+});

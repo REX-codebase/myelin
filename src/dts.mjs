@@ -284,7 +284,7 @@ export function edges(text, views = strip(text)) {
   // bottom (`import { a as b } from "./chunk.js"; ... export { b }`). Only such a file's imports
   // are edges; in an ordinary file an import is just a type it uses, not something it exposes.
   let localList = false;
-  for (const m of plain.matchAll(/\bexport\s+(?:type\s+)?\{[^}]*\}\s*(from\b)?/g)) if (!m[1]) localList = true;
+  for (const m of plain.matchAll(/\bexport\s+(?:type\s+)?\{\s*([^}\s][^}]*)\}\s*(from\b)?/g)) if (!m[2]) localList = true; // `export {}` is only a module marker
   if (localList) {
     for (const m of plain.matchAll(/\bimport\s+(?:type\s+)?(?:[^'";]*?\bfrom\s*)?(["'])(\.{1,2}\/[^"']*)\1/g)) relative.add(m[2]);
   }

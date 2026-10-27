@@ -40,3 +40,20 @@ Keep judgment in a skill and hard rules in a ledger. [`integrations/skill-bridge
 - It cannot prove the output is correct, only that it avoids and includes certain text.
 - It cannot make a model comply. The linter does that, by failing the check.
 - Discovery is on you. Nothing finds a `.myelin` file on its own.
+
+## Docs tools, hooks and ledgers
+
+There is a third approach to stale code: put the current documentation in front of the model (an MCP docs server, `llms.txt`, an indexed docs site). That is retrieval, and it helps. Two things it does not do:
+
+- **Check the result.** The model can still ignore the page, misread it, or prefer what it memorised. Nothing runs after it writes.
+- **Read your lockfile.** Some tools can fetch docs for a named version, but the version is something the model or the user has to name. The one that matters is already in `node_modules`.
+
+A ledger is a different shape: short, checkable, and it runs afterwards. `myelin derive` takes the version question from the library itself (its own `@deprecated` tags, as installed), and `myelin hook` removes the dependence on the model remembering to run anything. They are not substitutes for each other. Retrieval is how a model learns the new API; the hook is how you find out it used the old one anyway.
+
+| | docs retrieval | prose rules (`AGENTS.md`, skills) | ledger + hook |
+|---|---|---|---|
+| Puts current knowledge in context | yes | yes | yes (rules for the packages you use) |
+| Knows the installed version | if you name it | no | yes, for derived ledgers |
+| Checks what the model wrote | no | no | yes, after every edit |
+| Works if the model forgets | no | no | yes: the host runs it |
+| Cost when nothing is wrong | tokens per lookup | tokens every session | about 0.2 s per edit |

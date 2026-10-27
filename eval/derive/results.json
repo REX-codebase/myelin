@@ -1,11 +1,11 @@
 {
   "derive": {
-    "ms": 3397,
-    "rules": 384,
-    "deprecatedApis": 816,
-    "leftOut": 409,
+    "ms": 2502,
+    "rules": 389,
+    "deprecatedApis": 810,
+    "leftOut": 403,
     "packages": 25,
-    "files": 3111
+    "files": 2968
   },
   "labelled": {
     "libs": [
@@ -156,7 +156,7 @@
       }
     ],
     "ceilingStaleFlagged": 48,
-    "ceilingCurrentFlagged": 34
+    "ceilingCurrentFlagged": 33
   },
   "wild": [
     {
@@ -435,6 +435,140 @@
         "react-React-FormEventHandler": 1,
         "react-React-MutableRefObject": 2
       }
+    },
+    {
+      "app": "shadcn-ui",
+      "commit": "96da9cc7f1aa",
+      "files": 1515,
+      "filesFlagged": 15,
+      "hits": [
+        {
+          "file": "apps/v4/registry/bases/aria/examples/code-block-example.tsx",
+          "line": 95,
+          "rule": "ai-StreamTextResult-toUIMessageStreamResponse",
+          "text": "return result.toUIMessageStreamResponse()"
+        },
+        {
+          "file": "apps/v4/registry/bases/aria/examples/combobox-example.tsx",
+          "line": 786,
+          "rule": "react-React-FormEvent",
+          "text": "const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {"
+        },
+        {
+          "file": "apps/v4/registry/bases/aria/examples/message-scroller-example.tsx",
+          "line": 131,
+          "rule": "react-React-FormEvent",
+          "text": "function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {"
+        },
+        {
+          "file": "apps/v4/registry/bases/aria/examples/questionnaire-example.tsx",
+          "line": 457,
+          "rule": "react-React-FormEvent",
+          "text": "function handleSubmit(event: React.FormEvent<HTMLFormElement>) {"
+        },
+        {
+          "file": "apps/v4/registry/bases/base/examples/code-block-example.tsx",
+          "line": 96,
+          "rule": "ai-StreamTextResult-toUIMessageStreamResponse",
+          "text": "return result.toUIMessageStreamResponse()"
+        },
+        {
+          "file": "apps/v4/registry/bases/base/examples/combobox-example.tsx",
+          "line": 774,
+          "rule": "react-React-FormEvent",
+          "text": "const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {"
+        },
+        {
+          "file": "apps/v4/registry/bases/base/examples/message-scroller-example.tsx",
+          "line": 131,
+          "rule": "react-React-FormEvent",
+          "text": "function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {"
+        },
+        {
+          "file": "apps/v4/registry/bases/base/examples/questionnaire-example.tsx",
+          "line": 460,
+          "rule": "react-React-FormEvent",
+          "text": "function handleSubmit(event: React.FormEvent<HTMLFormElement>) {"
+        },
+        {
+          "file": "apps/v4/registry/bases/radix/blocks/preview-03/components/prompt-input.tsx",
+          "line": 43,
+          "rule": "react-React-FormEvent",
+          "text": "function handleFormSubmit(event: React.FormEvent<HTMLFormElement>) {"
+        },
+        {
+          "file": "apps/v4/registry/bases/radix/examples/code-block-example.tsx",
+          "line": 96,
+          "rule": "ai-StreamTextResult-toUIMessageStreamResponse",
+          "text": "return result.toUIMessageStreamResponse()"
+        },
+        {
+          "file": "apps/v4/registry/bases/radix/examples/combobox-example.tsx",
+          "line": 737,
+          "rule": "react-React-FormEvent",
+          "text": "const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {"
+        },
+        {
+          "file": "apps/v4/registry/bases/radix/examples/message-scroller-example.tsx",
+          "line": 131,
+          "rule": "react-React-FormEvent",
+          "text": "function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {"
+        },
+        {
+          "file": "apps/v4/registry/bases/radix/examples/questionnaire-example.tsx",
+          "line": 460,
+          "rule": "react-React-FormEvent",
+          "text": "function handleSubmit(event: React.FormEvent<HTMLFormElement>) {"
+        },
+        {
+          "file": "apps/v4/registry/new-york-v4/examples/form-rhf-array.tsx",
+          "line": 39,
+          "rule": "zod-ZodString-email",
+          "text": "address: z.string().email(\"Enter a valid email address.\"),"
+        },
+        {
+          "file": "apps/v4/registry/new-york-v4/examples/form-tanstack-array.tsx",
+          "line": 39,
+          "rule": "zod-ZodString-email",
+          "text": "address: z.string().email(\"Enter a valid email address.\"),"
+        }
+      ],
+      "byRule": {
+        "ai-StreamTextResult-toUIMessageStreamResponse": 3,
+        "react-React-FormEvent": 10,
+        "zod-ZodString-email": 2
+      }
+    },
+    {
+      "app": "tanstack-query",
+      "commit": "2941a23d5796",
+      "files": 243,
+      "filesFlagged": 2,
+      "hits": [
+        {
+          "file": "examples/react/nextjs-app-optimistic-updates/components/TodoListCache.tsx",
+          "line": 67,
+          "rule": "react-React-FormEvent",
+          "text": "function handleSubmit(e: React.FormEvent) {"
+        },
+        {
+          "file": "examples/react/nextjs-app-optimistic-updates/components/TodoListUI.tsx",
+          "line": 23,
+          "rule": "react-React-FormEvent",
+          "text": "function handleSubmit(e: React.FormEvent) {"
+        }
+      ],
+      "byRule": {
+        "react-React-FormEvent": 2
+      }
+    },
+    {
+      "app": "openai-node",
+      "commit": "60224b376e25",
+      "files": 56,
+      "filesFlagged": 0,
+      "hits": [],
+      "byRule": {}
     }
   ]
 }

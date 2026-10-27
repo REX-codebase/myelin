@@ -6,13 +6,14 @@
 //   node eval/derive/run.mjs [dir]    # dir defaults to .derive
 //   node eval/derive/run.mjs --json   # machine-readable
 //   node eval/derive/run.mjs --write  # also refresh eval/derive/results.json
+//   node eval/derive/run.mjs --check  # exit 1 if any figure differs from the committed results.json
 //
 // Four measurements, each with the way it can mislead:
 //   1 labelled corpus   stale files caught / current files flagged, against libs/*/bench
 //   2 ceiling           the same corpus against EVERY deprecated name matched loosely. No deprecation-based
 //                       approach can do better than this, so it bounds what derive could ever recover.
 //   3 official examples old and current example code (eval/wild), derived vs curated ledgers
-//   4 real apps         two open-source apps, SOURCE ONLY (their dependencies are never installed)
+//   4 real code bases   five open-source repos pinned to a commit, SOURCE ONLY (their dependencies are never installed)
 import { readFileSync, readdirSync, statSync, existsSync, writeFileSync } from 'node:fs';
 import { join, extname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -151,7 +152,7 @@ const wild = SUITES.map((s) => {
 
 // ---- 4: real apps, source only -------------------------------------------------------------------
 
-const APPS = ['taxonomy', 'ai-chatbot'];
+const APPS = ['taxonomy', 'ai-chatbot', 'shadcn-ui', 'tanstack-query', 'openai-node'];
 const apps = APPS.map((name) => {
   const root = join(DIR, 'apps', name);
   const files = walk(root, ['ts', 'tsx', 'js', 'jsx'], null);
@@ -180,10 +181,33 @@ else {
   console.log('\n3  official examples');
   for (const w of wild) console.log(`   ${w.kind.padEnd(7)} ${w.label.padEnd(36)} ${String(w.files).padStart(4)} files  derived ${String(w.derivedFlagged).padStart(3)}  curated ${String(w.curatedFlagged).padStart(3)}  both ${String(w.both).padStart(3)}  derived only ${String(w.derivedOnly).padStart(3)}`);
   for (const w of wild.filter((x) => x.kind === 'current')) for (const h of w.derivedHits) console.log(`     ${h.file}:${h.line} ${h.rule}  ${h.text}`);
-  console.log('\n4  real apps (source only)');
+  console.log('\n4  real code bases (source only)');
   for (const a of apps) {
     console.log(`   ${a.app.padEnd(12)} ${a.files} files, ${a.filesFlagged} flagged, ${a.hits.length} hits: ${Object.entries(a.byRule).map(([k, v]) => `${k}×${v}`).join('  ')}`);
     for (const h of a.hits) console.log(`     ${h.file}:${h.line} ${h.rule}  ${h.text}`);
   }
 }
 if (args.includes('--write')) writeFileSync(join(ROOT, 'eval', 'derive', 'results.json'), JSON.stringify(out, null, 2) + '\n');
+
+// --check: the committed results are the contract. A change to the generator that moves a number has to
+// say so by refreshing results.json (and the prose that quotes it) in the same change.
+if (args.includes('--check')) {
+  const flat = (o, pre = '', acc = {}) => {
+    for (const [k, v] of Object.entries(o)) {
+      if (k === 'ms') continue; // timing is not a result
+      if (v && typeof v === 'object') flat(v, `${pre}${k}.`, acc);
+      else acc[pre + k] = v;
+    }
+    return acc;
+  };
+  const want = flat(JSON.parse(read(join(ROOT, 'eval', 'derive', 'results.json'))));
+  const got = flat(JSON.parse(JSON.stringify(out)));
+  const moved = [...new Set([...Object.keys(want), ...Object.keys(got)])].filter((k) => want[k] !== got[k]).sort();
+  if (moved.length) {
+    console.error(`\nthe derive benchmark moved from eval/derive/results.json (${moved.length} figure(s)):`);
+    for (const k of moved.slice(0, 40)) console.error(`  ${k}: ${JSON.stringify(want[k])} -> ${JSON.stringify(got[k])}`);
+    console.error('If the change is intended, run with --write and update BENCHMARKS.md and docs/DERIVE.md to match.');
+    process.exit(1);
+  }
+  console.log('\nthe derive benchmark matches eval/derive/results.json');
+}

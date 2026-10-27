@@ -180,7 +180,7 @@ myelin lint derived,react src/
 myelin hook install                 # Claude Code checks every edit it makes, without being asked
 ```
 
-Run on two open-source apps, as text, with nothing set up:
+Run on five open-source code bases (2,097 files), read as text, with nothing set up:
 
 ```
 FAIL react-React-ElementRef  components/ui/dialog.tsx:27  `React.ElementRef` is deprecated in @types/react@19.3.0. Use `ComponentRef<T>` instead.
@@ -188,14 +188,14 @@ FAIL zod-ZodString-email     lib/validations/auth.ts:4    `ZodString.email()` is
 FAIL react-React-FormEvent   components/ai-elements/prompt-input.tsx:9  `React.FormEvent` is deprecated in @types/react@19.3.0. Use one of `ChangeEvent`, `InputEvent`, `SubmitEvent` or `SyntheticEvent` instead.
 ```
 
-30 findings in 283 files, every one a real use of a deprecated API, none a compile error, so `tsc` says nothing. It is built to miss a rule rather than raise a false alarm: each rule is gated on the file importing the package, there is never a bare-name match, and a name that is also live somewhere else is dropped or narrowed (`z.string().email()` is flagged; `z.email()` is not). `myelin derive --explain` lists every API it left out and why.
+47 findings in 46 files, every one a real use of a deprecated API and none a compile error, so `tsc` says nothing. Even the maintained shadcn/ui registry and TanStack Query's own examples still use `React.FormEvent`. It is built to miss a rule rather than raise a false alarm: each rule is gated on the file importing the package, there is never a bare-name match, and a name that is also live somewhere else is dropped or narrowed (`z.string().email()` is flagged; `z.email()` is not). `myelin derive --explain` lists every API it left out and why.
 
 | | curated ledgers | derived ledger |
 |---|---|---|
 | Covers | 19 libraries | any library with types |
 | Version | the one researched | **the one installed** |
 | Knows | removed and changed APIs, config, CSS | APIs that still work but are deprecated |
-| Recall on the corpus above | 100% | 8.5% (the ceiling for deprecation tags is 27%) |
+| Stale files caught, of the 177 in this repo's corpus | 100% | 8.5% (no approach built on deprecation tags can pass 27%) |
 
 They find different things. On Next.js 16.4.3's own examples they flag different files, with none in common. Use both. How it works, what it cannot do, and the safety model: **[docs/DERIVE.md](docs/DERIVE.md)**.
 
@@ -203,7 +203,7 @@ They find different things. On Next.js 16.4.3's own examples they flag different
 
 ## Evidence
 
-Five tests, all reproducible from this repo. The first three ask: does a ledger flag stale code and leave current code alone? The last two ask: does a model given a ledger write less of it?
+Seven tests, all reproducible from this repo. The first three ask: does a ledger flag stale code and leave current code alone? The next two ask: does a model given a ledger write less of it? The last two are about derived ledgers and hooks.
 
 <p align="center"><img src="assets/bench.svg" alt="Benchmark results" width="100%"></p>
 
@@ -214,6 +214,8 @@ Five tests, all reproducible from this repo. The first three ask: does a ledger 
 | **Official examples, untouched**<br><sub>upstream repos, old release vs current</sub> | three.js r150: 97.8% flagged. three.js r186: 0.4% flagged (1 of 230, an old API in a comment). Next.js 16.4.3's own examples: 19 genuine pre-16 patterns. |
 | **Agent A/B**<br><sub>bonfire scene, GLM 5.3, 2 agents per arm</sub> | Unguided: both used two removed APIs. Guided: neither did. |
 | **Agent A/B**<br><sub>lighthouse + neon street, Claude Haiku 5.5, 6 agents per arm</sub> | Unguided: 5 of 6 used a stale API. Prose skill and Myelin: 0 of 6 each. Lint matched three.js's runtime warnings on all 18 pages. |
+| **Derived ledger**<br><sub>corpus, official examples, 5 real code bases (2,097 files)</sub> | Catches 15 of 177 stale files (no deprecation-based approach can pass 48), flags 1 of 129 current files, a genuine deprecation. On real code: 47 findings, all read, all genuine. 0 on current three.js r186 examples. |
+| **Hook A/B**<br><sub>real Claude Code, 3 tasks, 9 runs per arm</sub> | Unguided: 9 of 9 final files used a deprecated API. With the hook: 0 of 9. With the hook and the session brief: 0 of 9 first drafts. |
 
 <p align="center"><img src="assets/bonfire-ab.png" alt="The same bonfire task, built by agents with no guidance, a prose skill, and the Myelin gate plus lint" width="100%"></p>
 

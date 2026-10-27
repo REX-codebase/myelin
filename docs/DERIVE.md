@@ -96,6 +96,8 @@ This adds two hooks for Claude Code:
   Only bans are checked (a requirement cannot be judged from a fragment), curated rules win over derived ones on the same line, and findings are capped at 12.
 - **At session start**, `myelin hook session` prints the rules that apply to the packages you actually use, as sentences, within a budget (`--budget=4000` characters). The model hears about them before it writes anything.
 
+In 27 runs of the real Claude Code CLI, an unguided model wrote a deprecated API in 9 of 9 final files; with the hook, 0 of 9, each corrected in the following turn; with the session brief as well, 0 of 9 first drafts needed correcting ([BENCHMARKS](../BENCHMARKS.md#7-hook-ab-does-a-hook-change-what-an-agent-ships-claude-code)). The brief is cut to a character budget, so in a project with many dependencies it will not list every rule; the hook does not depend on it.
+
 A hook never gets in the way. A bad payload, an unreadable file, a broken ledger, a tool that is not an edit, a file outside the project: every one of them is exit 0 and silence (`MYELIN_DEBUG=1` shows why, `MYELIN_HOOK=off` turns the hook off). The installed command also does nothing where `myelin` is not on `PATH`, so a teammate without it is not broken by a committed `settings.json`.
 
 For other agents there is no installer, because each host has its own hook format. The same check is `myelin lint derived,<libs> <files>`: use it from that host's hook, a pre-commit hook or CI.

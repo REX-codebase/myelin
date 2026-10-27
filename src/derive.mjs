@@ -8,9 +8,13 @@
 // The rules are only as good as the tags, and they match by name, not by type. So the
 // generator is built to prefer a missed rule over a false alarm:
 //   - every rule is gated on the file importing the package (`when`);
-//   - a name that is also declared, live, somewhere in the same public surface is narrowed to
-//     the one syntax that cannot mean the live thing, or dropped;
-//   - ubiquitous names (`map`, `name`, `type`, `then`) are never turned into rules.
+//   - there is never a bare-identifier match: a name is matched where it is imported, reached
+//     through an object, called on a call result, or used as a key or a JSX prop;
+//   - a name that is also declared, live, in the same surface, on a sibling subpath or in another
+//     installed package is narrowed to the one syntax that cannot mean the live thing, guarded
+//     with `unless`, or dropped;
+//   - names the language owns (`map`, `then`, `async`) are never rules, and plain words (`name`,
+//     `page`, `resolution`) only in the strictest shape.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -19,7 +23,7 @@ import { surface, findPackage, typesNameFor, typesTarget, pkgNameOf, SAFE_SPEC }
 import { pkgVersion, cmp } from './util.mjs';
 import { parse } from './parse.mjs';
 
-// ---- which names are too common to match by name --------------------------------------------
+// ---- which names cannot be matched by name alone ----------------------------------------------
 
 // Names that belong to the language or its standard objects (`map`, `then`, `toString`): never a rule.
 const BUILTIN = new Set();
@@ -33,8 +37,9 @@ for (const n of `async await break case catch class const continue debugger defa
   for function if implements import in instanceof interface let new null package private protected public return static super
   switch this throw true try typeof var void while with yield of from as type declare namespace module abstract readonly
   require exports undefined NaN Infinity globalThis window document console process`.split(/\s+/)) BUILTIN.add(n);
-// Words every codebase uses for its own things (`name`, `data`, `run`). Matching one as a bare
-// property or call would fire on the project's own code, so only a call on a call result may use it.
+// Words every codebase uses for its own things (`name`, `data`, `run`). A rule on one as a property
+// would fire on the project's own code, so a property never matches on one, and a method only as a
+// call on a call result.
 const GENERIC = new Set(`id key name type value data text size mode path port host url uri src href
   options option config props state event error result input output index length count items list label title
   style class className children default listener handler callback args params query body headers status
@@ -147,7 +152,7 @@ const readJson = (p) => {
 // Workspace members of a monorepo root: npm and yarn list them in package.json, pnpm in pnpm-workspace.yaml.
 // Only plain `dir` and `dir/*` patterns are understood; anything cleverer is skipped, not guessed at.
 function workspaceManifests(dir, pkg) {
-  let patterns = Array.isArray(pkg.workspaces) ? pkg.workspaces : Array.isArray(pkg.workspaces?.packages) ? pkg.workspaces.packages : [];
+  const patterns = [...(Array.isArray(pkg.workspaces) ? pkg.workspaces : Array.isArray(pkg.workspaces?.packages) ? pkg.workspaces.packages : [])];
   try {
     const yaml = readFileSync(join(dir, 'pnpm-workspace.yaml'), 'utf8');
     const block = yaml.split(/^packages\s*:\s*$/m)[1] || '';
@@ -215,8 +220,8 @@ function mergeDeclarations(surf) {
   for (const [file, gates] of surf.gates) {
     const sc = surf.scans.get(file);
     for (const d of sc.decls) {
-      const key = [d.container || '', d.name, d.member].join('|');
       if (d.module && !SAFE_SPEC.test(d.module)) continue;
+      const key = [d.module || '', d.container || '', d.name, d.member].join('|');
       let m = merged.get(key);
       if (!m) merged.set(key, (m = { ...d, specs: new Set(), scopes: new Set(), pkg: sc.pkg }));
       if (d.module) aliasesOf(d.module).forEach((a) => m.specs.add(a));

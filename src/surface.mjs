@@ -4,7 +4,7 @@
 // package, and a deprecation in one says nothing about the other. So derivation does not scan a
 // package directory. It starts at the entry files the package advertises (`exports`, `types`),
 // follows re-exports, and remembers the specifier ("gate") each file was reached through.
-import { existsSync, readFileSync, readdirSync, statSync, realpathSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, realpathSync } from 'node:fs';
 import { join, dirname, resolve, basename } from 'node:path';
 import { analyze } from './dts.mjs';
 
@@ -178,30 +178,34 @@ export function surface(roots, { cache = new Map() } = {}) {
     return result;
   };
 
-  const visit = (file, gate, hops) => {
-    const key = file + '\0' + gate;
-    if (seen.has(key)) return;
-    if (++visits > MAX_VISITS_PER_ROOT) {
-      budgetHit = true;
-      return;
-    }
-    seen.add(key);
-    const s = scan(file);
-    if (!s) return;
-    if (!gates.has(file)) gates.set(file, new Set());
-    gates.get(file).add(gate);
-    if (!scope.has(gate)) scope.set(gate, new Set());
-    scope.get(gate).add(file);
-    for (const rel of s.edges.relative) {
-      const next = resolveCached(file, rel);
-      if (next) visit(next, gate, hops);
-    }
-    if (hops >= MAX_PACKAGE_HOPS) return;
-    for (const spec of s.edges.bare) {
-      const dir = findPackage(dirname(file), pkgNameOf(spec));
-      if (!dir) continue;
-      const entries = packageEntries(dir).get(subOf(spec)) || [];
-      for (const e of entries) visit(e, gate, hops + 1);
+  // A worklist, not recursion: a re-export chain is as long as a package makes it.
+  const visit = (start, gate, startHops) => {
+    const work = [[start, startHops]];
+    while (work.length) {
+      const [file, hops] = work.pop();
+      const key = file + '\0' + gate;
+      if (seen.has(key)) continue;
+      if (++visits > MAX_VISITS_PER_ROOT) {
+        budgetHit = true;
+        return;
+      }
+      seen.add(key);
+      const s = scan(file);
+      if (!s) continue;
+      if (!gates.has(file)) gates.set(file, new Set());
+      gates.get(file).add(gate);
+      if (!scope.has(gate)) scope.set(gate, new Set());
+      scope.get(gate).add(file);
+      for (const rel of s.edges.relative) {
+        const next = resolveCached(file, rel);
+        if (next) work.push([next, hops]);
+      }
+      if (hops >= MAX_PACKAGE_HOPS) continue;
+      for (const spec of s.edges.bare) {
+        const dir = findPackage(dirname(file), pkgNameOf(spec));
+        if (!dir) continue;
+        for (const e of packageEntries(dir).get(subOf(spec)) || []) work.push([e, hops + 1]);
+      }
     }
   };
 

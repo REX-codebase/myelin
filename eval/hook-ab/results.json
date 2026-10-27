@@ -1,0 +1,391 @@
+{
+  "reps": 3,
+  "summary": {
+    "none": {
+      "runs": 9,
+      "firstDraftStale": 9,
+      "finalStale": 9
+    },
+    "post": {
+      "runs": 9,
+      "firstDraftStale": 9,
+      "finalStale": 0
+    },
+    "both": {
+      "runs": 9,
+      "firstDraftStale": 0,
+      "finalStale": 0
+    }
+  },
+  "runs": [
+    {
+      "task": "form",
+      "arm": "none",
+      "rep": 1,
+      "seconds": 14,
+      "writes": 0,
+      "firstDraft": [
+        "react-React-FormEvent"
+      ],
+      "final": [
+        "react-React-FormEvent"
+      ],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "form",
+      "arm": "none",
+      "rep": 2,
+      "seconds": 26,
+      "writes": 0,
+      "firstDraft": [
+        "react-React-FormEvent"
+      ],
+      "final": [
+        "react-React-FormEvent"
+      ],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "form",
+      "arm": "none",
+      "rep": 3,
+      "seconds": 10,
+      "writes": 0,
+      "firstDraft": [
+        "react-React-FormEvent"
+      ],
+      "final": [
+        "react-React-FormEvent"
+      ],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "form",
+      "arm": "post",
+      "rep": 1,
+      "seconds": 23,
+      "writes": 1,
+      "firstDraft": [
+        "react-React-FormEvent"
+      ],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "form",
+      "arm": "post",
+      "rep": 2,
+      "seconds": 21,
+      "writes": 1,
+      "firstDraft": [
+        "react-React-FormEvent"
+      ],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "form",
+      "arm": "post",
+      "rep": 3,
+      "seconds": 38,
+      "writes": 1,
+      "firstDraft": [
+        "react-React-FormEvent"
+      ],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "form",
+      "arm": "both",
+      "rep": 1,
+      "seconds": 14,
+      "writes": 1,
+      "firstDraft": [],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "form",
+      "arm": "both",
+      "rep": 2,
+      "seconds": 16,
+      "writes": 1,
+      "firstDraft": [],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "form",
+      "arm": "both",
+      "rep": 3,
+      "seconds": 12,
+      "writes": 1,
+      "firstDraft": [],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "label",
+      "arm": "none",
+      "rep": 1,
+      "seconds": 16,
+      "writes": 0,
+      "firstDraft": [
+        "react-React-ElementRef"
+      ],
+      "final": [
+        "react-React-ElementRef"
+      ],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "label",
+      "arm": "none",
+      "rep": 2,
+      "seconds": 16,
+      "writes": 0,
+      "firstDraft": [
+        "react-React-ElementRef"
+      ],
+      "final": [
+        "react-React-ElementRef"
+      ],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "label",
+      "arm": "none",
+      "rep": 3,
+      "seconds": 9,
+      "writes": 0,
+      "firstDraft": [
+        "react-React-ElementRef"
+      ],
+      "final": [
+        "react-React-ElementRef"
+      ],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "label",
+      "arm": "post",
+      "rep": 1,
+      "seconds": 14,
+      "writes": 1,
+      "firstDraft": [
+        "react-React-ElementRef"
+      ],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "label",
+      "arm": "post",
+      "rep": 2,
+      "seconds": 28,
+      "writes": 1,
+      "firstDraft": [
+        "react-React-ElementRef"
+      ],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "label",
+      "arm": "post",
+      "rep": 3,
+      "seconds": 15,
+      "writes": 1,
+      "firstDraft": [
+        "react-React-ElementRef"
+      ],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "label",
+      "arm": "both",
+      "rep": 1,
+      "seconds": 17,
+      "writes": 1,
+      "firstDraft": [],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "label",
+      "arm": "both",
+      "rep": 2,
+      "seconds": 13,
+      "writes": 1,
+      "firstDraft": [],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "label",
+      "arm": "both",
+      "rep": 3,
+      "seconds": 12,
+      "writes": 1,
+      "firstDraft": [],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "schema",
+      "arm": "none",
+      "rep": 1,
+      "seconds": 11,
+      "writes": 0,
+      "firstDraft": [
+        "zod-ZodString-email",
+        "zod-ZodString-url",
+        "zod-ZodString-uuid"
+      ],
+      "final": [
+        "zod-ZodString-email",
+        "zod-ZodString-url",
+        "zod-ZodString-uuid"
+      ],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "schema",
+      "arm": "none",
+      "rep": 2,
+      "seconds": 12,
+      "writes": 0,
+      "firstDraft": [
+        "zod-ZodString-email",
+        "zod-ZodString-url",
+        "zod-ZodString-uuid"
+      ],
+      "final": [
+        "zod-ZodString-email",
+        "zod-ZodString-url",
+        "zod-ZodString-uuid"
+      ],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "schema",
+      "arm": "none",
+      "rep": 3,
+      "seconds": 13,
+      "writes": 0,
+      "firstDraft": [
+        "zod-ZodString-email",
+        "zod-ZodString-url",
+        "zod-ZodString-uuid"
+      ],
+      "final": [
+        "zod-ZodString-email",
+        "zod-ZodString-url",
+        "zod-ZodString-uuid"
+      ],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "schema",
+      "arm": "post",
+      "rep": 1,
+      "seconds": 15,
+      "writes": 1,
+      "firstDraft": [
+        "zod-ZodString-email",
+        "zod-ZodString-url",
+        "zod-ZodString-uuid"
+      ],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "schema",
+      "arm": "post",
+      "rep": 2,
+      "seconds": 20,
+      "writes": 2,
+      "firstDraft": [
+        "zod-ZodString-email",
+        "zod-ZodString-url",
+        "zod-ZodString-uuid"
+      ],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "schema",
+      "arm": "post",
+      "rep": 3,
+      "seconds": 25,
+      "writes": 2,
+      "firstDraft": [
+        "zod-ZodString-email",
+        "zod-ZodString-url",
+        "zod-ZodString-uuid"
+      ],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "schema",
+      "arm": "both",
+      "rep": 1,
+      "seconds": 13,
+      "writes": 1,
+      "firstDraft": [],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "schema",
+      "arm": "both",
+      "rep": 2,
+      "seconds": 13,
+      "writes": 1,
+      "firstDraft": [],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    },
+    {
+      "task": "schema",
+      "arm": "both",
+      "rep": 3,
+      "seconds": 12,
+      "writes": 1,
+      "firstDraft": [],
+      "final": [],
+      "wrote": true,
+      "exit": 0
+    }
+  ]
+}

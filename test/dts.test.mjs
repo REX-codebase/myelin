@@ -276,4 +276,5 @@ declare const own: 1;
 export { Base as Thing, helper, own };`;
   assert.deepEqual(edges(t).relative.sort(), ['../shared', './chunk-A.js'].sort());
   assert.deepEqual(edges('import { a } from "./a.js";\nexport { b } from "./b.js";').relative, ['./b.js'], 'export-from lists do not count as local lists');
+  assert.deepEqual(edges('import { a } from "./a.js";\ndeclare const x: a;\nexport {};').relative, [], '`export {}` is a module marker, not a list');
 });
