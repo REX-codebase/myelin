@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { builtinModules } from 'node:module';
-import { surface, findPackage, typesNameFor, typesTarget, pkgNameOf } from './surface.mjs';
+import { surface, findPackage, typesNameFor, typesTarget, pkgNameOf, SAFE_SPEC } from './surface.mjs';
 import { pkgVersion } from './util.mjs';
 import { parse } from './parse.mjs';
 
@@ -63,9 +63,16 @@ export function importGate(specs, prefixes = []) {
   return `\\b(?:from|import|require)\\s*\\(?\\s*['"](?:${alt})['"]`;
 }
 
+// Every pattern below starts with the literal name and checks its surroundings afterwards with
+// bounded look-arounds. That keeps the work proportional to how often the name occurs, however
+// hostile the file (an unterminated `export { a, b,` repeated 5,000 times used to take minutes),
+// and puts the reported line on the name itself, not on the first line of a multi-line import.
+const NOT_PART_OF_WORD = (n) => `(?![\\w$])(?<![\\w$]${n})`;
+
 function importForm(name, specs) {
+  const n = esc(name);
   const alt = [...specs].sort().map(esc).join('|');
-  return `(?:import|export)\\b[^;'"]*?\\{[^}]*?${ID_L}(?<!\\bas\\s+)${esc(name)}${ID_R}[^}]*\\}\\s*from\\s*['"](?:${alt})['"]`;
+  return `${n}${NOT_PART_OF_WORD(n)}(?<!\\bas\\s+${n})(?<=(?:import|export)\\b[^;'"]{0,200}?\\{[^}]{0,4000}?${n})(?=[^}]{0,4000}\\}\\s*from\\s*['"](?:${alt})['"])`;
 }
 
 // ---- messages: never copy a package's prose into a model's context ----------------------------
@@ -130,6 +137,7 @@ export function rootsOf(dir) {
   }
   const roots = [];
   for (const name of [...names].sort()) {
+    if (!SAFE_PKG.test(name)) continue;
     const own = findPackage(dir, name);
     const types = findPackage(dir, typesNameFor(name));
     if (own) roots.push({ name, dir: own, version: readJson(join(own, 'package.json'))?.version || '' });
@@ -164,6 +172,7 @@ function mergeDeclarations(surf) {
     const sc = surf.scans.get(file);
     for (const d of sc.decls) {
       const key = [d.container || '', d.name, d.member].join('|');
+      if (d.module && !SAFE_SPEC.test(d.module)) continue;
       let m = merged.get(key);
       if (!m) merged.set(key, (m = { ...d, specs: new Set(), scopes: new Set(), pkg: sc.pkg }));
       if (d.module) aliasesOf(d.module).forEach((a) => m.specs.add(a));
@@ -280,8 +289,8 @@ function shapeOf(d, family, rival, exactOnly = false) {
   if (rival.mem) return { why: `${rival.mem} live member(s) share this name` };
   if (rival.sym) return { why: 'a live export shares this property name' };
   if (plain || GENERIC.has(d.name)) return { why: 'a plain word is too common a property name to match without types' };
-  const binding = `\\{[^{};()]*?(?<![\\w$.])(?<!\\b(?:const|let|var|function|class|type|interface|enum)\\s+)${name}${ID_R}\\s*[,}:=]`;
-  const jsx = `<[A-Za-z][\\w.]*(?:[^<>{}]|\\{(?:[^{}]|\\{[^{}]*\\})*\\})*?\\s${ID_L}${name}${ID_R}\\s*(?:=|\\/?>|\\s)`;
+  const binding = `${name}${NOT_PART_OF_WORD(name)}(?<![\\w$.]${name})(?<!\\b(?:const|let|var|function|class|type|interface|enum)\\s+${name})(?=\\s*[,}:=])(?<=\\{[^{};()]{0,300}?${name})`;
+  const jsx = `${name}${NOT_PART_OF_WORD(name)}(?=\\s*(?:=|\\/?>|\\s))(?<=<[A-Za-z][\\w.]{0,60}(?:[^<>{}]|\\{(?:[^{}]|\\{[^{}]{0,200}\\}){0,200}\\}){0,300}?\\s${name})`;
   return { re: `\\.${name}${ID_R}|${binding}|${jsx}` };
 }
 
@@ -367,14 +376,14 @@ export function derive(dir, { only = null } = {}) {
     'myelin 1.1',
     'id      derived',
     "about   Deprecated APIs in this project's installed dependencies, read from their type declarations",
-    `fires   ${[...new Set(roots.map((r) => r.name))].slice(0, 40).join(' | ')}`,
+    `fires   ${[...new Set(roots.map((r) => r.name))].filter((n) => SAFE_PKG.test(n)).slice(0, 40).join(' | ')}`,
     'comments skip',
     'render  brief',
     'status  DERIVED, not curated. Each rule comes from a @deprecated tag in a package installed here and matches by name in files that import it. Expect misses and the odd false alarm.',
     '',
     `= generator    myelin derive ${pkgVersion()}`,
     `= fingerprint  ${fingerprint(roots)}`,
-    ...roots.map((r) => `= package      ${r.types ? '@types/' : ''}${r.name} ${r.version || 'unknown'}`),
+    ...roots.map((r) => `= package      ${r.types ? '@types/' : ''}${r.name} ${SAFE_VER.test(r.version) ? r.version : 'unknown'}`),
   ];
   const ruleLine = (r) => `! ${r.id} /${r.re}/ when /${r.when}/${r.unless ? ` unless /${r.unless}/` : ''} ${r.message}`;
   const render = (list) => {
@@ -390,7 +399,13 @@ export function derive(dir, { only = null } = {}) {
   };
 
   // A generator must never write a ledger that does not parse. Anything that fails is dropped and counted.
-  let kept = unique;
+  // A rule line must be one line. Nothing above should be able to break that; this makes sure.
+  const oneLine = (r) => !/[\r\n\u2028\u2029]/.test(ruleLine(r));
+  for (const r of unique.filter((x) => !oneLine(x))) {
+    stats.skipped.unusable++;
+    stats.skips.push({ name: r.id, reason: 'unusable', detail: 'it would not fit on one ledger line' });
+  }
+  let kept = unique.filter(oneLine);
   let text = render(kept);
   for (let pass = 0; pass < 3; pass++) {
     const bad = parse(text).problems.filter((p) => p.level === 'error');

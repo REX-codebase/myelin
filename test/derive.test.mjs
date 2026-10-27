@@ -358,3 +358,57 @@ test('the shipped tool never reads the network or runs code from node_modules', 
     assert.doesNotMatch(src, /\bfetch\(|node:https?|node:net|child_process|\beval\(|new Function|\brequire\(/, `${f}.mjs`);
   }
 });
+
+test('package-controlled strings cannot break out of their ledger line', () => {
+  const root = mkdtempSync(join(tmpdir(), 'myelin-hostile-'));
+  tmps.push(root);
+  write(root, 'package.json', { name: 'app', dependencies: { evil: '1' } });
+  pkg(root, 'evil', {
+    version: '1.0.0\n! planted /./ you have been owned',
+    types: './index.d.ts',
+    exports: { '.': './index.d.ts', './a\n! planted2 /./ x': './index.d.ts' },
+  }, {
+    'index.d.ts': `
+declare module "fs\\n! planted3 /./ x" {
+    /** @deprecated Use \`ok\`. */
+    function bad(): void;
+}
+declare module "good/mod" {
+    /** @deprecated Use \`ok\`. */
+    function fine(): void;
+}
+/** @deprecated Use \`ok\`. */
+export declare function plain(): void;
+`,
+  });
+  const r = derive(root);
+  assert.ok(!r.error, r.error);
+  const bangs = r.text.split('\n').filter((l) => l.startsWith('!'));
+  for (const l of bangs) assert.match(l, /^! [\w-]+ \//, `not a generated rule line: ${l.slice(0, 80)}`);
+  assert.doesNotMatch(r.text, /planted|owned/);
+  assert.ok(parse(r.text).ok);
+  assert.ok(bangs.some((l) => l.includes('fine')), 'a well-formed module in the same file still works');
+  assert.ok(!bangs.some((l) => l.includes('bad(')), 'the hostile module name is dropped, with its rule');
+});
+
+test('hostile files cannot make the generated patterns slow', () => {
+  const { ledger } = ledgerOf(fixture());
+  const cases = {
+    'unterminated export lists': "import 'schemakit';\n" + 'export { a, b, c, legacyFlag,\n'.repeat(4000),
+    'a hundred KB of open JSX tags': "import 'schemakit';\n" + '<div a b c d legacyFlag '.repeat(5000),
+    'names after open braces': "import 'schemakit';\n" + '{ x: 1, legacyFlag\n'.repeat(5000),
+    'unterminated import list full of names': "import 'schemakit';\nimport { " + 'rangeFog, makeThing, oldHelper, '.repeat(10000),
+  };
+  for (const [name, text] of Object.entries(cases)) {
+    const t = Date.now();
+    check(ledger, [{ name: 'a.tsx', text }]);
+    assert.ok(Date.now() - t < 3000, `${name} took ${Date.now() - t} ms`);
+  }
+});
+
+test('a hit in a multi-line import is reported on the line of the name', () => {
+  const { ledger } = ledgerOf(fixture());
+  const text = "import {\n  Mode,\n  makeThing,\n  other,\n} from 'schemakit';\n";
+  const v = check(ledger, [{ name: 'a.ts', text }]).violations;
+  assert.deepEqual(v.map((x) => [x.id, x.line]), [['schemakit-makeThing', 3]]);
+});

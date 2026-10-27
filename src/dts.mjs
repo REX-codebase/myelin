@@ -17,7 +17,7 @@ const ACCESSOR = new RegExp(`^\\s*(get|set)\\s+(?=${IDENT}\\s*[(<])`);
 
 // ---- stage 1: comments and strings -------------------------------------------------------------
 
-const blank = (s) => s.replace(/[^\n]/g, ' ');
+const blank = (s) => (s.indexOf('\n') < 0 ? ' '.repeat(s.length) : s.split('\n').map((l) => ' '.repeat(l.length)).join('\n'));
 
 /**
  * Split a declaration file into three views of the same length:
@@ -192,8 +192,8 @@ const noteOf = (body) => {
  *   note       the text after the tag
  *   line       1-based line of the tag
  */
-export function deprecations(text) {
-  const { plain, clean, docs } = strip(text);
+export function deprecations(text, views = strip(text)) {
+  const { plain, clean, docs } = views;
   if (!docs.length) return [];
   const out = [];
   const stack = [{ kind: 'top', name: null, module: null, paren: 0, angle: 0, bracket: 0 }];
@@ -273,8 +273,8 @@ export function deprecations(text) {
  *               and, in a bundled file that re-exports from a local list, its relative imports
  *   bare        `export * from "other-pkg"` (a package re-exporting another package)
  */
-export function edges(text) {
-  const { plain } = strip(text);
+export function edges(text, views = strip(text)) {
+  const { plain } = views;
   const relative = new Set();
   const bare = new Set();
   for (const m of plain.matchAll(/\bexport\s+(?:type\s+)?(?:\*(?:\s+as\s+[\w$]+)?|\{[^}]*\})\s*from\s*(["'])([^"']+)\1/g)) {
@@ -294,8 +294,8 @@ export function edges(text) {
 }
 
 /** Ambient module names a file declares: `declare module "fs" { ... }`. */
-export function modules(text) {
-  const { plain } = strip(text);
+export function modules(text, views = strip(text)) {
+  const { plain } = views;
   return [...new Set([...plain.matchAll(/\bdeclare\s+module\s+(["'])([^"']+)\1/g)].map((m) => m[2]))];
 }
 
@@ -319,8 +319,8 @@ const DECL_LINE = new RegExp(
  * is deprecated in one place and also declared elsewhere is treated as ambiguous.
  *   Map<name, { sym, fn, prop }>
  */
-export function declarationCounts(text) {
-  const { clean } = strip(text);
+export function declarationCounts(text, views = strip(text)) {
+  const { clean } = views;
   const counts = new Map();
   for (const m of clean.matchAll(DECL_LINE)) {
     const name = m[2];
@@ -332,4 +332,10 @@ export function declarationCounts(text) {
     counts.set(name, c);
   }
   return counts;
+}
+
+/** Everything the derivation needs from one declaration file, from a single pass over its text. */
+export function analyze(text) {
+  const views = strip(text);
+  return { decls: deprecations(text, views), edges: edges(text, views), counts: declarationCounts(text, views), modules: modules(text, views) };
 }

@@ -6,12 +6,15 @@
 // follows re-exports, and remembers the specifier ("gate") each file was reached through.
 import { existsSync, readFileSync, readdirSync, statSync, realpathSync } from 'node:fs';
 import { join, dirname, resolve, basename } from 'node:path';
-import { deprecations, edges, declarationCounts, modules } from './dts.mjs';
+import { analyze } from './dts.mjs';
 
 const MAX_FILE_BYTES = 6_000_000;
 const MAX_VISITS_PER_ROOT = 40_000;
 const MAX_PACKAGE_HOPS = 4;
 const DTS = /\.d\.[mc]?ts$/;
+
+// A module specifier is interpolated into a line-oriented ledger, so only plain characters pass.
+export const SAFE_SPEC = /^[A-Za-z0-9@_][\w@./:~+-]{0,120}$/;
 
 export const pkgNameOf = (spec) => (spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0]);
 export const subOf = (spec) => spec.slice(pkgNameOf(spec).length);
@@ -168,7 +171,7 @@ export function surface(roots, { cache = new Map() } = {}) {
       if (statSync(file).size > MAX_FILE_BYTES) notes.skippedLarge++;
       else {
         const text = readFileSync(file, 'utf8');
-        result = { decls: deprecations(text), edges: edges(text), counts: declarationCounts(text), modules: modules(text), pkg: pkgOf(file) };
+        result = { ...analyze(text), pkg: pkgOf(file) };
       }
     } catch {}
     cache.set(file, result);
@@ -205,7 +208,10 @@ export function surface(roots, { cache = new Map() } = {}) {
   for (const { name, dir } of roots) {
     visits = 0;
     budgetHit = false;
-    for (const [sub, files] of packageEntries(dir)) for (const f of files) visit(f, name + sub, 0);
+    for (const [sub, files] of packageEntries(dir)) {
+      if (!SAFE_SPEC.test(name + sub)) continue; // an exports key with a newline in it is not a subpath
+      for (const f of files) visit(f, name + sub, 0);
+    }
     if (budgetHit) notes.truncated.push(name);
   }
   return { gates, scope, scans: cache, notes };
