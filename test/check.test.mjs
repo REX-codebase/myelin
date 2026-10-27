@@ -120,3 +120,77 @@ test('a quote in a regex literal does not hide a comment on the same line', () =
   const r = check(ledger, [{ name: 'a.js', text: "const re = /\"/; /* Math.random() */\nconst q = /'/; // Math.random()\n" }]);
   assert.ok(r.ok, JSON.stringify(r.violations));
 });
+
+// ---- myelin 1.1: `when` and unit context ------------------------------------------------
+
+const HEAD11 = HEAD.replace('myelin 1', 'myelin 1.1');
+const guarded = parse(
+  HEAD11 +
+    '\n' +
+    String.raw`! W1 /\.email\(/ when /from\s+['"]zod['"]/   Use z.email().
+! W2 /\.url\(/ unless /\/\/ ok/ when /from\s+['"]zod['"]/   Use z.url().
+`,
+);
+
+test('myelin 1.1 ledger with when/unless is valid and exposes both guards', () => {
+  assert.ok(guarded.ok, JSON.stringify(guarded.problems));
+  assert.equal(guarded.version, 1);
+  assert.equal(guarded.minor, 1);
+  assert.equal(guarded.rules[0].when.source, String.raw`from\s+['"]zod['"]`);
+  assert.equal(guarded.rules[0].unless, null);
+  assert.ok(guarded.rules[1].when && guarded.rules[1].unless, 'guards parse in either order');
+});
+
+test('when limits a ban to units that match the guard', () => {
+  const hit = check(guarded, [{ name: 'a.ts', text: "import { z } from 'zod';\nz.string().email();" }]);
+  assert.deepEqual(hit.violations.map((v) => v.id), ['W1']);
+  assert.equal(hit.violations[0].line, 2);
+  const other = check(guarded, [{ name: 'b.ts', text: 'form.email(); // not zod' }]);
+  assert.ok(other.ok, 'the same call in a file that does not import zod is fine');
+});
+
+test('unless still lifts a guarded ban', () => {
+  const t = "import { z } from 'zod';\nz.string().url(); // ok";
+  assert.ok(check(guarded, [{ name: 'a.ts', text: t }]).ok);
+  assert.deepEqual(check(guarded, [{ name: 'a.ts', text: "import { z } from 'zod';\nz.string().url();" }]).violations.map((v) => v.id), ['W2']);
+});
+
+test('a unit context decides when/unless while only the text is matched', () => {
+  const file = "import { z } from 'zod';\n\nconst a = 1;\nz.string().email();\n";
+  const written = 'z.string().email();';
+  const r = check(guarded, [{ name: 'a.ts', text: written, context: file }]);
+  assert.deepEqual(r.violations.map((v) => v.id), ['W1'], 'the import is outside the snippet but inside the file');
+  assert.equal(r.violations[0].line, 1, 'lines are relative to the checked text');
+  const legacy = "import { z } from 'zod';\nz.string().email(); // old line the model did not touch\n";
+  assert.ok(check(guarded, [{ name: 'a.ts', text: 'const b = 2;', context: legacy }]).ok, 'old code outside the snippet is not judged');
+});
+
+test('when needs "myelin 1.1" so a 1.0 reader can never read it as message text', () => {
+  const old = parse(HEAD + '\n' + String.raw`! W1 /\.email\(/ when /zod/   msg` + '\n');
+  assert.equal(old.ok, false);
+  assert.match(old.problems.find((p) => p.level === 'error').message, /myelin 1\.1/);
+  assert.equal(parse('myelin 1.2\nid x\nabout y\nfires z\n').ok, false, 'unknown minor versions are rejected');
+  assert.equal(parse('myelin 2\nid x\nabout y\nfires z\n').ok, false);
+  assert.ok(parse('myelin 1.0\nid x\nabout y\nfires z\nstatus s\n').ok);
+});
+
+test('when is rejected on requirements and when repeated', () => {
+  const req = parse(HEAD11 + '\n' + String.raw`+ R1 /x/ when /y/   msg` + '\n');
+  assert.match(req.problems.find((p) => p.level === 'error').message, /only allowed on ! rules/);
+  const twice = parse(HEAD11 + '\n' + String.raw`! B1 /x/ when /y/ when /z/   msg` + '\n');
+  assert.match(twice.problems.find((p) => p.level === 'error').message, /twice/);
+  const open = parse(HEAD11 + '\n' + String.raw`! B1 /x/ when /y   msg` + '\n');
+  assert.match(open.problems.find((p) => p.level === 'error').message, /not closed/);
+});
+
+test('gate text and header show the guard and the 1.1 version line', () => {
+  assert.match(renderGate(guarded), /W1: .*only applies to code that matches \/from\\s\+\['"\]zod\['"\]\//);
+  assert.match(renderHeader(guarded), /^myelin 1\.1$/m);
+});
+
+test('comments skip masks the context as well as the text', () => {
+  const l = parse(HEAD11.replace('status  test', 'comments skip\nstatus  test') + '\n' + String.raw`! W1 /\.email\(/ when /from\s+['"]zod['"]/   msg` + '\n');
+  assert.ok(l.ok, JSON.stringify(l.problems));
+  const r = check(l, [{ name: 'a.ts', text: 'z.string().email();', context: "// import x from 'zod'\nz.string().email();" }]);
+  assert.ok(r.ok, 'an import that only appears in a comment does not enable the rule');
+});

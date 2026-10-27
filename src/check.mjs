@@ -1,7 +1,9 @@
 // Check text units against a parsed ledger.
-//   units: [{ name: string, text: string }]
+//   units: [{ name: string, text: string, context?: string }]
 // Bans are checked per unit. Requirements are checked against all units together.
-// An `unless` regex on a ban exempts the whole unit when it matches (unit-wide, not per call).
+// `unless` and `when` on a ban are tested against the whole unit. When a unit carries a
+// `context` (the full file) they are tested against that instead, so a host can check only
+// the text a model just wrote and still know which package the file imports.
 
 const CSTYLE = /\.(m?[jt]sx?|cjs|cts|mts|html?|svelte|vue|css|scss|less|prisma)$/i;
 
@@ -63,14 +65,28 @@ export function check(ledger, units) {
   const bans = ledger.rules.filter((r) => r.kind === 'ban');
   const reqs = ledger.rules.filter((r) => r.kind === 'require');
   if (ledger.header && ledger.header.comments === 'skip') {
-    units = units.map((u) => ({ ...u, text: maskComments(u.text, u.name) }));
+    units = units.map((u) => ({
+      ...u,
+      text: maskComments(u.text, u.name),
+      ...(u.context === undefined ? {} : { context: maskComments(u.context, u.name) }),
+    }));
   }
   const all = units.map((u) => u.text).join('\n');
 
   for (const u of units) {
+    // Many rules share one guard (a derived ledger has hundreds, all "imports zod"), so each
+    // guard regex is run once per unit.
+    const where = u.context ?? u.text;
+    const seen = new Map();
+    const holds = (g) => {
+      const key = g.flags + '/' + g.source;
+      if (!seen.has(key)) seen.set(key, g.re.test(where));
+      return seen.get(key);
+    };
     for (const r of bans) {
+      if (r.when && !holds(r.when)) continue;
       if (!r.re.test(u.text)) continue;
-      if (r.unless && r.unless.re.test(u.text)) continue;
+      if (r.unless && holds(r.unless)) continue;
       violations.push({
         id: r.id,
         kind: 'ban',

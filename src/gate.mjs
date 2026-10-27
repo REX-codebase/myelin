@@ -5,7 +5,7 @@ const lit = (x) => `/${x.source}/${x.flags}`;
 // L0: the tiny header a host can keep in every prompt.
 export function renderHeader(ledger) {
   const h = ledger.header;
-  const out = [`myelin ${ledger.version}`, `id      ${h.id}`, `about   ${h.about}`, `fires   ${h.fires.join(' | ')}`];
+  const out = [`myelin ${ledger.version}${ledger.minor ? '.' + ledger.minor : ''}`, `id      ${h.id}`, `about   ${h.about}`, `fires   ${h.fires.join(' | ')}`];
   if (h.status) out.push(`status  ${h.status}`);
   return out.join('\n');
 }
@@ -31,6 +31,7 @@ export function renderGate(ledger, { snippets = [] } = {}) {
     out.push('', 'MUST NOT (your output must not match):');
     for (const r of bans) {
       let line = `- ${r.id}: ${lit(r)} - ${r.message}`;
+      if (r.when) line += ` (only applies to code that matches ${lit(r.when)})`;
       if (r.unless) line += ` (allowed only if the output also matches ${lit(r.unless)})`;
       if (r.ref) line += ` [code: ${r.ref}]`;
       out.push(line);
